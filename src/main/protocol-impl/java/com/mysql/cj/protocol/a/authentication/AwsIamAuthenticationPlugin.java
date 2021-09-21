@@ -50,7 +50,7 @@ public class AwsIamAuthenticationPlugin extends AwsIamAuthenticationBasePlugin {
 
     NativePacketPayload bresp;
 
-    String pwd = this.authenticationToken;
+    String pwd = this.getAuthenticationToken();
 
     if (fromServer == null || pwd == null || pwd.length() == 0) {
       bresp = new NativePacketPayload(new byte[0]);

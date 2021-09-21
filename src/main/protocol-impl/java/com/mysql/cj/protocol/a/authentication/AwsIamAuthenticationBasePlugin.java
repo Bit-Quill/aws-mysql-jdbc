@@ -34,8 +34,8 @@ import com.mysql.cj.protocol.Protocol;
 import com.mysql.cj.protocol.a.NativePacketPayload;
 
 public abstract class AwsIamAuthenticationBasePlugin implements AuthenticationPlugin<NativePacketPayload> {
+  private String authenticationToken;
   protected Protocol<NativePacketPayload> protocol;
-  protected String authenticationToken;
   protected final String hostname;
   protected final int port;
   protected final String region;
@@ -57,6 +57,8 @@ public abstract class AwsIamAuthenticationBasePlugin implements AuthenticationPl
     return true;
   }
 
+  public abstract String getProtocolPluginName();
+
   public AwsIamAuthenticationBasePlugin(String hostname, int port, String region) {
     this.hostname = hostname;
     this.port = port;
@@ -68,6 +70,10 @@ public abstract class AwsIamAuthenticationBasePlugin implements AuthenticationPl
     if (this.authenticationToken == null) {
       this.authenticationToken = generateAuthenticationToken(user);
     }
+  }
+
+  protected String getAuthenticationToken() {
+    return this.authenticationToken;
   }
 
   private String generateAuthenticationToken(String user) {

@@ -47,7 +47,8 @@ public class AwsIamAuthenticationClearPlugin extends AwsIamAuthenticationBasePlu
     toServer.clear();
 
     String encoding = this.protocol.versionMeetsMinimum(5, 7, 6) ? this.protocol.getPasswordCharacterEncoding() : "UTF-8";
-    NativePacketPayload bresp = new NativePacketPayload(StringUtils.getBytes(this.authenticationToken != null ? this.authenticationToken : "", encoding));
+    String token = this.getAuthenticationToken();
+    NativePacketPayload bresp = new NativePacketPayload(StringUtils.getBytes(((token != null) ? token : ""), encoding));
 
     bresp.setPosition(bresp.getPayloadLength());
     bresp.writeInteger(IntegerDataType.INT1, 0);
