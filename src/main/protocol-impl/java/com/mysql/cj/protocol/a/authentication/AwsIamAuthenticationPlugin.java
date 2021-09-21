@@ -39,7 +39,7 @@ public class AwsIamAuthenticationPlugin extends AwsIamAuthenticationBasePlugin {
   }
 
   public String getProtocolPluginName() {
-    return "aws_iam_authentication";
+    return "mysql_native_password";
   }
 
   @Override
@@ -50,13 +50,16 @@ public class AwsIamAuthenticationPlugin extends AwsIamAuthenticationBasePlugin {
 
     NativePacketPayload bresp;
 
-    String pwd = this.getAuthenticationToken();
+    final String pwd = this.getAuthenticationToken();
 
-    if (fromServer == null || pwd == null || pwd.length() == 0) {
+    if ((fromServer == null) || (pwd == null) || (pwd.isEmpty())) {
       bresp = new NativePacketPayload(new byte[0]);
     } else {
       bresp = new NativePacketPayload(
-          Security.scramble411(pwd, fromServer.readBytes(StringSelfDataType.STRING_TERM), this.protocol.getPasswordCharacterEncoding()));
+          Security.scramble411(
+              pwd,
+              fromServer.readBytes(StringSelfDataType.STRING_TERM),
+              this.protocol.getPasswordCharacterEncoding()));
     }
     toServer.add(bresp);
 
