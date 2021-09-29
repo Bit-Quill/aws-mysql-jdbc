@@ -283,7 +283,10 @@ public enum PropertyKey {
     allowXmlUnsafeExternalEntity("allowXmlUnsafeExternalEntity", true),
     useAwsIam("useAwsIam", true),
     failoverPluginsFactories("failoverPluginsFactories", true),
-    nodeMonitoringIntervalMs("nodeMonitoringIntervalMs", true);
+    nativeFailureDetectionEnabled("nativeFailureDetectionEnabled", true),
+    failureDetectionTime("failureDetectionTime", true),
+    failureDetectionInterval("failureDetectionInterval", true),
+    failureDetectionCount("nativeFailureDetectionEnabled", true);
 
     private String keyName;
     private String ccAlias = null;
