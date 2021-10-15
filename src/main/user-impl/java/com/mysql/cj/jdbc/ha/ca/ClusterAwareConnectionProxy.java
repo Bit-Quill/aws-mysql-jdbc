@@ -67,6 +67,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -164,6 +165,15 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
         try {
           result = ClusterAwareConnectionProxy.this.pluginManager.execute(method.getName(), () -> method.invoke(this.invokeOn, args));
           result = proxyIfReturnTypeIsJdbcInterface(method.getReturnType(), result);
+        } catch (ExecutionException e) {
+          final Throwable throwable = e.getCause();
+          if (throwable instanceof InvocationTargetException) {
+            dealWithInvocationException((InvocationTargetException) throwable);
+          } else if (throwable instanceof IllegalStateException) {
+            dealWithIllegalStateException((IllegalStateException) throwable);
+          } else {
+            throw throwable;
+          }
         } catch (InvocationTargetException e) {
           dealWithInvocationException(e);
         } catch (IllegalStateException e) {
@@ -175,6 +185,7 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
     }
 
   }
+
   /**
    * Checks if connection is associated with Aurora cluster and instantiates a new
    * AuroraConnectionProxy if needed. Otherwise it returns a single-host connection.
