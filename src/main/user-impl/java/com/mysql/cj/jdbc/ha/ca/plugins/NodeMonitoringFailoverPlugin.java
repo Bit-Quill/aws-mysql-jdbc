@@ -49,6 +49,7 @@ public class NodeMonitoringFailoverPlugin implements IFailoverPlugin {
 
   protected static int CHECK_INTERVAL_MILLIS = 1000;
   protected static String METHODS_TO_MONITOR = "executeQuery,";
+  private static final String RETRIEVE_HOST_PORT_SQL = "SELECT @@hostname as hostname, @@port as port;";
 
   protected IFailoverPlugin next;
   protected Log log;
@@ -60,7 +61,7 @@ public class NodeMonitoringFailoverPlugin implements IFailoverPlugin {
   protected int failureDetectionCount;
   private IMonitorService monitorService;
   private MonitorConnectionContext monitorContext;
-  private Set<String> nodeKey;
+  private final Set<String> nodeKey = new HashSet<>();
 
   @FunctionalInterface
   interface IMonitorServiceInitializer {
@@ -212,8 +213,6 @@ public class NodeMonitoringFailoverPlugin implements IFailoverPlugin {
   }
 
   protected void nodeKeyInit(Connection connection) {
-    nodeKey = new HashSet<>();
-    final String RETRIEVE_HOST_PORT_SQL = "SELECT @@hostname as hostname, @@port as port;";
     try (Statement stmt = connection.createStatement()) {
       try (ResultSet rs = stmt.executeQuery(RETRIEVE_HOST_PORT_SQL)) {
         while (rs.next()) {

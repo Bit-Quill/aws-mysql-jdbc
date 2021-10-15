@@ -72,7 +72,7 @@ public class DefaultMonitorService implements IMonitorService {
 
   @Override
   public MonitorConnectionContext startMonitoring(
-      Set<String> nodeKey,
+      Set<String> nodes,
       HostInfo hostInfo,
       PropertySet propertySet,
       int failureDetectionTimeMillis,
@@ -80,11 +80,11 @@ public class DefaultMonitorService implements IMonitorService {
       int failureDetectionCount) {
 
     IMonitor monitor = null;
-    Iterator<String> iter = nodeKey.iterator();
+    Iterator<String> iter = nodes.iterator();
     while (iter.hasNext() && monitor == null) {
       monitor = MONITOR_MAP.get(iter.next());
     }
-    iter = nodeKey.iterator();
+    iter = nodes.iterator();
     if (monitor == null) {
       monitor = MONITOR_MAP.computeIfAbsent(iter.next(),
           k -> monitorInitializer.createMonitor(hostInfo, propertySet));
@@ -100,7 +100,7 @@ public class DefaultMonitorService implements IMonitorService {
     }
 
     final MonitorConnectionContext context = new MonitorConnectionContext(
-        nodeKey,
+        nodes,
         log,
         failureDetectionTimeMillis,
         failureDetectionIntervalMillis,
@@ -114,7 +114,7 @@ public class DefaultMonitorService implements IMonitorService {
 
   @Override
   public void stopMonitoring(MonitorConnectionContext context) {
-    Iterator<String> keys = context.getNode().iterator();
+    Iterator<String> keys = context.getNodes().iterator();
     final IMonitor monitor = MONITOR_MAP.get(keys.next());
     monitor.stopMonitoring(context);
   }

@@ -44,7 +44,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
 class DefaultMonitorServiceTest {
-  private static final Set<String> NODE = new HashSet<>();
+  private static final Set<String> NODES = new HashSet<>();
   private static final int FAILURE_DETECTION_TIME_MILLIS = 10;
   private static final int FAILURE_DETECTION_INTERVAL_MILLIS = 100;
   private static final int FAILURE_DETECTION_COUNT = 3;
@@ -72,7 +72,7 @@ class DefaultMonitorServiceTest {
 
   @BeforeEach
   void init() {
-    NODE.add("node.domain");
+    NODES.add("node.domain");
 
     closeable = MockitoAnnotations.openMocks(this);
     contextCaptor = ArgumentCaptor.forClass(MonitorConnectionContext.class);
@@ -111,7 +111,7 @@ class DefaultMonitorServiceTest {
     Mockito.doNothing().when(monitor).startMonitoring(contextCaptor.capture());
 
     monitorService.startMonitoring(
-        NODE,
+        NODES,
         info,
         set,
         FAILURE_DETECTION_TIME_MILLIS,
@@ -132,7 +132,7 @@ class DefaultMonitorServiceTest {
 
     for (int i = 0; i < runs; i++) {
       monitorService.startMonitoring(
-          NODE,
+          NODES,
           info,
           set,
           FAILURE_DETECTION_TIME_MILLIS,
@@ -153,7 +153,7 @@ class DefaultMonitorServiceTest {
     Mockito.doNothing().when(monitor).stopMonitoring(contextCaptor.capture());
 
     final MonitorConnectionContext context = monitorService.startMonitoring(
-        NODE,
+        NODES,
         info,
         set,
         FAILURE_DETECTION_TIME_MILLIS,
@@ -171,7 +171,7 @@ class DefaultMonitorServiceTest {
     Mockito.doNothing().when(monitor).stopMonitoring(contextCaptor.capture());
 
     final MonitorConnectionContext context = monitorService.startMonitoring(
-        NODE,
+        NODES,
         info,
         set,
         FAILURE_DETECTION_TIME_MILLIS,
