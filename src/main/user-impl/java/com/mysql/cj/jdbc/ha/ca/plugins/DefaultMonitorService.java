@@ -64,7 +64,7 @@ public class DefaultMonitorService implements IMonitorService {
 
   @Override
   public MonitorConnectionContext startMonitoring(
-      String node,
+      Set<String> nodeKey,
       HostInfo hostInfo,
       PropertySet propertySet,
       int failureDetectionTimeMillis,
@@ -76,7 +76,7 @@ public class DefaultMonitorService implements IMonitorService {
         k -> monitorInitializer.createMonitor(hostInfo, propertySet));
 
     final MonitorConnectionContext context = new MonitorConnectionContext(
-        node,
+        nodeKey,
         log,
         failureDetectionTimeMillis,
         failureDetectionIntervalMillis,

@@ -33,6 +33,12 @@ import com.mysql.cj.exceptions.CJCommunicationsException;
 import com.mysql.cj.log.Log;
 import org.jboss.util.NullArgumentException;
 
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -55,7 +61,7 @@ public class NodeMonitoringFailoverPlugin implements IFailoverPlugin {
   protected int failureDetectionCount;
   private IMonitorService monitorService;
   private MonitorConnectionContext monitorContext;
-  private String node;
+  private Set<String> nodeKey;
 
   @FunctionalInterface
   interface IMonitorServiceInitializer {
@@ -65,13 +71,14 @@ public class NodeMonitoringFailoverPlugin implements IFailoverPlugin {
   public NodeMonitoringFailoverPlugin() {
   }
 
-  @Override
   public void init(
+      Connection connection,
       PropertySet propertySet,
       HostInfo hostInfo,
       IFailoverPlugin next,
       Log log) {
     this.init(
+        connection,
         propertySet,
         hostInfo,
         next,
@@ -80,6 +87,7 @@ public class NodeMonitoringFailoverPlugin implements IFailoverPlugin {
   }
 
   void init(
+      Connection connection,
       PropertySet propertySet,
       HostInfo hostInfo,
       IFailoverPlugin next,
@@ -102,7 +110,7 @@ public class NodeMonitoringFailoverPlugin implements IFailoverPlugin {
     }
 
     this.hostInfo = hostInfo;
-    this.node = hostInfo.getHost();
+    nodeKeyInit(connection); // Sets NodeKey
     this.propertySet = propertySet;
     this.log = log;
     this.next = next;
@@ -159,7 +167,7 @@ public class NodeMonitoringFailoverPlugin implements IFailoverPlugin {
           methodName));
 
       this.monitorContext = this.monitorService.startMonitoring(
-          node,
+          this.nodeKey,
           this.hostInfo,
           this.propertySet,
           this.failureDetectionTimeMillis,
@@ -208,5 +216,22 @@ public class NodeMonitoringFailoverPlugin implements IFailoverPlugin {
     this.monitorService.releaseResources();
     this.monitorService = null;
     this.next.releaseResources();
+  }
+
+  protected void nodeKeyInit(Connection connection) {
+    nodeKey = new HashSet<>();
+    final String RETRIEVE_HOST_PORT_SQL = "SELECT @@hostname as hostname, @@port as port;";
+    try (Statement stmt = connection.createStatement()) {
+      try (ResultSet rs = stmt.executeQuery(RETRIEVE_HOST_PORT_SQL)) {
+        while (rs.next()) {
+          nodeKey.add(rs.getString("hostname") + ":" + rs.getString("port"));
+        }
+      }
+    }
+    catch (SQLException sqlException) {
+      // ignore
+    }
+
+    nodeKey.add(this.hostInfo.getHost());
   }
 }
