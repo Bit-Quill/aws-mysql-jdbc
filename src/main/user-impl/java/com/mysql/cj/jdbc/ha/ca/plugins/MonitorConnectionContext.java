@@ -28,12 +28,14 @@ package com.mysql.cj.jdbc.ha.ca.plugins;
 
 import com.mysql.cj.log.Log;
 
+import java.util.Set;
+
 public class MonitorConnectionContext {
   private final int failureDetectionIntervalMillis;
   private final int failureDetectionTimeMillis;
   private final int failureDetectionCount;
 
-  private final String node;
+  private final Set<String> node;
   private final Log log;
 
   private long startMonitorTime;
@@ -41,7 +43,7 @@ public class MonitorConnectionContext {
   private boolean isNodeUnhealthy;
 
   public MonitorConnectionContext(
-      String node,
+      Set<String> node,
       Log log,
       int failureDetectionTimeMillis,
       int failureDetectionIntervalMillis,
@@ -57,7 +59,7 @@ public class MonitorConnectionContext {
     this.startMonitorTime = startMonitorTime;
   }
 
-  String getNode() {
+  Set<String> getNode() {
     return this.node;
   }
 

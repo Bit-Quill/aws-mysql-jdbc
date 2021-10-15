@@ -30,10 +30,11 @@ import com.mysql.cj.conf.HostInfo;
 import com.mysql.cj.conf.PropertySet;
 import com.mysql.cj.log.Log;
 
+import java.sql.Connection;
 import java.util.concurrent.Callable;
 
 public interface IFailoverPlugin {
-  void init(PropertySet propertySet, HostInfo hostInfo, IFailoverPlugin next, Log log);
+  void init(Connection connection, PropertySet propertySet, HostInfo hostInfo, IFailoverPlugin next, Log log);
   Object execute(String methodName, Callable executeSqlFunc) throws Exception;
   void releaseResources();
 }

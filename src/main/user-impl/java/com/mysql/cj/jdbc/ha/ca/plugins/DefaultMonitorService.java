@@ -31,7 +31,9 @@ import com.mysql.cj.conf.PropertySet;
 import com.mysql.cj.jdbc.ha.ca.BasicConnectionProvider;
 import com.mysql.cj.log.Log;
 
+import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -70,37 +72,50 @@ public class DefaultMonitorService implements IMonitorService {
 
   @Override
   public MonitorConnectionContext startMonitoring(
-      String node,
+      Set<String> nodeKey,
       HostInfo hostInfo,
       PropertySet propertySet,
       int failureDetectionTimeMillis,
       int failureDetectionIntervalMillis,
       int failureDetectionCount) {
 
-    final IMonitor monitor = MONITOR_MAP.computeIfAbsent(
-        node,
-        k -> monitorInitializer.createMonitor(hostInfo, propertySet));
+    IMonitor monitor = null;
+    Iterator<String> iter = nodeKey.iterator();
+    while (iter.hasNext() && monitor == null) {
+      monitor = MONITOR_MAP.get(iter.next());
+    }
+    iter = nodeKey.iterator();
+    if (monitor == null) {
+      monitor = MONITOR_MAP.computeIfAbsent(iter.next(),
+          k -> monitorInitializer.createMonitor(hostInfo, propertySet));
+    }
+    final IMonitor finalMonitor = monitor;
+    while (iter.hasNext()) {
+      MONITOR_MAP.computeIfAbsent(iter.next(),
+          k -> finalMonitor);
+    }
 
     if (threadPool == null) {
       threadPool = executorServiceInitializer.createExecutorService();
     }
 
     final MonitorConnectionContext context = new MonitorConnectionContext(
-        node,
+        nodeKey,
         log,
         failureDetectionTimeMillis,
         failureDetectionIntervalMillis,
         failureDetectionCount);
 
-    monitor.startMonitoring(context);
-    TASKS_MAP.computeIfAbsent(monitor, k -> threadPool.submit(monitor));
+    finalMonitor.startMonitoring(context);
+    TASKS_MAP.computeIfAbsent(finalMonitor, k -> threadPool.submit(finalMonitor));
 
     return context;
   }
 
   @Override
   public void stopMonitoring(MonitorConnectionContext context) {
-    final IMonitor monitor = MONITOR_MAP.get(context.getNode());
+    Iterator<String> keys = context.getNode().iterator();
+    final IMonitor monitor = MONITOR_MAP.get(keys.next());
     monitor.stopMonitoring(context);
   }
 }
