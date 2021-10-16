@@ -40,6 +40,7 @@ import java.sql.Statement;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -191,8 +192,12 @@ public class NodeMonitoringFailoverPlugin implements IFailoverPlugin {
       }
 
       result = executeFuncFuture.get();
-    } catch (Exception ex) {
-      throw ex;
+    } catch (ExecutionException exception) {
+      final Throwable throwable = exception.getCause();
+      if (throwable instanceof Error) {
+        throw (Error) throwable;
+      }
+      throw (Exception) throwable;
     } finally {
       // TODO: double check this
       this.monitorService.stopMonitoring(this.monitorContext);
