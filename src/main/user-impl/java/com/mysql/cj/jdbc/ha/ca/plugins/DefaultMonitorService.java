@@ -30,6 +30,7 @@ import com.mysql.cj.conf.HostInfo;
 import com.mysql.cj.conf.PropertySet;
 import com.mysql.cj.jdbc.ha.ca.BasicConnectionProvider;
 import com.mysql.cj.log.Log;
+import org.jboss.security.javaee.exceptions.MissingArgumentsException;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;

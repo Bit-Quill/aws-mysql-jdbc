@@ -265,4 +265,71 @@ class DefaultMonitorServiceTest {
         FAILURE_DETECTION_INTERVAL_MILLIS,
         FAILURE_DETECTION_COUNT));
   }
+
+  @Test
+  void test_5_getMonitorCalledWithMultipleNodesInKeys() {
+    Set<String> nodeKeys = new HashSet<>();
+    nodeKeys.add("nodeOne.domain");
+    nodeKeys.add("nodeTwo.domain");
+    Set<String> nodeKeysTwo = new HashSet<>();
+    nodeKeysTwo.add("nodeTwo.domain");
+
+    IMonitor monitorOne = monitorService.getMonitor(nodeKeys, info, set);
+    Assertions.assertNotNull(monitorOne);
+
+    // Should get the same monitor as before as contain the same key "nodeTwo.domain"
+    IMonitor monitorOneSame = monitorService.getMonitor(nodeKeysTwo, info, set);
+    Assertions.assertNotNull(monitorOneSame);
+    Assertions.assertEquals(monitorOne, monitorOneSame);
+
+    // Make sure createMonitor was called once
+    Mockito.verify(monitorInitializer).createMonitor(Mockito.any(), Mockito.any());
+  }
+
+  @Test
+  void test_6_getMonitorCalledWithDifferentNodeKeys() {
+    Set<String> nodeKeys = new HashSet<>();
+    nodeKeys.add("nodeNEW.domain");
+
+    IMonitor monitorOne = monitorService.getMonitor(nodeKeys, info, set);
+    Assertions.assertNotNull(monitorOne);
+
+    // Ensuring monitor is the same one and not creating a new one
+    IMonitor monitorOneDupe = monitorService.getMonitor(nodeKeys, info, set);
+    Assertions.assertEquals(monitorOne, monitorOneDupe);
+
+    // Ensuring monitors are not the same as they have different keys
+    // "node.domain" compared to "nodeOne.domain"
+    IMonitor monitorTwo = monitorService.getMonitor(NODE_KEYS, info, set);
+    Assertions.assertNotNull(monitorTwo);
+    Assertions.assertNotEquals(monitorOne, monitorTwo);
+  }
+
+  @Test
+  void test_7_getMonitorCalledWithDifferentNodeKeys() {
+    Set<String> nodeKeys = new HashSet<>();
+    nodeKeys.add("nodeA");
+
+    Set<String> nodeKeysTwo = new HashSet<>();
+    nodeKeysTwo.add("nodeA");
+    nodeKeysTwo.add("nodeB");
+
+    Set<String> nodeKeysThree = new HashSet<>();
+    nodeKeysThree.add("nodeB");
+
+    IMonitor monitorOne = monitorService.getMonitor(nodeKeys, info, set);
+    Assertions.assertNotNull(monitorOne);
+
+    // Add a new key using the same monitor
+    // Adding "nodeTwo.domain" as a new key using the same monitor as "nodeOne.domain"
+    IMonitor monitorOneDupe = monitorService.getMonitor(nodeKeysTwo, info, set);
+    Assertions.assertEquals(monitorOne, monitorOneDupe);
+
+    // Using new key should return same monitor
+    IMonitor monitorOneDupeAgain = monitorService.getMonitor(nodeKeysThree, info, set);
+    Assertions.assertEquals(monitorOne, monitorOneDupeAgain);
+
+    // Make sure createMonitor was called once
+    Mockito.verify(monitorInitializer).createMonitor(Mockito.any(), Mockito.any());
+  }
 }
