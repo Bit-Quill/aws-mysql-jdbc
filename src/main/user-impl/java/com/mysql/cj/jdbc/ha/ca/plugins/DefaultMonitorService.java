@@ -30,9 +30,11 @@ import com.mysql.cj.conf.HostInfo;
 import com.mysql.cj.conf.PropertySet;
 import com.mysql.cj.jdbc.ha.ca.BasicConnectionProvider;
 import com.mysql.cj.log.Log;
+import org.jboss.security.javaee.exceptions.MissingArgumentsException;
 
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -72,50 +74,57 @@ public class DefaultMonitorService implements IMonitorService {
 
   @Override
   public MonitorConnectionContext startMonitoring(
-      Set<String> nodes,
+      Set<String> nodeKeys,
       HostInfo hostInfo,
       PropertySet propertySet,
       int failureDetectionTimeMillis,
       int failureDetectionIntervalMillis,
       int failureDetectionCount) {
 
-    IMonitor monitor = null;
-    Iterator<String> iter = nodes.iterator();
-    while (iter.hasNext() && monitor == null) {
-      monitor = MONITOR_MAP.get(iter.next());
+    if (nodeKeys.isEmpty()) {
+      throw new MissingArgumentsException();
     }
-    iter = nodes.iterator();
-    if (monitor == null) {
-      monitor = MONITOR_MAP.computeIfAbsent(iter.next(),
-          k -> monitorInitializer.createMonitor(hostInfo, propertySet));
-    }
-    final IMonitor finalMonitor = monitor;
-    while (iter.hasNext()) {
-      MONITOR_MAP.computeIfAbsent(iter.next(),
-          k -> finalMonitor);
-    }
+
+    IMonitor monitor = getMonitor(nodeKeys, hostInfo, propertySet);
 
     if (threadPool == null) {
       threadPool = executorServiceInitializer.createExecutorService();
     }
 
     final MonitorConnectionContext context = new MonitorConnectionContext(
-        nodes,
+        nodeKeys,
         log,
         failureDetectionTimeMillis,
         failureDetectionIntervalMillis,
         failureDetectionCount);
 
-    finalMonitor.startMonitoring(context);
-    TASKS_MAP.computeIfAbsent(finalMonitor, k -> threadPool.submit(finalMonitor));
+    monitor.startMonitoring(context);
+    TASKS_MAP.computeIfAbsent(monitor, k -> threadPool.submit(monitor));
 
     return context;
   }
 
   @Override
   public void stopMonitoring(MonitorConnectionContext context) {
-    Iterator<String> keys = context.getNodes().iterator();
+    Iterator<String> keys = context.getNodeKeys().iterator();
     final IMonitor monitor = MONITOR_MAP.get(keys.next());
     monitor.stopMonitoring(context);
+  }
+
+  protected IMonitor getMonitor(Set<String> nodeKeys, HostInfo hostInfo, PropertySet propertySet) {
+    final IMonitor monitor;
+
+    final Optional<String> node = nodeKeys.stream().filter(MONITOR_MAP::containsKey).findFirst();
+    if (node.isPresent()) {
+      monitor = MONITOR_MAP.get(node.get());
+    } else {
+      monitor = MONITOR_MAP.computeIfAbsent(nodeKeys.iterator().next(), k -> monitorInitializer.createMonitor(hostInfo, propertySet));
+    }
+
+    for (String nodeKey : nodeKeys) {
+      MONITOR_MAP.putIfAbsent(nodeKey, monitor);
+    }
+
+    return monitor;
   }
 }

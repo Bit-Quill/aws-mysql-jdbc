@@ -35,7 +35,7 @@ public class MonitorConnectionContext {
   private final int failureDetectionTimeMillis;
   private final int failureDetectionCount;
 
-  private final Set<String> nodes;
+  private final Set<String> nodeKeys;
   private final Log log;
 
   private long startMonitorTime;
@@ -43,12 +43,12 @@ public class MonitorConnectionContext {
   private boolean isNodeUnhealthy;
 
   public MonitorConnectionContext(
-      Set<String> nodes,
+      Set<String> nodeKeys,
       Log log,
       int failureDetectionTimeMillis,
       int failureDetectionIntervalMillis,
       int failureDetectionCount) {
-    this.nodes = nodes;
+    this.nodeKeys = nodeKeys;
     this.log = log;
     this.failureDetectionTimeMillis = failureDetectionTimeMillis;
     this.failureDetectionIntervalMillis = failureDetectionIntervalMillis;
@@ -59,8 +59,8 @@ public class MonitorConnectionContext {
     this.startMonitorTime = startMonitorTime;
   }
 
-  Set<String> getNodes() {
-    return this.nodes;
+  Set<String> getNodeKeys() {
+    return this.nodeKeys;
   }
 
   public int getFailureDetectionTimeMillis() {
@@ -103,13 +103,13 @@ public class MonitorConnectionContext {
         this.log.logTrace(
             String.format(
                 "[MonitorConnectionContext] node '%s' is *dead*.",
-                nodes));
+                nodeKeys));
         isNodeUnhealthy = true;
         return;
       }
       this.log.logTrace(String.format(
           "[MonitorConnectionContext] node '%s' is not *responding* (%d).",
-          nodes,
+          nodeKeys,
           this.getFailureCount()));
     } else {
       this.setFailureCount(0);
@@ -117,7 +117,7 @@ public class MonitorConnectionContext {
 
     this.log.logTrace(
         String.format("[NodeMonitoringFailoverPlugin::Monitor] node '%s' is *alive*.",
-            nodes));
+            nodeKeys));
     isNodeUnhealthy = false;
   }
 }

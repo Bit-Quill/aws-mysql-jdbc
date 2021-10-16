@@ -44,7 +44,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
 class DefaultMonitorServiceTest {
-  private static final Set<String> NODES = new HashSet<>();
+  private static final Set<String> NODE_KEYS = new HashSet<>();
   private static final int FAILURE_DETECTION_TIME_MILLIS = 10;
   private static final int FAILURE_DETECTION_INTERVAL_MILLIS = 100;
   private static final int FAILURE_DETECTION_COUNT = 3;
@@ -56,7 +56,9 @@ class DefaultMonitorServiceTest {
   @Mock
   private Log logger;
   @Mock
-  private IMonitor monitor;
+  private IMonitor monitorA;
+  @Mock
+  private IMonitor monitorB;
   @Mock
   private ExecutorService executorService;
   @Mock
@@ -72,7 +74,7 @@ class DefaultMonitorServiceTest {
 
   @BeforeEach
   void init() {
-    NODES.add("node.domain");
+    NODE_KEYS.add("node.domain");
 
     closeable = MockitoAnnotations.openMocks(this);
     contextCaptor = ArgumentCaptor.forClass(MonitorConnectionContext.class);
@@ -81,7 +83,7 @@ class DefaultMonitorServiceTest {
         .when(monitorInitializer.createMonitor(
             Mockito.any(HostInfo.class),
             Mockito.any(PropertySet.class)))
-        .thenReturn(monitor);
+        .thenReturn(monitorA, monitorB);
 
     Mockito
         .when(executorServiceInitializer.createExecutorService())
@@ -108,10 +110,10 @@ class DefaultMonitorServiceTest {
 
   @Test
   void test_1_startMonitoringWithNoExecutor() {
-    Mockito.doNothing().when(monitor).startMonitoring(contextCaptor.capture());
+    Mockito.doNothing().when(monitorA).startMonitoring(contextCaptor.capture());
 
     monitorService.startMonitoring(
-        NODES,
+        NODE_KEYS,
         info,
         set,
         FAILURE_DETECTION_TIME_MILLIS,
@@ -121,18 +123,18 @@ class DefaultMonitorServiceTest {
     Assertions.assertNotNull(contextCaptor.getValue());
     Mockito
         .verify(executorService)
-        .submit(Mockito.eq(monitor));
+        .submit(Mockito.eq(monitorA));
   }
 
   @Test
   void test_2_startMonitoringCalledMultipleTimes() {
-    Mockito.doNothing().when(monitor).startMonitoring(contextCaptor.capture());
+    Mockito.doNothing().when(monitorA).startMonitoring(contextCaptor.capture());
 
     final int runs = 5;
 
     for (int i = 0; i < runs; i++) {
       monitorService.startMonitoring(
-          NODES,
+          NODE_KEYS,
           info,
           set,
           FAILURE_DETECTION_TIME_MILLIS,
@@ -145,15 +147,15 @@ class DefaultMonitorServiceTest {
     // executorService should only be called once.
     Mockito
         .verify(executorService)
-        .submit(Mockito.eq(monitor));
+        .submit(Mockito.eq(monitorA));
   }
 
   @Test
   void test_3_stopMonitoringWithInterruptedThread() {
-    Mockito.doNothing().when(monitor).stopMonitoring(contextCaptor.capture());
+    Mockito.doNothing().when(monitorA).stopMonitoring(contextCaptor.capture());
 
     final MonitorConnectionContext context = monitorService.startMonitoring(
-        NODES,
+        NODE_KEYS,
         info,
         set,
         FAILURE_DETECTION_TIME_MILLIS,
@@ -163,15 +165,15 @@ class DefaultMonitorServiceTest {
     monitorService.stopMonitoring(context);
 
     Assertions.assertEquals(context, contextCaptor.getValue());
-    Mockito.verify(monitor).stopMonitoring(Mockito.any());
+    Mockito.verify(monitorA).stopMonitoring(Mockito.any());
   }
 
   @Test
   void test_4_stopMonitoringCalledTwice() {
-    Mockito.doNothing().when(monitor).stopMonitoring(contextCaptor.capture());
+    Mockito.doNothing().when(monitorA).stopMonitoring(contextCaptor.capture());
 
     final MonitorConnectionContext context = monitorService.startMonitoring(
-        NODES,
+        NODE_KEYS,
         info,
         set,
         FAILURE_DETECTION_TIME_MILLIS,
@@ -182,7 +184,74 @@ class DefaultMonitorServiceTest {
 
     Assertions.assertEquals(context, contextCaptor.getValue());
 
-    Mockito.verify(monitor).stopMonitoring(Mockito.any());
+    Mockito.verify(monitorA).stopMonitoring(Mockito.any());
     monitorService.stopMonitoring(context);
+  }
+
+  @Test
+  void test_5_getMonitorCalledWithMultipleNodesInKeys() {
+    Set<String> nodeKeys = new HashSet<>();
+    nodeKeys.add("nodeOne.domain");
+    nodeKeys.add("nodeTwo.domain");
+    Set<String> nodeKeysTwo = new HashSet<>();
+    nodeKeysTwo.add("nodeTwo.domain");
+
+    IMonitor monitorOne = monitorService.getMonitor(nodeKeys, info, set);
+    Assertions.assertNotNull(monitorOne);
+
+    // Should get the same monitor as before as contain the same key "nodeTwo.domain"
+    IMonitor monitorOneSame = monitorService.getMonitor(nodeKeysTwo, info, set);
+    Assertions.assertNotNull(monitorOneSame);
+    Assertions.assertEquals(monitorOne, monitorOneSame);
+
+    // Make sure createMonitor was called once
+    Mockito.verify(monitorInitializer).createMonitor(Mockito.any(), Mockito.any());
+  }
+
+  @Test
+  void test_6_getMonitorCalledWithDifferentNodeKeys() {
+    Set<String> nodeKeys = new HashSet<>();
+    nodeKeys.add("nodeNEW.domain");
+
+    IMonitor monitorOne = monitorService.getMonitor(nodeKeys, info, set);
+    Assertions.assertNotNull(monitorOne);
+
+    // Ensuring monitor is the same one and not creating a new one
+    IMonitor monitorOneDupe = monitorService.getMonitor(nodeKeys, info, set);
+    Assertions.assertEquals(monitorOne, monitorOneDupe);
+
+    // Ensuring monitors are not the same as they have different keys
+    // "node.domain" compared to "nodeOne.domain"
+    IMonitor monitorTwo = monitorService.getMonitor(NODE_KEYS, info, set);
+    Assertions.assertNotNull(monitorTwo);
+    Assertions.assertNotEquals(monitorOne, monitorTwo);
+  }
+
+  @Test
+  void test_7_getMonitorCalledWithDifferentNodeKeys() {
+    Set<String> nodeKeys = new HashSet<>();
+    nodeKeys.add("nodeA");
+
+    Set<String> nodeKeysTwo = new HashSet<>();
+    nodeKeysTwo.add("nodeA");
+    nodeKeysTwo.add("nodeB");
+
+    Set<String> nodeKeysThree = new HashSet<>();
+    nodeKeysThree.add("nodeB");
+
+    IMonitor monitorOne = monitorService.getMonitor(nodeKeys, info, set);
+    Assertions.assertNotNull(monitorOne);
+
+    // Add a new key using the same monitor
+    // Adding "nodeTwo.domain" as a new key using the same monitor as "nodeOne.domain"
+    IMonitor monitorOneDupe = monitorService.getMonitor(nodeKeysTwo, info, set);
+    Assertions.assertEquals(monitorOne, monitorOneDupe);
+
+    // Using new key should return same monitor
+    IMonitor monitorOneDupeAgain = monitorService.getMonitor(nodeKeysThree, info, set);
+    Assertions.assertEquals(monitorOne, monitorOneDupeAgain);
+
+    // Make sure createMonitor was called once
+    Mockito.verify(monitorInitializer).createMonitor(Mockito.any(), Mockito.any());
   }
 }

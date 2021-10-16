@@ -38,7 +38,7 @@ import java.util.Set;
 
 class MonitorConnectionContextTest {
 
-  private static final Set<String> NODE = new HashSet<>();
+  private static final Set<String> NODE_KEYS = new HashSet<>();
   private static final int FAILURE_DETECTION_TIME_MILLIS = 10;
   private static final int FAILURE_DETECTION_INTERVAL_MILLIS = 100;
   private static final int FAILURE_DETECTION_COUNT = 3;
@@ -48,11 +48,11 @@ class MonitorConnectionContextTest {
 
   @BeforeEach
   void init() {
-    NODE.add("node.domain");
+    NODE_KEYS.add("node.domain");
 
     closeable = MockitoAnnotations.openMocks(this);
     context = new MonitorConnectionContext(
-        NODE,
+        NODE_KEYS,
         new NullLogger(MonitorConnectionContextTest.class.getName()),
         FAILURE_DETECTION_TIME_MILLIS,
         FAILURE_DETECTION_INTERVAL_MILLIS,

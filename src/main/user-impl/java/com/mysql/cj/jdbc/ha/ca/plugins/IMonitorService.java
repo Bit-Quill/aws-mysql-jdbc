@@ -33,7 +33,7 @@ import java.util.Set;
 
 public interface IMonitorService {
   MonitorConnectionContext startMonitoring(
-      Set<String> nodeKey,
+      Set<String> nodeKeys,
       HostInfo hostInfo,
       PropertySet propertySet,
       int failureDetectionTimeMillis,
