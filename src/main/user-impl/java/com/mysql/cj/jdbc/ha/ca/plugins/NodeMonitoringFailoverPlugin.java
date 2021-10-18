@@ -223,7 +223,7 @@ public class NodeMonitoringFailoverPlugin implements IFailoverPlugin {
     this.next.releaseResources();
   }
 
-  protected void initNodeKeys(Connection connection) {
+  private void initNodeKeys(Connection connection) {
     try (Statement stmt = connection.createStatement()) {
       try (ResultSet rs = stmt.executeQuery(RETRIEVE_HOST_PORT_SQL)) {
         while (rs.next()) {
