@@ -26,6 +26,9 @@
 
 package com.mysql.cj.jdbc.ha.ca.plugins;
 
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import com.mysql.cj.conf.DefaultPropertySet;
 import com.mysql.cj.conf.HostInfo;
 import com.mysql.cj.conf.PropertyKey;
@@ -69,7 +72,6 @@ class NodeMonitoringFailoverPluginTest {
   private Callable sqlFunc;
   @Mock
   private MonitorConnectionContext context;
-
   @Mock
   private RuntimeProperty<Boolean> nativeFailureDetectionEnabledProperty;
   @Mock
@@ -78,7 +80,6 @@ class NodeMonitoringFailoverPluginTest {
   private RuntimeProperty<Integer> failureDetectionIntervalProperty;
   @Mock
   private RuntimeProperty<Integer> failureDetectionCountProperty;
-
 
   private static final String NODE = "node";
   private static final String NO_MONITOR_METHOD_NAME = "foo";
@@ -121,90 +122,74 @@ class NodeMonitoringFailoverPluginTest {
 
   @Test
   void test_2_initWithFailoverEnabled() {
-    Mockito
-        .when(nativeFailureDetectionEnabledProperty.getValue())
+    when(nativeFailureDetectionEnabledProperty.getValue())
         .thenReturn(Boolean.TRUE);
 
     initializePlugin();
 
-    Mockito.verify(monitorServiceInitializer).create(Mockito.eq(logger));
+    verify(monitorServiceInitializer).create(Mockito.eq(logger));
   }
 
   @Test
   void test_3_initWithFailoverDisabled() {
-    Mockito
-        .when(nativeFailureDetectionEnabledProperty.getValue())
+    when(nativeFailureDetectionEnabledProperty.getValue())
         .thenReturn(Boolean.FALSE);
 
     initializePlugin();
-    Mockito.verify(monitorServiceInitializer, Mockito.never()).create(Mockito.any());
+    verify(monitorServiceInitializer, Mockito.never()).create(Mockito.any());
   }
 
   @Test
-  void test_4_executeWithFailoverDisabled() {
-    Mockito
-        .when(nativeFailureDetectionEnabledProperty.getValue())
+  void test_4_executeWithFailoverDisabled() throws Exception {
+    when(nativeFailureDetectionEnabledProperty.getValue())
         .thenReturn(Boolean.FALSE);
     initializePlugin();
 
-    Assertions.assertDoesNotThrow(() -> {
-      plugin.execute(MONITOR_METHOD_NAME, sqlFunc);
-      Mockito
-          .verify(mockPlugin)
-          .execute(Mockito.eq(MONITOR_METHOD_NAME), Mockito.eq(sqlFunc));
-    });
+    plugin.execute(MONITOR_METHOD_NAME, sqlFunc);
+    verify(mockPlugin).execute(Mockito.eq(MONITOR_METHOD_NAME), Mockito.eq(sqlFunc));
   }
 
   @Test
-  void test_5_executeWithNoNeedToMonitor() {
-    Mockito
-        .when(nativeFailureDetectionEnabledProperty.getValue())
+  void test_5_executeWithNoNeedToMonitor() throws Exception {
+    when(nativeFailureDetectionEnabledProperty.getValue())
         .thenReturn(Boolean.TRUE);
     initializePlugin();
 
-    Assertions.assertDoesNotThrow(() -> {
-      plugin.execute(NO_MONITOR_METHOD_NAME, sqlFunc);
-      Mockito
-          .verify(mockPlugin)
-          .execute(Mockito.eq(NO_MONITOR_METHOD_NAME), Mockito.eq(sqlFunc));
-    });
+    plugin.execute(NO_MONITOR_METHOD_NAME, sqlFunc);
+    verify(mockPlugin)
+        .execute(Mockito.eq(NO_MONITOR_METHOD_NAME), Mockito.eq(sqlFunc));
   }
 
   @Test
   void test_6_executeThrowsExecutionException() {
-    Mockito
-        .when(nativeFailureDetectionEnabledProperty.getValue())
+    when(nativeFailureDetectionEnabledProperty.getValue())
         .thenReturn(Boolean.TRUE);
 
     initializePlugin();
 
     Assertions.assertThrows(Exception.class, () -> {
-      Mockito
-          .when(mockPlugin.execute(Mockito.any(), Mockito.any()))
+      when(mockPlugin.execute(Mockito.any(), Mockito.any()))
           .thenThrow(EXECUTION_EXCEPTION);
 
       plugin.execute(MONITOR_METHOD_NAME, sqlFunc);
     });
 
-    Mockito.verify(monitorService).stopMonitoring(Mockito.eq(context));
-    Mockito.verify(logger, Mockito.atLeastOnce()).logTrace(Mockito.anyString());
+    verify(monitorService).stopMonitoring(Mockito.eq(context));
+    verify(logger, Mockito.atLeastOnce()).logTrace(Mockito.anyString());
   }
 
   @Test
   void test_7_executeWithUnhealthyNode() {
-    Mockito
-        .when(nativeFailureDetectionEnabledProperty.getValue())
+    when(nativeFailureDetectionEnabledProperty.getValue())
         .thenReturn(Boolean.TRUE);
 
     initializePlugin();
 
     Assertions.assertThrows(CJCommunicationsException.class, () -> {
-      Mockito
-          .when(context.isNodeUnhealthy())
+      when(context.isNodeUnhealthy())
           .thenReturn(Boolean.TRUE);
 
-      Mockito
-          .when(mockPlugin.execute(Mockito.any(), Mockito.any()))
+      when(mockPlugin.execute(Mockito.any(), Mockito.any()))
           .thenAnswer(invocation -> {
             // Imitate running a long query;
             Thread.sleep(60 * 1000);
@@ -214,43 +199,43 @@ class NodeMonitoringFailoverPluginTest {
       plugin.execute(MONITOR_METHOD_NAME, sqlFunc);
     });
 
-    Mockito.verify(context).isNodeUnhealthy();
-    Mockito.verify(monitorService).stopMonitoring(Mockito.eq(context));
-    Mockito.verify(logger, Mockito.atLeastOnce()).logTrace(Mockito.anyString());
+    verify(context).isNodeUnhealthy();
+    verify(monitorService).stopMonitoring(Mockito.eq(context));
+    verify(logger, Mockito.atLeastOnce()).logTrace(Mockito.anyString());
   }
 
   @Test
-  void test_8_executeSuccessfulWithLongQuery() {
+  void test_8_executeSuccessfulWithLongQuery() throws Exception {
     final String expected = "foo";
 
-    Mockito
-        .when(nativeFailureDetectionEnabledProperty.getValue())
+    when(nativeFailureDetectionEnabledProperty.getValue())
         .thenReturn(Boolean.TRUE);
+    when(context.isNodeUnhealthy())
+        .thenReturn(Boolean.FALSE);
+    when(mockPlugin.execute(Mockito.any(), Mockito.any()))
+        .thenAnswer(invocation -> {
+          // Imitate running a query for 10 seconds.
+          Thread.sleep(10 * 1000);
+          return expected;
+        });
 
     initializePlugin();
 
-    Assertions.assertDoesNotThrow(() -> {
-      Mockito
-          .when(context.isNodeUnhealthy())
-          .thenReturn(Boolean.FALSE);
+    final Object result = plugin.execute(MONITOR_METHOD_NAME, sqlFunc);
+    Assertions.assertEquals(expected, result);
 
-      Mockito
-          .when(mockPlugin.execute(Mockito.any(), Mockito.any()))
-          .thenAnswer(invocation -> {
-            // Imitate running a query for 10 seconds.
-            Thread.sleep(10 * 1000);
-            return expected;
-          });
-
-      final Object result = plugin.execute(MONITOR_METHOD_NAME, sqlFunc);
-      Assertions.assertEquals(expected, result);
-    });
-
-    Mockito.verify(context, Mockito.atLeastOnce()).isNodeUnhealthy();
-    Mockito.verify(monitorService).stopMonitoring(Mockito.eq(context));
-    Mockito.verify(logger, Mockito.atLeastOnce()).logTrace(Mockito.anyString());
+    verify(context, Mockito.atLeastOnce()).isNodeUnhealthy();
+    verify(monitorService).stopMonitoring(Mockito.eq(context));
+    verify(logger, Mockito.atLeastOnce()).logTrace(Mockito.anyString());
   }
 
+  /**
+   * Generate different sets of method arguments where one argument is null to ensure
+   * {@link NodeMonitoringFailoverPlugin#init(PropertySet, HostInfo, IFailoverPlugin, Log)}
+   * can handle null arguments correctly.
+   *
+   * @return different sets of arguments.
+   */
   private static Stream<Arguments> generateNullArguments() {
     final PropertySet set = new DefaultPropertySet();
     final HostInfo info = new HostInfo();
@@ -266,43 +251,33 @@ class NodeMonitoringFailoverPluginTest {
   }
 
   private void initDefaultMockReturns() {
-    Mockito
-        .when(hostInfo.getHost())
+    when(hostInfo.getHost())
         .thenReturn(NODE);
-    Mockito
-        .when(monitorServiceInitializer.create(Mockito.any()))
+    when(monitorServiceInitializer.create(Mockito.any()))
         .thenReturn(monitorService);
-    Mockito
-        .when(monitorService.startMonitoring(
-            Mockito.any(),
-            Mockito.any(),
-            Mockito.any(),
-            Mockito.anyInt(),
-            Mockito.anyInt(),
-            Mockito.anyInt()))
+    when(monitorService.startMonitoring(
+        Mockito.anyString(),
+        Mockito.any(HostInfo.class),
+        Mockito.any(PropertySet.class),
+        Mockito.anyInt(),
+        Mockito.anyInt(),
+        Mockito.anyInt()))
         .thenReturn(context);
 
-    Mockito
-        .when(propertySet.getBooleanProperty(Mockito.eq(PropertyKey.nativeFailureDetectionEnabled)))
+    when(propertySet.getBooleanProperty(Mockito.eq(PropertyKey.nativeFailureDetectionEnabled)))
         .thenReturn(nativeFailureDetectionEnabledProperty);
-    Mockito
-        .when(propertySet.getIntegerProperty(Mockito.eq(PropertyKey.failureDetectionTime)))
+    when(propertySet.getIntegerProperty(Mockito.eq(PropertyKey.failureDetectionTime)))
         .thenReturn(failureDetectionTimeProperty);
-    Mockito
-        .when(propertySet.getIntegerProperty(Mockito.eq(PropertyKey.failureDetectionInterval)))
+    when(propertySet.getIntegerProperty(Mockito.eq(PropertyKey.failureDetectionInterval)))
         .thenReturn(failureDetectionIntervalProperty);
-    Mockito
-        .when(propertySet.getIntegerProperty(Mockito.eq(PropertyKey.failureDetectionCount)))
+    when(propertySet.getIntegerProperty(Mockito.eq(PropertyKey.failureDetectionCount)))
         .thenReturn(failureDetectionCountProperty);
 
-    Mockito
-        .when(failureDetectionTimeProperty.getValue())
+    when(failureDetectionTimeProperty.getValue())
         .thenReturn(FAILURE_DETECTION_TIME);
-    Mockito
-        .when(failureDetectionIntervalProperty.getValue())
+    when(failureDetectionIntervalProperty.getValue())
         .thenReturn(FAILURE_DETECTION_INTERVAL);
-    Mockito
-        .when(failureDetectionCountProperty.getValue())
+    when(failureDetectionCountProperty.getValue())
         .thenReturn(FAILURE_DETECTION_COUNT);
   }
 
