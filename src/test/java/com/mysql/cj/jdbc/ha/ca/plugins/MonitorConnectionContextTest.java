@@ -88,7 +88,7 @@ class MonitorConnectionContextTest {
   }
 
   @Test
-  public void test_4_isNodeUnhealthyExceedsFailureDetectionCount_returnTrue() {
+  public void test_4_isNodeUnhealthyExceedsFailureDetectionCount() {
     long currentTimeMillis = System.currentTimeMillis();
     context.setFailureCount(0);
     context.resetInvalidNodeStartTime();

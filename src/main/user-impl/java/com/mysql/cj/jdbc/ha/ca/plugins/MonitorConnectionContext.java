@@ -39,7 +39,7 @@ public class MonitorConnectionContext {
   private long startMonitorTime;
   private long invalidNodeStartTime;
   private int failureCount;
-  private boolean isNodeUnhealthy;
+  private boolean nodeUnhealthy;
 
   public MonitorConnectionContext(
       String node,
@@ -93,7 +93,11 @@ public class MonitorConnectionContext {
   public long getInvalidNodeStartTime() { return this.invalidNodeStartTime; }
 
   public boolean isNodeUnhealthy() {
-    return this.isNodeUnhealthy;
+    return this.nodeUnhealthy;
+  }
+
+  void setNodeUnhealthy(boolean nodeUnhealthy) {
+    this.nodeUnhealthy = nodeUnhealthy;
   }
 
   void updateConnectionStatus(long currentTime, boolean isValid, long validationIntervalTimeMillis) {
@@ -108,13 +112,13 @@ public class MonitorConnectionContext {
     if (!connectionValid) {
       this.failureCount++;
 
-      if(!this.isInvalidNodeStartTimeDefined()) {
+      if (!this.isInvalidNodeStartTimeDefined()) {
         this.setInvalidNodeStartTime(currentTime);
       }
 
       long invalidNodeDurationMillis = currentTime - this.getInvalidNodeStartTime();
-      long maxInvalidNodeDurationMillis = this.getFailureDetectionIntervalMillis() * this.getFailureDetectionCount();
-      float adjustedFailureCount = this.getFailureDetectionIntervalMillis() / validationIntervalTimeMillis * this.getFailureDetectionCount();
+      long maxInvalidNodeDurationMillis = (long)this.getFailureDetectionIntervalMillis() * this.getFailureDetectionCount();
+      float adjustedFailureCount = (float)this.getFailureDetectionIntervalMillis() / validationIntervalTimeMillis * this.getFailureDetectionCount();
 
       // TODO: condition with failure counts may be unnecessary
       if (this.getFailureCount() >= adjustedFailureCount && invalidNodeDurationMillis >= maxInvalidNodeDurationMillis) {
@@ -122,7 +126,7 @@ public class MonitorConnectionContext {
             String.format(
                 "[MonitorConnectionContext] node '%s' is *dead*.",
                 node));
-        this.isNodeUnhealthy = true;
+        this.nodeUnhealthy = true;
         return;
       }
       this.log.logTrace(String.format(
@@ -138,6 +142,6 @@ public class MonitorConnectionContext {
         String.format("[NodeMonitoringFailoverPlugin::Monitor] node '%s' is *alive*.",
             node));
 
-    this.isNodeUnhealthy = false;
+    this.nodeUnhealthy = false;
   }
 }

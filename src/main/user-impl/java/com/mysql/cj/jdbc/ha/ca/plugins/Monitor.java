@@ -60,7 +60,7 @@ public class Monitor implements IMonitor {
   private final PropertySet propertySet;
   private final HostInfo hostInfo;
   private Connection monitoringConn = null;
-  private int shortestFailureDetectionIntervalMillis = Integer.MAX_VALUE;
+  private int connectionCheckIntervalMillis = Integer.MAX_VALUE;
 
   public Monitor(ConnectionProvider connectionProvider, HostInfo hostInfo, PropertySet propertySet,
       Log log) {
@@ -72,8 +72,8 @@ public class Monitor implements IMonitor {
 
   @Override
   public void startMonitoring(MonitorConnectionContext context) {
-    this.shortestFailureDetectionIntervalMillis = Math.min(
-        this.shortestFailureDetectionIntervalMillis,
+    this.connectionCheckIntervalMillis = Math.min(
+        this.connectionCheckIntervalMillis,
         context.getFailureDetectionIntervalMillis());
 
     context.setStartMonitorTime(this.getCurrentTimeMillis());
@@ -83,7 +83,7 @@ public class Monitor implements IMonitor {
   @Override
   public void stopMonitoring(MonitorConnectionContext context) {
     contexts.remove(context);
-    this.shortestFailureDetectionIntervalMillis = findShortestIntervalMillis();
+    this.connectionCheckIntervalMillis = findShortestIntervalMillis();
   }
 
   @Override
@@ -91,17 +91,17 @@ public class Monitor implements IMonitor {
     try {
       while (true) {
         if (!contexts.isEmpty()) {
-          final ConnectionStatus status = getConnectionHealthStatus(this.shortestFailureDetectionIntervalMillis);
+          final ConnectionStatus status = checkConnectionStatus(this.connectionCheckIntervalMillis);
           final long currentTime = this.getCurrentTimeMillis();
 
           for (MonitorConnectionContext monitorContext : contexts) {
             monitorContext.updateConnectionStatus(
                 currentTime,
                 status.isValid,
-                this.shortestFailureDetectionIntervalMillis);
+                this.connectionCheckIntervalMillis);
           }
 
-          TimeUnit.MILLISECONDS.sleep(Math.max(0, this.shortestFailureDetectionIntervalMillis - status.elapsedTime));
+          TimeUnit.MILLISECONDS.sleep(Math.max(0, this.connectionCheckIntervalMillis - status.elapsedTime));
         } else {
           TimeUnit.MILLISECONDS.sleep(THREAD_SLEEP_WHEN_INACTIVE_MILLIS);
         }
@@ -119,7 +119,7 @@ public class Monitor implements IMonitor {
     }
   }
 
-  ConnectionStatus getConnectionHealthStatus(final int shortestFailureDetectionIntervalMillis) {
+  ConnectionStatus checkConnectionStatus(final int shortestFailureDetectionIntervalMillis) {
     try {
       if (this.monitoringConn == null || this.monitoringConn.isClosed()) {
 
@@ -138,7 +138,7 @@ public class Monitor implements IMonitor {
       final long start = this.getCurrentTimeMillis();
       return new ConnectionStatus(
           this.monitoringConn.isValid(shortestFailureDetectionIntervalMillis / 1000),
-              this.getCurrentTimeMillis() - start);
+            this.getCurrentTimeMillis() - start);
     } catch (SQLException sqlEx) {
       this.log.logTrace("[Monitor]", sqlEx);
       return new ConnectionStatus(false, 0);
@@ -150,8 +150,8 @@ public class Monitor implements IMonitor {
     return System.currentTimeMillis();
   }
 
-  int getShortestFailureDetectionIntervalMillis() {
-    return this.shortestFailureDetectionIntervalMillis;
+  int getConnectionCheckIntervalMillis() {
+    return this.connectionCheckIntervalMillis;
   }
 
   private HostInfo copy(HostInfo src, Map<String, String> props) {
