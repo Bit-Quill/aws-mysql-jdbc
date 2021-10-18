@@ -48,11 +48,9 @@ import java.util.concurrent.TimeUnit;
 
 public class NodeMonitoringFailoverPlugin implements IFailoverPlugin {
 
-  protected static int CHECK_INTERVAL_MILLIS = 1000;
-  protected static String METHODS_TO_MONITOR = "executeQuery,";
-  private static final String RETRIEVE_HOST_PORT_SQL = "SELECT @@hostname + \":\" + @@port;";
-  private static final String HOSTNAME = "hostname";
-  private static final String PORT = "port";
+  protected static final int CHECK_INTERVAL_MILLIS = 1000;
+  protected static final String METHODS_TO_MONITOR = "executeQuery,";
+  private static final String RETRIEVE_HOST_PORT_SQL = "SELECT CONCAT(@@hostname, ':', @@port);";
 
   protected IFailoverPlugin next;
   protected Log log;
@@ -218,7 +216,8 @@ public class NodeMonitoringFailoverPlugin implements IFailoverPlugin {
   public void releaseResources() {
     this.next.releaseResources();
   }
-  protected void initNodeKeys(Connection connection) {
+
+  private void initNodeKeys(Connection connection) {
     try (Statement stmt = connection.createStatement()) {
       try (ResultSet rs = stmt.executeQuery(RETRIEVE_HOST_PORT_SQL)) {
         if (rs.next()) {
@@ -228,8 +227,7 @@ public class NodeMonitoringFailoverPlugin implements IFailoverPlugin {
               ));
         }
       }
-    }
-    catch (SQLException sqlException) {
+    } catch (SQLException sqlException) {
       // log and ignore
       this.log.logTrace(
           "[NodeMonitoringFailoverPlugin.initNodes]: Could not retrieve Host:Port from querying");

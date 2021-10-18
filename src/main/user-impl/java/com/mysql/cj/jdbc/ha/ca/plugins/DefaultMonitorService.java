@@ -30,7 +30,6 @@ import com.mysql.cj.conf.HostInfo;
 import com.mysql.cj.conf.PropertySet;
 import com.mysql.cj.jdbc.ha.ca.BasicConnectionProvider;
 import com.mysql.cj.log.Log;
-import org.jboss.security.javaee.exceptions.MissingArgumentsException;
 
 import java.util.Iterator;
 import java.util.Map;
@@ -82,10 +81,10 @@ public class DefaultMonitorService implements IMonitorService {
       int failureDetectionCount) {
 
     if (nodeKeys.isEmpty()) {
-      throw new MissingArgumentsException();
+      throw new IllegalArgumentException();
     }
 
-    IMonitor monitor = getMonitor(nodeKeys, hostInfo, propertySet);
+    final IMonitor monitor = getMonitor(nodeKeys, hostInfo, propertySet);
 
     if (threadPool == null) {
       threadPool = executorServiceInitializer.createExecutorService();
