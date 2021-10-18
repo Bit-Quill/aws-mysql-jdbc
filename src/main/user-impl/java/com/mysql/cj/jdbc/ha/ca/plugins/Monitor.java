@@ -138,7 +138,7 @@ public class Monitor implements IMonitor {
       final long start = this.getCurrentTimeMillis();
       return new ConnectionStatus(
           this.monitoringConn.isValid(shortestFailureDetectionIntervalMillis / 1000),
-            this.getCurrentTimeMillis() - start);
+          this.getCurrentTimeMillis() - start);
     } catch (SQLException sqlEx) {
       this.log.logTrace("[Monitor]", sqlEx);
       return new ConnectionStatus(false, 0);
