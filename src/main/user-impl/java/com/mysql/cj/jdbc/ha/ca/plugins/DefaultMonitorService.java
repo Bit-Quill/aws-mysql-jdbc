@@ -81,6 +81,7 @@ public class DefaultMonitorService implements IMonitorService {
       int failureDetectionCount) {
 
     if (nodeKeys.isEmpty()) {
+      log.logTrace("Passed in empty NodeKey Set.");
       throw new IllegalArgumentException();
     }
 
