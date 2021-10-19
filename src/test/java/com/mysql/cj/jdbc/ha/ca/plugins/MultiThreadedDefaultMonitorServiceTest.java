@@ -27,8 +27,8 @@
 package com.mysql.cj.jdbc.ha.ca.plugins;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
@@ -49,7 +49,6 @@ import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CompletableFuture;
@@ -57,6 +56,8 @@ import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * Multi-threaded tests for {@link MultiThreadedDefaultMonitorServiceTest}.
@@ -82,6 +83,7 @@ class MultiThreadedDefaultMonitorServiceTest {
   private static final int FAILURE_DETECTION_COUNT = 3;
 
   private AutoCloseable closeable;
+  private ArgumentCaptor<MonitorConnectionContext> captor;
 
   @BeforeEach
   void init() {
@@ -91,12 +93,18 @@ class MultiThreadedDefaultMonitorServiceTest {
         .thenReturn(monitorA, monitorB);
     when(executorServiceInitializer.createExecutorService()).thenReturn(service);
     doReturn(taskA, taskB).when(service).submit(Mockito.any(Monitor.class));
+
+    captor = ArgumentCaptor.forClass(MonitorConnectionContext.class);
+
+    doNothing().when(monitorA).startMonitoring(captor.capture());
+    doNothing().when(monitorB).startMonitoring(captor.capture());
   }
 
   @AfterEach
   void cleanUp() throws Exception {
     closeable.close();
     DefaultMonitorService.MONITOR_MAP.clear();
+    DefaultMonitorService.TASKS_MAP.values().forEach(val -> val.cancel(true));
     DefaultMonitorService.TASKS_MAP.clear();
   }
 
@@ -105,73 +113,34 @@ class MultiThreadedDefaultMonitorServiceTest {
    */
   @RepeatedTest(1000)
   void test_1_multipleConnectionsToDifferentNodes() throws ExecutionException, InterruptedException, BrokenBarrierException {
-    final CyclicBarrier gate = new CyclicBarrier(3);
-    final List<Long> executionTimes = new ArrayList<>();
-    final List<Long> startTimes = new ArrayList<>();
-    final DefaultMonitorService serviceA = createNewMonitorService();
-    final DefaultMonitorService serviceB = createNewMonitorService();
+    final List<Object> results = runMethodsAsync(
+        (serviceA) -> serviceA.startMonitoring(
+            "node1",
+            info,
+            propertySet,
+            FAILURE_DETECTION_TIME,
+            FAILURE_DETECTION_INTERVAL,
+            FAILURE_DETECTION_COUNT),
+        (serviceB) -> serviceB.startMonitoring(
+            "node2",
+            info,
+            propertySet,
+            FAILURE_DETECTION_TIME,
+            FAILURE_DETECTION_INTERVAL,
+            FAILURE_DETECTION_COUNT)
+    );
 
-    final CompletableFuture<MonitorConnectionContext> threadA = CompletableFuture.supplyAsync(() -> {
-      try {
-        gate.await();
-      } catch (final InterruptedException | BrokenBarrierException e) {
-        // TODO: proper error handling.
-        e.printStackTrace();
-      }
+    List<MonitorConnectionContext> contexts = results.stream()
+        .map(obj -> (MonitorConnectionContext) obj)
+        .collect(Collectors.toList());
 
-      final long executionStartTime = System.nanoTime();
-      final MonitorConnectionContext context = serviceA.startMonitoring(
-          "node1",
-          info,
-          propertySet,
-          FAILURE_DETECTION_TIME,
-          FAILURE_DETECTION_INTERVAL,
-          FAILURE_DETECTION_COUNT);
-      executionTimes.add(System.nanoTime() - executionStartTime);
-      startTimes.add(executionStartTime);
-      return context;
-    });
+    List<MonitorConnectionContext> capturedContexts = captor.getAllValues();
 
-    final CompletableFuture<MonitorConnectionContext> threadB = CompletableFuture.supplyAsync(() -> {
-      try {
-        gate.await();
-      } catch (final InterruptedException | BrokenBarrierException e) {
-        // TODO: proper error handling.
-        e.printStackTrace();
-      }
-
-      final long executionStartTime = System.nanoTime();
-      final MonitorConnectionContext context = serviceB.startMonitoring(
-          "node2",
-          info,
-          propertySet,
-          FAILURE_DETECTION_TIME,
-          FAILURE_DETECTION_INTERVAL,
-          FAILURE_DETECTION_COUNT);
-      executionTimes.add(System.nanoTime() - executionStartTime);
-      startTimes.add(executionStartTime);
-      return context;
-    });
-
-    gate.await();
-    final MonitorConnectionContext contextA = threadA.get();
-    final MonitorConnectionContext contextB = threadB.get();
-    final long currentTime = System.nanoTime();
-
-    final long earliestStartTime = Collections.min(startTimes);
-    final long totalExecutionTime = currentTime - earliestStartTime;
-    final long aggregatedExecutionTime = aggregateExecutionTimes(executionTimes);
-
-    assertNotEquals(contextA, contextB);
-
-    // Flaky.
-    assertTrue(
-        totalExecutionTime < aggregatedExecutionTime,
-        String.format(
-            "Total execution time is greater or equal to the time of running two threads synchronously.\nTotal: %dms. Aggregated Time: %dms",
-            totalExecutionTime,
-            aggregatedExecutionTime
-        ));
+    assertEquals(2, DefaultMonitorService.MONITOR_MAP.size());
+    assertEquals(2, capturedContexts.size());
+    assertTrue((contexts.size() == capturedContexts.size())
+        && contexts.containsAll(capturedContexts)
+        && capturedContexts.containsAll(contexts));
 
     verify(monitorInitializer, times(2)).createMonitor(eq(info), eq(propertySet));
   }
@@ -179,58 +148,28 @@ class MultiThreadedDefaultMonitorServiceTest {
   /**
    * Create 2 connections to one node.
    */
-  @RepeatedTest(100)
+  @RepeatedTest(1000)
   void test_2_multipleConnectionsToOneNode() throws ExecutionException, InterruptedException, BrokenBarrierException {
-    final CyclicBarrier gate = new CyclicBarrier(3);
-    final DefaultMonitorService serviceA = createNewMonitorService();
-    final DefaultMonitorService serviceB = createNewMonitorService();
+    final List<Object> results = runMethodsAsync(
+        (serviceA) -> serviceA.startMonitoring(
+            "node",
+            info,
+            propertySet,
+            FAILURE_DETECTION_TIME,
+            FAILURE_DETECTION_INTERVAL,
+            FAILURE_DETECTION_COUNT),
+        (serviceB) -> serviceB.startMonitoring(
+            "node",
+            info,
+            propertySet,
+            FAILURE_DETECTION_TIME,
+            FAILURE_DETECTION_INTERVAL,
+            FAILURE_DETECTION_COUNT)
+    );
 
-    final ArgumentCaptor<MonitorConnectionContext> captor =
-        ArgumentCaptor.forClass(MonitorConnectionContext.class);
-
-    doNothing().when(monitorA).startMonitoring(captor.capture());
-    doNothing().when(monitorB).startMonitoring(captor.capture());
-
-    final CompletableFuture<MonitorConnectionContext> threadA = CompletableFuture.supplyAsync(() -> {
-      try {
-        gate.await();
-      } catch (final InterruptedException | BrokenBarrierException e) {
-        // TODO: proper error handling.
-        e.printStackTrace();
-      }
-
-      return serviceA.startMonitoring(
-          "node",
-          info,
-          propertySet,
-          FAILURE_DETECTION_TIME,
-          FAILURE_DETECTION_INTERVAL,
-          FAILURE_DETECTION_COUNT);
-    });
-
-    final CompletableFuture<MonitorConnectionContext> threadB = CompletableFuture.supplyAsync(() -> {
-      try {
-        gate.await();
-      } catch (final InterruptedException | BrokenBarrierException e) {
-        // TODO: proper error handling.
-        e.printStackTrace();
-      }
-
-      return serviceB.startMonitoring(
-          "node",
-          info,
-          propertySet,
-          FAILURE_DETECTION_TIME,
-          FAILURE_DETECTION_INTERVAL,
-          FAILURE_DETECTION_COUNT);
-    });
-
-    gate.await();
-
-    final List<MonitorConnectionContext> contexts = new ArrayList<>();
-    contexts.add(threadA.get());
-    contexts.add(threadB.get());
-
+    List<MonitorConnectionContext> contexts = results.stream()
+        .map(obj -> (MonitorConnectionContext) obj)
+        .collect(Collectors.toList());
     List<MonitorConnectionContext> capturedContexts = captor.getAllValues();
 
     assertEquals(1, DefaultMonitorService.MONITOR_MAP.size());
@@ -249,7 +188,40 @@ class MultiThreadedDefaultMonitorServiceTest {
         logger);
   }
 
-  private long aggregateExecutionTimes(final List<Long> executionTimes) {
-    return executionTimes.stream().mapToLong(Long::longValue).sum();
+  private List<Object> runMethodsAsync(
+      final Function<DefaultMonitorService, Object> methodA,
+      final Function<DefaultMonitorService, Object> methodB
+  ) throws BrokenBarrierException, InterruptedException, ExecutionException {
+    final CyclicBarrier gate = new CyclicBarrier(3);
+    final DefaultMonitorService serviceA = createNewMonitorService();
+    final DefaultMonitorService serviceB = createNewMonitorService();
+
+    final CompletableFuture<Object> threadA = CompletableFuture.supplyAsync(() -> {
+      try {
+        gate.await();
+      } catch (final InterruptedException | BrokenBarrierException e) {
+        fail("Test thread interrupted due to an unexpected exception.", e);
+      }
+
+      return methodA.apply(serviceA);
+    });
+
+    final CompletableFuture<Object> threadB = CompletableFuture.supplyAsync(() -> {
+      try {
+        gate.await();
+      } catch (final InterruptedException | BrokenBarrierException e) {
+        fail("Test thread interrupted due to an unexpected exception.", e);
+      }
+
+      return methodB.apply(serviceB);
+    });
+
+    gate.await();
+
+    final List<Object> contexts = new ArrayList<>();
+    contexts.add(threadA.get());
+    contexts.add(threadB.get());
+
+    return contexts;
   }
 }
