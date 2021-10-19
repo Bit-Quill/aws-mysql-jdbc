@@ -35,8 +35,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class DefaultMonitorService implements IMonitorService {
-  static MonitorThreadMaps threadMaps;
-  static ExecutorService threadPool; // Effectively final.
+  MonitorThreadContainer threadContainer;
 
   private final Log log;
   final IMonitorInitializer monitorInitializer;
@@ -60,8 +59,7 @@ public class DefaultMonitorService implements IMonitorService {
 
     this.monitorInitializer = monitorInitializer;
     this.log = log;
-    this.threadMaps = MonitorThreadMaps.getInstance(executorServiceInitializer);
-    this.threadPool = this.threadMaps.getThreadPool();
+    this.threadContainer = MonitorThreadContainer.getInstance(executorServiceInitializer);
   }
 
   @Override
@@ -73,7 +71,7 @@ public class DefaultMonitorService implements IMonitorService {
       int failureDetectionIntervalMillis,
       int failureDetectionCount) {
 
-    final IMonitor monitor = threadMaps.getMonitorMap().computeIfAbsent(
+    final IMonitor monitor = this.threadContainer.getMonitorMap().computeIfAbsent(
         node,
         k -> monitorInitializer.createMonitor(hostInfo, propertySet));
 
@@ -85,14 +83,20 @@ public class DefaultMonitorService implements IMonitorService {
         failureDetectionCount);
 
     monitor.startMonitoring(context);
-    threadMaps.getTasksMap().computeIfAbsent(monitor, k -> threadPool.submit(monitor));
+    this.threadContainer.getTasksMap().computeIfAbsent(monitor, k -> this.threadContainer.getThreadPool().submit(monitor));
 
     return context;
   }
 
   @Override
   public void stopMonitoring(MonitorConnectionContext context) {
-    final IMonitor monitor = threadMaps.getMonitorMap().get(context.getNode());
+    final IMonitor monitor = this.threadContainer.getMonitorMap().get(context.getNode());
     monitor.stopMonitoring(context);
+  }
+
+  @Override
+  public void releaseResources() {
+    this.threadContainer = null;
+    MonitorThreadContainer.releaseInstance();
   }
 }

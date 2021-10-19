@@ -96,7 +96,7 @@ class DefaultMonitorServiceTest {
 
   @AfterEach
   void cleanUp() throws Exception {
-    MonitorThreadMaps.getInstance().releaseMaps();
+    monitorService.releaseResources();
     closeable.close();
   }
 
