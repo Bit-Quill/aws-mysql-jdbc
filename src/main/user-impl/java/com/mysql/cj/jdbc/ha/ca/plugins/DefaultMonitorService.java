@@ -72,50 +72,52 @@ public class DefaultMonitorService implements IMonitorService {
 
   @Override
   public MonitorConnectionContext startMonitoring(
-      Set<String> nodeKey,
+      Set<String> nodeKeys,
       HostInfo hostInfo,
       PropertySet propertySet,
       int failureDetectionTimeMillis,
       int failureDetectionIntervalMillis,
       int failureDetectionCount) {
 
-    IMonitor monitor = null;
-    Iterator<String> iter = nodeKey.iterator();
-    while (iter.hasNext() && monitor == null) {
-      monitor = MONITOR_MAP.get(iter.next());
+    if (nodeKeys.isEmpty()) {
+      log.logWarn("Passed in empty NodeKey Set. Set should not be empty");
+      throw new IllegalArgumentException("Empty NodeKey set passed into DefaultMonitorService");
     }
-    iter = nodeKey.iterator();
-    if (monitor == null) {
-      monitor = MONITOR_MAP.computeIfAbsent(iter.next(),
-          k -> monitorInitializer.createMonitor(hostInfo, propertySet));
-    }
-    final IMonitor finalMonitor = monitor;
-    while (iter.hasNext()) {
-      MONITOR_MAP.computeIfAbsent(iter.next(),
-          k -> finalMonitor);
-    }
+
+    final IMonitor monitor = getMonitor(nodeKeys, hostInfo, propertySet);
 
     if (threadPool == null) {
       threadPool = executorServiceInitializer.createExecutorService();
     }
 
     final MonitorConnectionContext context = new MonitorConnectionContext(
-        nodeKey,
+        nodeKeys,
         log,
         failureDetectionTimeMillis,
         failureDetectionIntervalMillis,
         failureDetectionCount);
 
-    finalMonitor.startMonitoring(context);
-    TASKS_MAP.computeIfAbsent(finalMonitor, k -> threadPool.submit(finalMonitor));
+    monitor.startMonitoring(context);
+    TASKS_MAP.computeIfAbsent(monitor, k -> threadPool.submit(monitor));
 
     return context;
   }
 
   @Override
   public void stopMonitoring(MonitorConnectionContext context) {
-    Iterator<String> keys = context.getNode().iterator();
+    final Iterator<String> keys = context.getNodeKeys().iterator();
     final IMonitor monitor = MONITOR_MAP.get(keys.next());
     monitor.stopMonitoring(context);
+  }
+
+  protected IMonitor getMonitor(Set<String> nodeKeys, HostInfo hostInfo, PropertySet propertySet) {
+    final String node = nodeKeys.stream().filter(MONITOR_MAP::containsKey).findFirst().orElse(nodeKeys.iterator().next());
+    final IMonitor monitor = MONITOR_MAP.computeIfAbsent(node, k -> monitorInitializer.createMonitor(hostInfo, propertySet));
+
+    for (String nodeKey : nodeKeys) {
+      MONITOR_MAP.putIfAbsent(nodeKey, monitor);
+    }
+
+    return monitor;
   }
 }

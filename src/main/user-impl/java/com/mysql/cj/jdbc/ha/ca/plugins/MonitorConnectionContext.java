@@ -35,20 +35,21 @@ public class MonitorConnectionContext {
   private final int failureDetectionTimeMillis;
   private final int failureDetectionCount;
 
-  private final Set<String> node;
+  private final Set<String> nodeKeys;
   private final Log log;
 
   private long startMonitorTime;
+  private long invalidNodeStartTime;
   private int failureCount;
-  private boolean isNodeUnhealthy;
+  private boolean nodeUnhealthy;
 
   public MonitorConnectionContext(
-      Set<String> node,
+      Set<String> nodeKeys,
       Log log,
       int failureDetectionTimeMillis,
       int failureDetectionIntervalMillis,
       int failureDetectionCount) {
-    this.node = node;
+    this.nodeKeys = nodeKeys;
     this.log = log;
     this.failureDetectionTimeMillis = failureDetectionTimeMillis;
     this.failureDetectionIntervalMillis = failureDetectionIntervalMillis;
@@ -59,8 +60,8 @@ public class MonitorConnectionContext {
     this.startMonitorTime = startMonitorTime;
   }
 
-  Set<String> getNode() {
-    return this.node;
+  Set<String> getNodeKeys() {
+    return this.nodeKeys;
   }
 
   public int getFailureDetectionTimeMillis() {
@@ -83,41 +84,66 @@ public class MonitorConnectionContext {
     this.failureCount = failureCount;
   }
 
-  public boolean isNodeUnhealthy() {
-    return this.isNodeUnhealthy;
+  void setInvalidNodeStartTime(long invalidNodeStartTimeMillis) {
+    this.invalidNodeStartTime = invalidNodeStartTimeMillis;
   }
 
-  void updateConnectionStatus(long currentTime, boolean isValid, long connectionValidationElapsedTime) {
+  void resetInvalidNodeStartTime() { this.invalidNodeStartTime = 0; }
+
+  boolean isInvalidNodeStartTimeDefined() { return this.invalidNodeStartTime > 0; }
+
+  public long getInvalidNodeStartTime() { return this.invalidNodeStartTime; }
+
+  public boolean isNodeUnhealthy() {
+    return this.nodeUnhealthy;
+  }
+
+  void setNodeUnhealthy(boolean nodeUnhealthy) {
+    this.nodeUnhealthy = nodeUnhealthy;
+  }
+
+  void updateConnectionStatus(long currentTime, boolean isValid, long validationIntervalTimeMillis) {
     final long totalElapsedTimeMillis = currentTime - this.startMonitorTime;
 
     if (totalElapsedTimeMillis > this.failureDetectionTimeMillis) {
-      this.setConnectionValid(isValid && (this.failureDetectionIntervalMillis >= connectionValidationElapsedTime));
+      this.setConnectionValid(isValid, currentTime, validationIntervalTimeMillis);
     }
   }
 
-  void setConnectionValid(boolean connectionValid) {
+  void setConnectionValid(boolean connectionValid, long currentTime, long validationIntervalTimeMillis) {
     if (!connectionValid) {
       this.failureCount++;
 
-      if (this.getFailureCount() >= this.getFailureDetectionCount()) {
+      if (!this.isInvalidNodeStartTimeDefined()) {
+        this.setInvalidNodeStartTime(currentTime);
+      }
+
+      long invalidNodeDurationMillis = currentTime - this.getInvalidNodeStartTime();
+      long maxInvalidNodeDurationMillis = (long)this.getFailureDetectionIntervalMillis() * this.getFailureDetectionCount();
+      float adjustedFailureCount = (float)this.getFailureDetectionIntervalMillis() / validationIntervalTimeMillis * this.getFailureDetectionCount();
+
+      // TODO: condition with failure counts may be unnecessary
+      if (this.getFailureCount() >= adjustedFailureCount && invalidNodeDurationMillis >= maxInvalidNodeDurationMillis) {
         this.log.logTrace(
             String.format(
                 "[MonitorConnectionContext] node '%s' is *dead*.",
-                node));
-        isNodeUnhealthy = true;
+                nodeKeys));
+        this.nodeUnhealthy = true;
         return;
       }
       this.log.logTrace(String.format(
           "[MonitorConnectionContext] node '%s' is not *responding* (%d).",
-          node,
+          nodeKeys,
           this.getFailureCount()));
     } else {
       this.setFailureCount(0);
+      this.resetInvalidNodeStartTime();
     }
 
     this.log.logTrace(
         String.format("[NodeMonitoringFailoverPlugin::Monitor] node '%s' is *alive*.",
-            node));
-    isNodeUnhealthy = false;
+            nodeKeys));
+
+    this.nodeUnhealthy = false;
   }
 }
