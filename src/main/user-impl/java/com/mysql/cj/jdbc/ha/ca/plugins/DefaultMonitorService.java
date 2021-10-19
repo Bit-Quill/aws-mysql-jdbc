@@ -91,7 +91,7 @@ public class DefaultMonitorService implements IMonitorService {
 
   @Override
   public void stopMonitoring(MonitorConnectionContext context) {
-    final IMonitor monitor = this.threadContainer.getMonitorMap().get(context.getNode());
+    final IMonitor monitor = this.threadContainer.getMonitorMap().get(context.getNodeKeys().iterator().next());
     monitor.stopMonitoring(context);
   }
 
