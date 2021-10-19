@@ -102,7 +102,6 @@ class NodeMonitoringFailoverPluginTest {
 
   @BeforeEach
   void init() {
-  void init() throws SQLException {
     closeable = MockitoAnnotations.openMocks(this);
     plugin = new NodeMonitoringFailoverPlugin();
 
