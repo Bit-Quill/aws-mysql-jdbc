@@ -38,13 +38,14 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
 class DefaultMonitorServiceTest {
-  private static final Set<String> NODE_KEYS = new HashSet<>();
+  private static final Set<String> NODE_KEYS = new HashSet<>(Collections.singletonList("any.node.domain"));
   private static final int FAILURE_DETECTION_TIME_MILLIS = 10;
   private static final int FAILURE_DETECTION_INTERVAL_MILLIS = 100;
   private static final int FAILURE_DETECTION_COUNT = 3;
@@ -74,8 +75,6 @@ class DefaultMonitorServiceTest {
 
   @BeforeEach
   void init() {
-    NODE_KEYS.add("node.domain");
-
     closeable = MockitoAnnotations.openMocks(this);
     contextCaptor = ArgumentCaptor.forClass(MonitorConnectionContext.class);
 

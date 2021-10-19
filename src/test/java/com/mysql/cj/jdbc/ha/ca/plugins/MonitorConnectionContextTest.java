@@ -33,12 +33,13 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockitoAnnotations;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
 class MonitorConnectionContextTest {
 
-  private static final Set<String> NODE_KEYS = new HashSet<>();
+  private static final Set<String> NODE_KEYS = new HashSet<>(Collections.singletonList("any.node.domain"));
   private static final int FAILURE_DETECTION_TIME_MILLIS = 10;
   private static final int FAILURE_DETECTION_INTERVAL_MILLIS = 100;
   private static final int FAILURE_DETECTION_COUNT = 3;
@@ -49,8 +50,6 @@ class MonitorConnectionContextTest {
 
   @BeforeEach
   void init() {
-    NODE_KEYS.add("any.node.domain");
-
     closeable = MockitoAnnotations.openMocks(this);
     context = new MonitorConnectionContext(
         NODE_KEYS,

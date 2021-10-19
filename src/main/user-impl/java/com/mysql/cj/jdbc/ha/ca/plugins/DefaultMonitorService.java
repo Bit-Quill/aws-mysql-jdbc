@@ -81,7 +81,7 @@ public class DefaultMonitorService implements IMonitorService {
       int failureDetectionCount) {
 
     if (nodeKeys.isEmpty()) {
-      log.logTrace("Passed in empty NodeKey Set.");
+      log.logWarn("Passed in empty NodeKey Set.");
       throw new IllegalArgumentException();
     }
 
@@ -114,12 +114,8 @@ public class DefaultMonitorService implements IMonitorService {
   protected IMonitor getMonitor(Set<String> nodeKeys, HostInfo hostInfo, PropertySet propertySet) {
     final IMonitor monitor;
 
-    final Optional<String> node = nodeKeys.stream().filter(MONITOR_MAP::containsKey).findFirst();
-    if (node.isPresent()) {
-      monitor = MONITOR_MAP.get(node.get());
-    } else {
-      monitor = MONITOR_MAP.computeIfAbsent(nodeKeys.iterator().next(), k -> monitorInitializer.createMonitor(hostInfo, propertySet));
-    }
+    final String node = nodeKeys.stream().filter(MONITOR_MAP::containsKey).findFirst().orElse(nodeKeys.iterator().next());
+    monitor = MONITOR_MAP.computeIfAbsent(node, k -> monitorInitializer.createMonitor(hostInfo, propertySet));
 
     for (String nodeKey : nodeKeys) {
       MONITOR_MAP.putIfAbsent(nodeKey, monitor);

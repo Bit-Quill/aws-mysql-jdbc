@@ -220,7 +220,7 @@ public class NodeMonitoringFailoverPlugin implements IFailoverPlugin {
   private void initNodeKeys(Connection connection) {
     try (Statement stmt = connection.createStatement()) {
       try (ResultSet rs = stmt.executeQuery(RETRIEVE_HOST_PORT_SQL)) {
-        if (rs.next()) {
+        while (rs.next()) {
           nodeKeys.add(String.format("%s", rs.getString(1)));
         }
       }
