@@ -26,6 +26,7 @@
 
 package com.mysql.cj.jdbc.ha.ca.plugins;
 
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -50,6 +51,8 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Stream;
@@ -58,6 +61,8 @@ class NodeMonitoringFailoverPluginTest {
 
   @Mock
   private NodeMonitoringFailoverPlugin.IMonitorServiceInitializer monitorServiceInitializer;
+  @Mock
+  private static Connection connection;
   @Mock
   private PropertySet propertySet;
   @Mock
@@ -96,7 +101,7 @@ class NodeMonitoringFailoverPluginTest {
   private AutoCloseable closeable;
 
   @BeforeEach
-  void init() {
+  void init() throws SQLException {
     closeable = MockitoAnnotations.openMocks(this);
     plugin = new NodeMonitoringFailoverPlugin();
 
@@ -111,13 +116,14 @@ class NodeMonitoringFailoverPluginTest {
   @ParameterizedTest
   @MethodSource("generateNullArguments")
   void test_1_initWithNullArguments(
+      final Connection connection,
       final PropertySet set,
       final HostInfo info,
       final IFailoverPlugin failoverPlugin,
       final Log log) {
     Assertions.assertThrows(
         NullArgumentException.class,
-        () -> plugin.init(set, info, failoverPlugin, log));
+        () -> plugin.init(connection, set, info, failoverPlugin, log));
   }
 
   @Test
@@ -228,22 +234,23 @@ class NodeMonitoringFailoverPluginTest {
 
   /**
    * Generate different sets of method arguments where one argument is null to ensure
-   * {@link NodeMonitoringFailoverPlugin#init(PropertySet, HostInfo, IFailoverPlugin, Log)}
+   * {@link NodeMonitoringFailoverPlugin#init(Connection, PropertySet, HostInfo, IFailoverPlugin, Log)}
    * can handle null arguments correctly.
    *
    * @return different sets of arguments.
    */
-  private static Stream<Arguments> generateNullArguments() {
+  private static Stream<Arguments> generateNullArguments() throws SQLException {
     final PropertySet set = new DefaultPropertySet();
     final HostInfo info = new HostInfo();
     final IFailoverPlugin failoverPlugin = new DefaultFailoverPlugin();
     final Log log = new NullLogger("NodeMonitoringFailoverPluginTest");
 
     return Stream.of(
-        Arguments.of(null, info, failoverPlugin, log),
-        Arguments.of(set, null, failoverPlugin, log),
-        Arguments.of(set, info, null, log),
-        Arguments.of(set, info, failoverPlugin, null)
+        Arguments.of(null, set, info, failoverPlugin, log),
+        Arguments.of(connection, null, info, failoverPlugin, log),
+        Arguments.of(connection, set, null, failoverPlugin, log),
+        Arguments.of(connection, set, info, null, log),
+        Arguments.of(connection, set, info, failoverPlugin, null)
     );
   }
 
@@ -253,13 +260,17 @@ class NodeMonitoringFailoverPluginTest {
     when(monitorServiceInitializer.create(Mockito.any()))
         .thenReturn(monitorService);
     when(monitorService.startMonitoring(
-        Mockito.anyString(),
+        Mockito.anySet(),
         Mockito.any(HostInfo.class),
         Mockito.any(PropertySet.class),
         Mockito.anyInt(),
         Mockito.anyInt(),
         Mockito.anyInt()))
         .thenReturn(context);
+
+    plugin = Mockito.spy(plugin);
+    doNothing()
+        .when(plugin).initNodeKeys(Mockito.any(Connection.class));
 
     when(propertySet.getBooleanProperty(Mockito.eq(PropertyKey.nativeFailureDetectionEnabled)))
         .thenReturn(nativeFailureDetectionEnabledProperty);
@@ -279,6 +290,6 @@ class NodeMonitoringFailoverPluginTest {
   }
 
   private void initializePlugin() {
-    plugin.init(propertySet, hostInfo, mockPlugin, logger, monitorServiceInitializer);
+    plugin.init(connection, propertySet, hostInfo, mockPlugin, logger, monitorServiceInitializer);
   }
 }

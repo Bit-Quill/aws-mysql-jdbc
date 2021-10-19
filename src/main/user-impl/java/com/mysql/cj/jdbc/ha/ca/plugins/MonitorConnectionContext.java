@@ -35,7 +35,7 @@ public class MonitorConnectionContext {
   private final int failureDetectionTimeMillis;
   private final int failureDetectionCount;
 
-  private final Set<String> node;
+  private final Set<String> nodeKeys;
   private final Log log;
 
   private long startMonitorTime;
@@ -44,12 +44,12 @@ public class MonitorConnectionContext {
   private boolean nodeUnhealthy;
 
   public MonitorConnectionContext(
-      Set<String> node,
+      Set<String> nodeKeys,
       Log log,
       int failureDetectionTimeMillis,
       int failureDetectionIntervalMillis,
       int failureDetectionCount) {
-    this.node = node;
+    this.nodeKeys = nodeKeys;
     this.log = log;
     this.failureDetectionTimeMillis = failureDetectionTimeMillis;
     this.failureDetectionIntervalMillis = failureDetectionIntervalMillis;
@@ -60,8 +60,8 @@ public class MonitorConnectionContext {
     this.startMonitorTime = startMonitorTime;
   }
 
-  Set<String> getNode() {
-    return this.node;
+  Set<String> getNodeKeys() {
+    return this.nodeKeys;
   }
 
   public int getFailureDetectionTimeMillis() {
@@ -133,7 +133,7 @@ public class MonitorConnectionContext {
       }
       this.log.logTrace(String.format(
           "[MonitorConnectionContext] node '%s' is not *responding* (%d).",
-          node,
+          nodeKeys,
           this.getFailureCount()));
     } else {
       this.setFailureCount(0);

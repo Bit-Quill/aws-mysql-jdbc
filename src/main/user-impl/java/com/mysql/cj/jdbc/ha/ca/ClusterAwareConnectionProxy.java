@@ -208,7 +208,8 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
     return this.enableFailoverSetting
         && !this.isRdsProxy
         && this.isClusterTopologyAvailable
-        && !this.isMultiWriterCluster;
+        && !this.isMultiWriterCluster
+        && (this.hosts == null || this.hosts.size() > 1);
   }
 
   /**
@@ -365,7 +366,10 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
 
     if(this.pluginManager == null) {
       this.pluginManager = new FailoverPluginManager(this.log);
-      this.pluginManager.init(this.currentConnection, this.currentConnection.getPropertySet(), this.hosts.get(this.currentHostIndex));
+      this.pluginManager.init(this.currentConnection,
+          this.currentConnection.getPropertySet(),
+          this.currentHostIndex != NO_CONNECTION_INDEX ? this.hosts.get(this.currentHostIndex) : connUrl.getMainHost()
+      );
     }
   }
 
@@ -835,7 +839,9 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
 
     if(this.pluginManager != null) {
       this.pluginManager.releaseResources(); // TODO: do we need to release resources here?
-      this.pluginManager.init(this.currentConnection, this.currentConnection.getPropertySet(), this.hosts.get(this.currentHostIndex));
+      this.pluginManager.init(this.currentConnection,
+          this.currentConnection.getPropertySet(),
+          this.hosts.get(this.currentHostIndex));
     }
 
     if (this.inTransaction) {
