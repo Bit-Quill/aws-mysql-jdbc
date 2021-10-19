@@ -205,6 +205,8 @@ public class NodeMonitoringFailoverPlugin implements IFailoverPlugin {
 
   @Override
   public void releaseResources() {
+    final MonitorThreadMaps threadMaps = MonitorThreadMaps.getInstance();
+    threadMaps.releaseMaps();
     this.next.releaseResources();
   }
 }

@@ -96,9 +96,7 @@ class DefaultMonitorServiceTest {
 
   @AfterEach
   void cleanUp() throws Exception {
-    DefaultMonitorService.MONITOR_MAP.clear();
-    DefaultMonitorService.TASKS_MAP.clear();
-    DefaultMonitorService.threadPool = null;
+    MonitorThreadMaps.getInstance().releaseMaps();
     closeable.close();
   }
 

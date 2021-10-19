@@ -31,20 +31,15 @@ import com.mysql.cj.conf.PropertySet;
 import com.mysql.cj.jdbc.ha.ca.BasicConnectionProvider;
 import com.mysql.cj.log.Log;
 
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 
 public class DefaultMonitorService implements IMonitorService {
-  static final Map<String, IMonitor> MONITOR_MAP = new ConcurrentHashMap<>();
-  static final Map<IMonitor, Future<?>> TASKS_MAP = new ConcurrentHashMap<>();
+  static MonitorThreadMaps threadMaps;
   static ExecutorService threadPool; // Effectively final.
 
   private final Log log;
   final IMonitorInitializer monitorInitializer;
-  final IExecutorServiceInitializer executorServiceInitializer;
 
   public DefaultMonitorService(Log log) {
     this(
@@ -64,8 +59,9 @@ public class DefaultMonitorService implements IMonitorService {
       Log log) {
 
     this.monitorInitializer = monitorInitializer;
-    this.executorServiceInitializer = executorServiceInitializer;
     this.log = log;
+    this.threadMaps = MonitorThreadMaps.getInstance(executorServiceInitializer);
+    this.threadPool = this.threadMaps.getThreadPool();
   }
 
   @Override
@@ -77,13 +73,9 @@ public class DefaultMonitorService implements IMonitorService {
       int failureDetectionIntervalMillis,
       int failureDetectionCount) {
 
-    final IMonitor monitor = MONITOR_MAP.computeIfAbsent(
+    final IMonitor monitor = threadMaps.getMonitorMap().computeIfAbsent(
         node,
         k -> monitorInitializer.createMonitor(hostInfo, propertySet));
-
-    if (threadPool == null) {
-      threadPool = executorServiceInitializer.createExecutorService();
-    }
 
     final MonitorConnectionContext context = new MonitorConnectionContext(
         node,
@@ -93,14 +85,14 @@ public class DefaultMonitorService implements IMonitorService {
         failureDetectionCount);
 
     monitor.startMonitoring(context);
-    TASKS_MAP.computeIfAbsent(monitor, k -> threadPool.submit(monitor));
+    threadMaps.getTasksMap().computeIfAbsent(monitor, k -> threadPool.submit(monitor));
 
     return context;
   }
 
   @Override
   public void stopMonitoring(MonitorConnectionContext context) {
-    final IMonitor monitor = MONITOR_MAP.get(context.getNode());
+    final IMonitor monitor = threadMaps.getMonitorMap().get(context.getNode());
     monitor.stopMonitoring(context);
   }
 }
