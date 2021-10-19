@@ -26,6 +26,7 @@
 
 package com.mysql.cj.jdbc.ha.ca.plugins;
 
+import com.mysql.cj.Messages;
 import com.mysql.cj.conf.HostInfo;
 import com.mysql.cj.conf.PropertySet;
 import com.mysql.cj.jdbc.ha.ca.BasicConnectionProvider;
@@ -81,8 +82,9 @@ public class DefaultMonitorService implements IMonitorService {
       int failureDetectionCount) {
 
     if (nodeKeys.isEmpty()) {
-      log.logWarn("Passed in empty NodeKey Set. Set should not be empty");
-      throw new IllegalArgumentException("Empty NodeKey set passed into DefaultMonitorService");
+      final String warning = Messages.getString("DefaultMonitorService.EmptyNodeKeys");
+      log.logWarn(warning);
+      throw new IllegalArgumentException(warning);
     }
 
     final IMonitor monitor = getMonitor(nodeKeys, hostInfo, propertySet);
