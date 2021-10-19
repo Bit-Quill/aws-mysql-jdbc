@@ -26,11 +26,17 @@
 
 package com.mysql.cj.jdbc.ha.ca.plugins;
 
+import com.mysql.cj.Messages;
 import com.mysql.cj.conf.HostInfo;
 import com.mysql.cj.conf.PropertySet;
 import com.mysql.cj.jdbc.ha.ca.BasicConnectionProvider;
 import com.mysql.cj.log.Log;
 
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -64,19 +70,26 @@ public class DefaultMonitorService implements IMonitorService {
 
   @Override
   public MonitorConnectionContext startMonitoring(
-      String node,
+      Set<String> nodeKeys,
       HostInfo hostInfo,
       PropertySet propertySet,
       int failureDetectionTimeMillis,
       int failureDetectionIntervalMillis,
       int failureDetectionCount) {
 
+    if (nodeKeys.isEmpty()) {
+      final String warning = Messages.getString("DefaultMonitorService.EmptyNodeKeys");
+      log.logWarn(warning);
+      throw new IllegalArgumentException(warning);
+    }
+
+    final IMonitor monitor = getMonitor(nodeKeys, hostInfo, propertySet);
     final IMonitor monitor = this.threadContainer.getMonitorMap().computeIfAbsent(
         node,
         k -> monitorInitializer.createMonitor(hostInfo, propertySet));
 
     final MonitorConnectionContext context = new MonitorConnectionContext(
-        node,
+        nodeKeys,
         log,
         failureDetectionTimeMillis,
         failureDetectionIntervalMillis,
@@ -98,5 +111,16 @@ public class DefaultMonitorService implements IMonitorService {
   public void releaseResources() {
     this.threadContainer = null;
     MonitorThreadContainer.releaseInstance();
+  }
+
+  protected IMonitor getMonitor(Set<String> nodeKeys, HostInfo hostInfo, PropertySet propertySet) {
+    final String node = nodeKeys.stream().filter(MONITOR_MAP::containsKey).findFirst().orElse(nodeKeys.iterator().next());
+    final IMonitor monitor = MONITOR_MAP.computeIfAbsent(node, k -> monitorInitializer.createMonitor(hostInfo, propertySet));
+
+    for (String nodeKey : nodeKeys) {
+      MONITOR_MAP.putIfAbsent(nodeKey, monitor);
+    }
+
+    return monitor;
   }
 }

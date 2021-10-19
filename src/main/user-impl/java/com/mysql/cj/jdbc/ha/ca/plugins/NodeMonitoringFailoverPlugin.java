@@ -33,6 +33,12 @@ import com.mysql.cj.exceptions.CJCommunicationsException;
 import com.mysql.cj.log.Log;
 import org.jboss.util.NullArgumentException;
 
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -42,8 +48,9 @@ import java.util.concurrent.TimeUnit;
 
 public class NodeMonitoringFailoverPlugin implements IFailoverPlugin {
 
-  protected static int CHECK_INTERVAL_MILLIS = 1000;
-  protected static String METHODS_TO_MONITOR = "executeQuery,";
+  static final int CHECK_INTERVAL_MILLIS = 1000;
+  static final String METHODS_TO_MONITOR = "executeQuery,";
+  private static final String RETRIEVE_HOST_PORT_SQL = "SELECT CONCAT(@@hostname, ':', @@port)";
 
   protected IFailoverPlugin next;
   protected Log log;
@@ -55,7 +62,7 @@ public class NodeMonitoringFailoverPlugin implements IFailoverPlugin {
   protected int failureDetectionCount;
   private IMonitorService monitorService;
   private MonitorConnectionContext monitorContext;
-  private String node;
+  private final Set<String> nodeKeys = new HashSet<>();
 
   @FunctionalInterface
   interface IMonitorServiceInitializer {
@@ -65,13 +72,14 @@ public class NodeMonitoringFailoverPlugin implements IFailoverPlugin {
   public NodeMonitoringFailoverPlugin() {
   }
 
-  @Override
   public void init(
+      Connection connection,
       PropertySet propertySet,
       HostInfo hostInfo,
       IFailoverPlugin next,
       Log log) {
     this.init(
+        connection,
         propertySet,
         hostInfo,
         next,
@@ -80,11 +88,16 @@ public class NodeMonitoringFailoverPlugin implements IFailoverPlugin {
   }
 
   void init(
+      Connection connection,
       PropertySet propertySet,
       HostInfo hostInfo,
       IFailoverPlugin next,
       Log log,
       IMonitorServiceInitializer monitorServiceInitializer) {
+    if (connection == null) {
+      throw new NullArgumentException("connection");
+    }
+
     if (next == null) {
       throw new NullArgumentException("next");
     }
@@ -102,7 +115,7 @@ public class NodeMonitoringFailoverPlugin implements IFailoverPlugin {
     }
 
     this.hostInfo = hostInfo;
-    this.node = hostInfo.getHost();
+    initNodeKeys(connection); // Sets NodeKeys
     this.propertySet = propertySet;
     this.log = log;
     this.next = next;
@@ -159,7 +172,7 @@ public class NodeMonitoringFailoverPlugin implements IFailoverPlugin {
           methodName));
 
       this.monitorContext = this.monitorService.startMonitoring(
-          node,
+          this.nodeKeys,
           this.hostInfo,
           this.propertySet,
           this.failureDetectionTimeMillis,
@@ -208,5 +221,25 @@ public class NodeMonitoringFailoverPlugin implements IFailoverPlugin {
     this.monitorService.releaseResources();
     this.monitorService = null;
     this.next.releaseResources();
+  }
+
+  protected void initNodeKeys(Connection connection) {
+    try (Statement stmt = connection.createStatement()) {
+      try (ResultSet rs = stmt.executeQuery(RETRIEVE_HOST_PORT_SQL)) {
+        while (rs.next()) {
+          nodeKeys.add(rs.getString(1));
+        }
+      }
+    } catch (SQLException sqlException) {
+      // log and ignore
+      this.log.logTrace(
+          "[NodeMonitoringFailoverPlugin.initNodes]: Could not retrieve Host:Port from querying");
+    }
+
+    nodeKeys.add(
+        String.format("%s:%s",
+            this.hostInfo.getHost(),
+            this.hostInfo.getPort()
+        ));
   }
 }

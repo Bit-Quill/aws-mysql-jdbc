@@ -34,6 +34,7 @@ import com.mysql.cj.util.StringUtils;
 import com.mysql.cj.util.Util;
 import org.jboss.util.NullArgumentException;
 
+import java.sql.Connection;
 import java.util.concurrent.Callable;
 
 //TODO: rename class name to more generic one. This plugin manager has nothing to do with failover so the current class name is confusing and misleading.
@@ -46,6 +47,7 @@ public class FailoverPluginManager {
       NodeMonitoringFailoverPluginFactory.class.getName();
 
   protected Log log;
+  protected Connection connection = null;
   protected PropertySet propertySet = null;
   protected HostInfo hostInfo;
   protected IFailoverPlugin headPlugin = null;
@@ -58,7 +60,8 @@ public class FailoverPluginManager {
     this.log = log;
   }
 
-  public void init(PropertySet propertySet, HostInfo hostInfo) {
+  public void init(Connection connection, PropertySet propertySet, HostInfo hostInfo) {
+    this.connection = connection;
     this.propertySet = propertySet;
     this.hostInfo = hostInfo;
 
@@ -72,6 +75,7 @@ public class FailoverPluginManager {
 
     this.headPlugin = new DefaultFailoverPluginFactory()
         .getInstance(
+            this.connection,
             this.propertySet,
             this.hostInfo,
             null,
@@ -90,6 +94,7 @@ public class FailoverPluginManager {
       for (int i = factories.length - 1; i >= 0; i--) {
         this.headPlugin = factories[i]
             .getInstance(
+                this.connection,
                 this.propertySet,
                 this.hostInfo,
                 this.headPlugin,
