@@ -39,16 +39,12 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 
 public class DefaultMonitorService implements IMonitorService {
-  static final Map<String, IMonitor> MONITOR_MAP = new ConcurrentHashMap<>();
-  static final Map<IMonitor, Future<?>> TASKS_MAP = new ConcurrentHashMap<>();
-  static ExecutorService threadPool; // Effectively final.
+  MonitorThreadContainer threadContainer;
 
   private final Log log;
   final IMonitorInitializer monitorInitializer;
-  final IExecutorServiceInitializer executorServiceInitializer;
 
   public DefaultMonitorService(Log log) {
     this(
@@ -68,8 +64,8 @@ public class DefaultMonitorService implements IMonitorService {
       Log log) {
 
     this.monitorInitializer = monitorInitializer;
-    this.executorServiceInitializer = executorServiceInitializer;
     this.log = log;
+    this.threadContainer = MonitorThreadContainer.getInstance(executorServiceInitializer);
   }
 
   @Override
@@ -89,10 +85,6 @@ public class DefaultMonitorService implements IMonitorService {
 
     final IMonitor monitor = getMonitor(nodeKeys, hostInfo, propertySet);
 
-    if (threadPool == null) {
-      threadPool = executorServiceInitializer.createExecutorService();
-    }
-
     final MonitorConnectionContext context = new MonitorConnectionContext(
         nodeKeys,
         log,
@@ -101,24 +93,29 @@ public class DefaultMonitorService implements IMonitorService {
         failureDetectionCount);
 
     monitor.startMonitoring(context);
-    TASKS_MAP.computeIfAbsent(monitor, k -> threadPool.submit(monitor));
+    this.threadContainer.getTasksMap().computeIfAbsent(monitor, k -> this.threadContainer.getThreadPool().submit(monitor));
 
     return context;
   }
 
   @Override
   public void stopMonitoring(MonitorConnectionContext context) {
-    final Iterator<String> keys = context.getNodeKeys().iterator();
-    final IMonitor monitor = MONITOR_MAP.get(keys.next());
+    final IMonitor monitor = this.threadContainer.getMonitorMap().get(context.getNodeKeys().iterator().next());
     monitor.stopMonitoring(context);
   }
 
+  @Override
+  public void releaseResources() {
+    this.threadContainer = null;
+    MonitorThreadContainer.releaseInstance();
+  }
+
   protected IMonitor getMonitor(Set<String> nodeKeys, HostInfo hostInfo, PropertySet propertySet) {
-    final String node = nodeKeys.stream().filter(MONITOR_MAP::containsKey).findFirst().orElse(nodeKeys.iterator().next());
-    final IMonitor monitor = MONITOR_MAP.computeIfAbsent(node, k -> monitorInitializer.createMonitor(hostInfo, propertySet));
+    final String node = nodeKeys.stream().filter(this.threadContainer.getMonitorMap()::containsKey).findFirst().orElse(nodeKeys.iterator().next());
+    final IMonitor monitor = this.threadContainer.getMonitorMap().computeIfAbsent(node, k -> monitorInitializer.createMonitor(hostInfo, propertySet));
 
     for (String nodeKey : nodeKeys) {
-      MONITOR_MAP.putIfAbsent(nodeKey, monitor);
+      this.threadContainer.getMonitorMap().putIfAbsent(nodeKey, monitor);
     }
 
     return monitor;

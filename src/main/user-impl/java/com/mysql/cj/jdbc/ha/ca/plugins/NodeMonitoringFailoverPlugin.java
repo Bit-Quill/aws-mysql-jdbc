@@ -218,6 +218,8 @@ public class NodeMonitoringFailoverPlugin implements IFailoverPlugin {
 
   @Override
   public void releaseResources() {
+    this.monitorService.releaseResources();
+    this.monitorService = null;
     this.next.releaseResources();
   }
 

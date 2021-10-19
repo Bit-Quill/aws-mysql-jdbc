@@ -118,9 +118,9 @@ public class MonitorConnectionContext {
         this.setInvalidNodeStartTime(currentTime);
       }
 
-      long invalidNodeDurationMillis = currentTime - this.getInvalidNodeStartTime();
-      long maxInvalidNodeDurationMillis = (long)this.getFailureDetectionIntervalMillis() * this.getFailureDetectionCount();
-      float adjustedFailureCount = (float)this.getFailureDetectionIntervalMillis() / validationIntervalTimeMillis * this.getFailureDetectionCount();
+      final long invalidNodeDurationMillis = currentTime - this.getInvalidNodeStartTime();
+      final long maxInvalidNodeDurationMillis = (long) this.getFailureDetectionIntervalMillis() * this.getFailureDetectionCount();
+      final float adjustedFailureCount = (float) this.getFailureDetectionIntervalMillis() / validationIntervalTimeMillis * this.getFailureDetectionCount();
 
       // TODO: condition with failure counts may be unnecessary
       if (this.getFailureCount() >= adjustedFailureCount && invalidNodeDurationMillis >= maxInvalidNodeDurationMillis) {

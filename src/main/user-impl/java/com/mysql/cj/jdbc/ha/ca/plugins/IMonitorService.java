@@ -41,4 +41,6 @@ public interface IMonitorService {
       int failureDetectionCount);
 
   void stopMonitoring(MonitorConnectionContext context);
+
+  void releaseResources();
 }
