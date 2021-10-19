@@ -42,13 +42,14 @@ class MonitorConnectionContextTest {
   private static final int FAILURE_DETECTION_TIME_MILLIS = 10;
   private static final int FAILURE_DETECTION_INTERVAL_MILLIS = 100;
   private static final int FAILURE_DETECTION_COUNT = 3;
+  private static final int VALIDATION_INTERVAL_MILLIS = 50;
 
   private MonitorConnectionContext context;
   private AutoCloseable closeable;
 
   @BeforeEach
   void init() {
-    NODE_KEYS.add("node.domain");
+    NODE_KEYS.add("any.node.domain");
 
     closeable = MockitoAnnotations.openMocks(this);
     context = new MonitorConnectionContext(
@@ -66,14 +67,14 @@ class MonitorConnectionContextTest {
 
   @Test
   public void test_1_isNodeUnhealthyWithConnection_returnFalse() {
-    context.setConnectionValid(true);
+    context.setConnectionValid(true, System.currentTimeMillis(), VALIDATION_INTERVAL_MILLIS);
     Assertions.assertFalse(context.isNodeUnhealthy());
     Assertions.assertEquals(0, this.context.getFailureCount());
   }
 
   @Test
   public void test_2_isNodeUnhealthyWithInvalidConnection_returnFalse() {
-    context.setConnectionValid(false);
+    context.setConnectionValid(false, System.currentTimeMillis(), VALIDATION_INTERVAL_MILLIS);
     Assertions.assertFalse(context.isNodeUnhealthy());
     Assertions.assertEquals(1, this.context.getFailureCount());
   }
@@ -82,10 +83,30 @@ class MonitorConnectionContextTest {
   public void test_3_isNodeUnhealthyExceedsFailureDetectionCount_returnTrue() {
     final int expectedFailureCount = FAILURE_DETECTION_COUNT + 1;
     context.setFailureCount(FAILURE_DETECTION_COUNT);
+    context.resetInvalidNodeStartTime();
 
-    context.setConnectionValid(false);
+    context.setConnectionValid(false, System.currentTimeMillis(), VALIDATION_INTERVAL_MILLIS);
 
-    Assertions.assertTrue(context.isNodeUnhealthy());
+    Assertions.assertFalse(context.isNodeUnhealthy());
     Assertions.assertEquals(expectedFailureCount, context.getFailureCount());
+    Assertions.assertTrue(context.isInvalidNodeStartTimeDefined());
+  }
+
+  @Test
+  public void test_4_isNodeUnhealthyExceedsFailureDetectionCount() {
+    long currentTimeMillis = System.currentTimeMillis();
+    context.setFailureCount(0);
+    context.resetInvalidNodeStartTime();
+
+    // Simulate monitor loop that reports invalid connection for 6 times with interval 50 msec
+    for(int i = 0; i < 6; i++) {
+      context.setConnectionValid(false, currentTimeMillis, VALIDATION_INTERVAL_MILLIS);
+      Assertions.assertFalse(context.isNodeUnhealthy());
+
+      currentTimeMillis += VALIDATION_INTERVAL_MILLIS;
+    }
+
+    context.setConnectionValid(false, currentTimeMillis, VALIDATION_INTERVAL_MILLIS);
+    Assertions.assertTrue(context.isNodeUnhealthy());
   }
 }
