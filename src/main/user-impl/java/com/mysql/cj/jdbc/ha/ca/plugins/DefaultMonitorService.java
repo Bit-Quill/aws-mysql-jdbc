@@ -84,9 +84,6 @@ public class DefaultMonitorService implements IMonitorService {
     }
 
     final IMonitor monitor = getMonitor(nodeKeys, hostInfo, propertySet);
-    final IMonitor monitor = this.threadContainer.getMonitorMap().computeIfAbsent(
-        node,
-        k -> monitorInitializer.createMonitor(hostInfo, propertySet));
 
     final MonitorConnectionContext context = new MonitorConnectionContext(
         nodeKeys,
@@ -103,7 +100,7 @@ public class DefaultMonitorService implements IMonitorService {
 
   @Override
   public void stopMonitoring(MonitorConnectionContext context) {
-    final IMonitor monitor = this.threadContainer.getMonitorMap().get(context.getNode());
+    final IMonitor monitor = this.threadContainer.getMonitorMap().get(context.getNodeKeys().iterator().next());
     monitor.stopMonitoring(context);
   }
 
@@ -114,11 +111,11 @@ public class DefaultMonitorService implements IMonitorService {
   }
 
   protected IMonitor getMonitor(Set<String> nodeKeys, HostInfo hostInfo, PropertySet propertySet) {
-    final String node = nodeKeys.stream().filter(MONITOR_MAP::containsKey).findFirst().orElse(nodeKeys.iterator().next());
-    final IMonitor monitor = MONITOR_MAP.computeIfAbsent(node, k -> monitorInitializer.createMonitor(hostInfo, propertySet));
+    final String node = nodeKeys.stream().filter(this.threadContainer.getMonitorMap()::containsKey).findFirst().orElse(nodeKeys.iterator().next());
+    final IMonitor monitor = this.threadContainer.getMonitorMap().computeIfAbsent(node, k -> monitorInitializer.createMonitor(hostInfo, propertySet));
 
     for (String nodeKey : nodeKeys) {
-      MONITOR_MAP.putIfAbsent(nodeKey, monitor);
+      this.threadContainer.getMonitorMap().putIfAbsent(nodeKey, monitor);
     }
 
     return monitor;
