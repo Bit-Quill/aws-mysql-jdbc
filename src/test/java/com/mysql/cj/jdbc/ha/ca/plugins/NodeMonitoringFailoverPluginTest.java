@@ -175,7 +175,6 @@ class NodeMonitoringFailoverPluginTest {
     });
 
     verify(monitorService).stopMonitoring(Mockito.eq(context));
-    verify(logger, Mockito.atLeastOnce()).logTrace(Mockito.anyString());
   }
 
   @Test
@@ -201,7 +200,6 @@ class NodeMonitoringFailoverPluginTest {
 
     verify(context).isNodeUnhealthy();
     verify(monitorService).stopMonitoring(Mockito.eq(context));
-    verify(logger, Mockito.atLeastOnce()).logTrace(Mockito.anyString());
   }
 
   @Test
@@ -226,7 +224,6 @@ class NodeMonitoringFailoverPluginTest {
 
     verify(context, Mockito.atLeastOnce()).isNodeUnhealthy();
     verify(monitorService).stopMonitoring(Mockito.eq(context));
-    verify(logger, Mockito.atLeastOnce()).logTrace(Mockito.anyString());
   }
 
   /**
