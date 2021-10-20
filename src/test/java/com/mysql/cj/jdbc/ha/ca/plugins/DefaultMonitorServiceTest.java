@@ -26,6 +26,7 @@
 
 package com.mysql.cj.jdbc.ha.ca.plugins;
 
+import com.mysql.cj.conf.DefaultPropertySet;
 import com.mysql.cj.conf.HostInfo;
 import com.mysql.cj.conf.PropertySet;
 import com.mysql.cj.log.Log;
@@ -66,15 +67,15 @@ class DefaultMonitorServiceTest {
   private Future<?> task;
   @Mock
   private HostInfo info;
-  @Mock
-  private PropertySet set;
 
+  private PropertySet set;
   private AutoCloseable closeable;
   private DefaultMonitorService monitorService;
   private ArgumentCaptor<MonitorConnectionContext> contextCaptor;
 
   @BeforeEach
   void init() {
+    set = new DefaultPropertySet();
     closeable = MockitoAnnotations.openMocks(this);
     contextCaptor = ArgumentCaptor.forClass(MonitorConnectionContext.class);
 
