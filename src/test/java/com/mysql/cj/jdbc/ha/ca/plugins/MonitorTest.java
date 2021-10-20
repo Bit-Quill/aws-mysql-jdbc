@@ -28,6 +28,7 @@ package com.mysql.cj.jdbc.ha.ca.plugins;
 
 import com.mysql.cj.conf.BooleanProperty;
 import com.mysql.cj.conf.HostInfo;
+import com.mysql.cj.conf.IntegerProperty;
 import com.mysql.cj.conf.PropertyKey;
 import com.mysql.cj.conf.PropertySet;
 import com.mysql.cj.jdbc.ConnectionImpl;
@@ -42,6 +43,8 @@ import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 
 import java.sql.SQLException;
+import java.util.Map;
+import java.util.concurrent.ExecutorService;
 
 class MonitorTest {
 
@@ -61,10 +64,17 @@ class MonitorTest {
   MonitorConnectionContext contextWithLongInterval;
   @Mock
   BooleanProperty booleanProperty;
+  @Mock
+  IntegerProperty intProperty;
+  @Mock
+  IExecutorServiceInitializer executorServiceInitializer;
+  @Mock
+  ExecutorService executorService;
 
   private static final int SHORT_INTERVAL_MILLIS = 30;
   private static final int SHORT_INTERVAL_SECONDS = SHORT_INTERVAL_MILLIS / 1000;
   private static final int LONG_INTERVAL_MILLIS = 300;
+  private static final int MONITOR_TIMEOUT_MILLIS = 3000;
 
   private AutoCloseable closeable;
   private Monitor monitor;
@@ -86,8 +96,20 @@ class MonitorTest {
         .when(booleanProperty.getStringValue())
         .thenReturn(Boolean.TRUE.toString());
     Mockito
+        .when(propertySet.getIntegerProperty(Mockito.any(PropertyKey.class)))
+        .thenReturn(intProperty);
+    Mockito
+        .when(intProperty.getValue())
+        .thenReturn(MONITOR_TIMEOUT_MILLIS);
+
+    // Set-up initial Monitor Map Container
+    Mockito
         .when(connectionProvider.connect(Mockito.any(HostInfo.class)))
         .thenReturn(connection);
+    Mockito
+        .when(executorServiceInitializer.createExecutorService())
+        .thenReturn(executorService);
+    MonitorThreadContainer.getInstance(executorServiceInitializer);
 
     monitor = new Monitor(connectionProvider, hostInfo, propertySet, log);
   }
@@ -197,5 +219,18 @@ class MonitorTest {
     });
 
     Mockito.verify(log).logTrace(Mockito.anyString(), Mockito.any(SQLException.class));
+  }
+
+  @Test
+  void test_8_runWithoutContext() throws InterruptedException {
+      // Put monitor into Container Map
+      final Map<String, IMonitor> monitorMap = MonitorThreadContainer.getInstance().getMonitorMap();
+      final String nodeKey = "monitorA";
+      monitorMap.put(nodeKey, monitor);
+      monitor.run();
+      Thread.sleep(MONITOR_TIMEOUT_MILLIS);
+
+      // After running with empty context, monitor should be out of the map
+      Assertions.assertNull(monitorMap.get(nodeKey));
   }
 }

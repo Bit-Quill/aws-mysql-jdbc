@@ -32,6 +32,8 @@ import com.mysql.cj.conf.PropertySet;
 import com.mysql.cj.jdbc.ha.ca.BasicConnectionProvider;
 import com.mysql.cj.log.Log;
 
+import java.util.NoSuchElementException;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Executors;
 
@@ -95,6 +97,12 @@ public class DefaultMonitorService implements IMonitorService {
 
   @Override
   public void stopMonitoring(MonitorConnectionContext context) {
+    final Optional<String> node = context.getNodeKeys().stream().filter(this.threadContainer.getMonitorMap()::containsKey).findAny();
+    if (!node.isPresent()) {
+      log.logTrace("Could not find any NodeKey from context.");
+      throw new NoSuchElementException();
+    }
+
     final IMonitor monitor = this.threadContainer.getMonitorMap().get(context.getNodeKeys().iterator().next());
     monitor.stopMonitoring(context);
   }

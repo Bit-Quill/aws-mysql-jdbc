@@ -39,6 +39,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 public class Monitor implements IMonitor {
@@ -61,6 +62,8 @@ public class Monitor implements IMonitor {
   private final HostInfo hostInfo;
   private Connection monitoringConn = null;
   private int connectionCheckIntervalMillis = Integer.MAX_VALUE;
+  private long lastContextUsedTimestamp;
+  private final long monitorDisposeTimeout;
 
   public Monitor(ConnectionProvider connectionProvider, HostInfo hostInfo, PropertySet propertySet,
       Log log) {
@@ -68,6 +71,7 @@ public class Monitor implements IMonitor {
     this.hostInfo = hostInfo;
     this.propertySet = propertySet;
     this.log = log;
+    this.monitorDisposeTimeout = propertySet.getIntegerProperty(PropertyKey.monitorDisposeTime).getValue();
   }
 
   @Override
@@ -75,26 +79,37 @@ public class Monitor implements IMonitor {
     this.connectionCheckIntervalMillis = Math.min(
         this.connectionCheckIntervalMillis,
         context.getFailureDetectionIntervalMillis());
-
     context.setStartMonitorTime(this.getCurrentTimeMillis());
-    contexts.add(context);
+    this.contexts.add(context);
   }
 
   @Override
   public void stopMonitoring(MonitorConnectionContext context) {
-    contexts.remove(context);
+    this.contexts.remove(context);
     this.connectionCheckIntervalMillis = findShortestIntervalMillis();
+    this.lastContextUsedTimestamp = this.getCurrentTimeMillis();
+  }
+
+  @Override
+  public long getLastContextUsedTimestamp() {
+    return lastContextUsedTimestamp;
+  }
+
+  @Override
+  public int getNumOfContexts() {
+    return this.contexts.size();
   }
 
   @Override
   public void run() {
     try {
       while (true) {
-        if (!contexts.isEmpty()) {
+        if (!this.contexts.isEmpty()) {
           final ConnectionStatus status = checkConnectionStatus(this.connectionCheckIntervalMillis);
           final long currentTime = this.getCurrentTimeMillis();
+          this.lastContextUsedTimestamp = currentTime;
 
-          for (MonitorConnectionContext monitorContext : contexts) {
+          for (MonitorConnectionContext monitorContext : this.contexts) {
             monitorContext.updateConnectionStatus(
                 currentTime,
                 status.isValid,
@@ -103,6 +118,10 @@ public class Monitor implements IMonitor {
 
           TimeUnit.MILLISECONDS.sleep(Math.max(0, this.connectionCheckIntervalMillis - status.elapsedTime));
         } else {
+          if ((this.getCurrentTimeMillis() - this.lastContextUsedTimestamp) >= this.monitorDisposeTimeout) {
+            this.removeMonitorFromMap();
+            break;
+          }
           TimeUnit.MILLISECONDS.sleep(THREAD_SLEEP_WHEN_INACTIVE_MILLIS);
         }
       }
@@ -166,9 +185,27 @@ public class Monitor implements IMonitor {
   }
 
   private int findShortestIntervalMillis() {
-    return contexts.stream()
+    return this.contexts.stream()
         .min(Comparator.comparing(MonitorConnectionContext::getFailureDetectionIntervalMillis))
         .map(MonitorConnectionContext::getFailureDetectionIntervalMillis)
         .orElse(0);
+  }
+
+  // Synchronize this?
+  private void removeMonitorFromMap() {
+    final Map<String, IMonitor> monitorMap = MonitorThreadContainer.getInstance().getMonitorMap();
+    monitorMap.forEach((key, value) -> {
+      if (value.equals(this)) {
+        monitorMap.remove(key);
+      }
+    });
+
+    final Map<IMonitor, Future<?>> taskMap = MonitorThreadContainer.getInstance().getTasksMap();
+    taskMap.forEach((key, value) -> {
+      if (key.equals(this)) {
+        value.cancel(true);
+        taskMap.remove(key);
+      }
+    });
   }
 }
