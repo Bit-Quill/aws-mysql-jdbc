@@ -26,6 +26,7 @@
 
 package com.mysql.cj.jdbc.ha.ca.plugins;
 
+import com.mysql.cj.Messages;
 import com.mysql.cj.conf.HostInfo;
 import com.mysql.cj.conf.PropertyKey;
 import com.mysql.cj.conf.PropertySet;
@@ -54,7 +55,9 @@ public class FailoverPluginManager {
 
   public FailoverPluginManager(Log log) {
     if (log == null) {
-      throw new NullArgumentException("log");
+      throw new NullArgumentException(Messages.getString(
+          "NullArgumentException.NullParameter",
+          new String[]{"log"}));
     }
 
     this.log = log;

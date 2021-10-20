@@ -26,6 +26,7 @@
 
 package com.mysql.cj.jdbc.ha.ca.plugins;
 
+import com.mysql.cj.Messages;
 import com.mysql.cj.conf.HostInfo;
 import com.mysql.cj.conf.PropertyKey;
 import com.mysql.cj.conf.PropertySet;
@@ -95,23 +96,33 @@ public class NodeMonitoringFailoverPlugin implements IFailoverPlugin {
       Log log,
       IMonitorServiceInitializer monitorServiceInitializer) {
     if (connection == null) {
-      throw new NullArgumentException("connection");
+      throw new NullArgumentException(Messages.getString(
+          "NullArgumentException.NullParameter",
+          new String[]{"connection"}));
     }
 
     if (next == null) {
-      throw new NullArgumentException("next");
+      throw new NullArgumentException(Messages.getString(
+          "NullArgumentException.NullParameter",
+          new String[]{"next"}));
     }
 
     if (log == null) {
-      throw new NullArgumentException("log");
+      throw new NullArgumentException(Messages.getString(
+          "NullArgumentException.NullParameter",
+          new String[]{"log"}));
     }
 
     if (propertySet == null) {
-      throw new NullArgumentException("propertySet");
+      throw new NullArgumentException(Messages.getString(
+          "NullArgumentException.NullParameter",
+          new String[]{"propertySet"}));
     }
 
     if (hostInfo == null) {
-      throw new NullArgumentException("hostInfo");
+      throw new NullArgumentException(Messages.getString(
+          "NullArgumentException.NullParameter",
+          new String[]{"hostInfo"}));
     }
 
     this.hostInfo = hostInfo;
