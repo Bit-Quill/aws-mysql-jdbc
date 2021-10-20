@@ -41,6 +41,7 @@ import com.mysql.cj.conf.PropertySet;
 import com.mysql.cj.log.Log;
 import com.mysql.cj.log.NullLogger;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.RepeatedTest;
 import org.mockito.ArgumentCaptor;
@@ -65,6 +66,20 @@ import java.util.stream.Collectors;
  * Use a cyclic barrier to ensure threads start at the same time.
  */
 class MultiThreadedDefaultMonitorServiceTest {
+
+  private static class ExecutionTime {
+    long startTime;
+    long endTime;
+
+    void setTime(long start, long end) {
+      this.startTime = start;
+      this.endTime = end;
+    }
+
+    boolean isOverlapped(ExecutionTime time) {
+      return (Math.max(this.startTime, time.startTime) - Math.min(this.endTime, time.endTime)) < 0;
+    }
+  }
 
   @Mock IMonitorInitializer monitorInitializer;
   @Mock IExecutorServiceInitializer executorServiceInitializer;
@@ -148,7 +163,7 @@ class MultiThreadedDefaultMonitorServiceTest {
   /**
    * Create 2 connections to one node.
    */
-  @RepeatedTest(1000)
+  @RepeatedTest(1)
   void test_2_multipleConnectionsToOneNode() throws ExecutionException, InterruptedException, BrokenBarrierException {
     final List<Object> results = runMethodsAsync(
         (serviceA) -> serviceA.startMonitoring(
@@ -192,6 +207,10 @@ class MultiThreadedDefaultMonitorServiceTest {
       final Function<DefaultMonitorService, Object> methodA,
       final Function<DefaultMonitorService, Object> methodB
   ) throws BrokenBarrierException, InterruptedException, ExecutionException {
+    final String exceptionMessage = "Test thread interrupted due to an unexpected exception.";
+    final ExecutionTime threadATime = new ExecutionTime();
+    final ExecutionTime threadBTime = new ExecutionTime();
+
     final CyclicBarrier gate = new CyclicBarrier(3);
     final DefaultMonitorService serviceA = createNewMonitorService();
     final DefaultMonitorService serviceB = createNewMonitorService();
@@ -200,20 +219,28 @@ class MultiThreadedDefaultMonitorServiceTest {
       try {
         gate.await();
       } catch (final InterruptedException | BrokenBarrierException e) {
-        fail("Test thread interrupted due to an unexpected exception.", e);
+        fail(exceptionMessage, e);
       }
 
-      return methodA.apply(serviceA);
+      final long startTime = System.nanoTime();
+      final Object result = methodA.apply(serviceA);
+      final long endTime = System.nanoTime();
+      threadATime.setTime(startTime, endTime);
+      return result;
     });
 
     final CompletableFuture<Object> threadB = CompletableFuture.supplyAsync(() -> {
       try {
         gate.await();
       } catch (final InterruptedException | BrokenBarrierException e) {
-        fail("Test thread interrupted due to an unexpected exception.", e);
+        fail(exceptionMessage, e);
       }
 
-      return methodB.apply(serviceB);
+      final long startTime = System.nanoTime();
+      final Object result = methodB.apply(serviceB);
+      final long endTime = System.nanoTime();
+      threadBTime.setTime(startTime, endTime);
+      return result;
     });
 
     gate.await();
@@ -221,6 +248,8 @@ class MultiThreadedDefaultMonitorServiceTest {
     final List<Object> contexts = new ArrayList<>();
     contexts.add(threadA.get());
     contexts.add(threadB.get());
+
+    Assertions.assertTrue(threadATime.isOverlapped(threadBTime));
 
     return contexts;
   }
