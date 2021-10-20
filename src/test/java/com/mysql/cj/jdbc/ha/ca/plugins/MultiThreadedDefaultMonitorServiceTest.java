@@ -41,7 +41,6 @@ import com.mysql.cj.conf.PropertySet;
 import com.mysql.cj.log.Log;
 import com.mysql.cj.log.NullLogger;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.RepeatedTest;
 import org.mockito.ArgumentCaptor;
@@ -50,13 +49,18 @@ import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -66,21 +70,6 @@ import java.util.stream.Collectors;
  * Use a cyclic barrier to ensure threads start at the same time.
  */
 class MultiThreadedDefaultMonitorServiceTest {
-
-  private static class ExecutionTime {
-    long startTime;
-    long endTime;
-
-    void setTime(long start, long end) {
-      this.startTime = start;
-      this.endTime = end;
-    }
-
-    boolean isOverlapped(ExecutionTime time) {
-      return (Math.max(this.startTime, time.startTime) - Math.min(this.endTime, time.endTime)) < 0;
-    }
-  }
-
   @Mock IMonitorInitializer monitorInitializer;
   @Mock IExecutorServiceInitializer executorServiceInitializer;
   @Mock ExecutorService service;
@@ -92,6 +81,9 @@ class MultiThreadedDefaultMonitorServiceTest {
   @Mock IMonitor monitorB;
 
   private final Log logger = new NullLogger("MultiThreadedDefaultMonitorServiceTest");
+
+  private final AtomicInteger counter = new AtomicInteger(0);
+  private final AtomicInteger concurrentCounter = new AtomicInteger(0);
 
   private static final int FAILURE_DETECTION_TIME = 10;
   private static final int FAILURE_DETECTION_INTERVAL = 100;
@@ -117,10 +109,9 @@ class MultiThreadedDefaultMonitorServiceTest {
 
   @AfterEach
   void cleanUp() throws Exception {
+    counter.set(0);
+    concurrentCounter.set(0);
     closeable.close();
-    DefaultMonitorService.MONITOR_MAP.clear();
-    DefaultMonitorService.TASKS_MAP.values().forEach(val -> val.cancel(true));
-    DefaultMonitorService.TASKS_MAP.clear();
   }
 
   /**
@@ -128,72 +119,105 @@ class MultiThreadedDefaultMonitorServiceTest {
    */
   @RepeatedTest(1000)
   void test_1_multipleConnectionsToDifferentNodes() throws ExecutionException, InterruptedException, BrokenBarrierException {
-    final List<Object> results = runMethodsAsync(
-        (serviceA) -> serviceA.startMonitoring(
-            "node1",
-            info,
-            propertySet,
-            FAILURE_DETECTION_TIME,
-            FAILURE_DETECTION_INTERVAL,
-            FAILURE_DETECTION_COUNT),
-        (serviceB) -> serviceB.startMonitoring(
-            "node2",
-            info,
-            propertySet,
-            FAILURE_DETECTION_TIME,
-            FAILURE_DETECTION_INTERVAL,
-            FAILURE_DETECTION_COUNT)
-    );
+    final int numConnections = 10;
+    final List<Set<String>> nodeKeyList = generateNodeKeys(numConnections, true);
+    final List<DefaultMonitorService> services = generateServices(numConnections);
 
-    List<MonitorConnectionContext> contexts = results.stream()
-        .map(obj -> (MonitorConnectionContext) obj)
-        .collect(Collectors.toList());
+    try {
+      final List<Object> results = runMethodsAsync(
+          numConnections,
+          services,
+          nodeKeyList,
+          (service, nodes) -> {
+            final int val = counter.getAndIncrement();
+            if (val != 0) {
+              concurrentCounter.getAndIncrement();
+            }
 
-    List<MonitorConnectionContext> capturedContexts = captor.getAllValues();
+            final MonitorConnectionContext context = service
+                .startMonitoring(
+                    nodes,
+                    info,
+                    propertySet,
+                    FAILURE_DETECTION_TIME,
+                    FAILURE_DETECTION_INTERVAL,
+                    FAILURE_DETECTION_COUNT);
 
-    assertEquals(2, DefaultMonitorService.MONITOR_MAP.size());
-    assertEquals(2, capturedContexts.size());
-    assertTrue((contexts.size() == capturedContexts.size())
-        && contexts.containsAll(capturedContexts)
-        && capturedContexts.containsAll(contexts));
+            counter.getAndDecrement();
+            return context;
+          }
+      );
 
-    verify(monitorInitializer, times(2)).createMonitor(eq(info), eq(propertySet));
+      final List<MonitorConnectionContext> contexts = results.stream()
+          .map(obj -> (MonitorConnectionContext) obj)
+          .collect(Collectors.toList());
+
+      final List<MonitorConnectionContext> capturedContexts = captor.getAllValues();
+
+      assertEquals(numConnections, services.get(0).threadContainer.getMonitorMap().size());
+      assertEquals(numConnections, capturedContexts.size());
+
+      assertTrue((contexts.size() == capturedContexts.size())
+          && contexts.containsAll(capturedContexts)
+          && capturedContexts.containsAll(contexts));
+
+      assertTrue(concurrentCounter.get() > 1);
+      verify(monitorInitializer, times(numConnections)).createMonitor(eq(info), eq(propertySet));
+    } finally {
+      releaseResources(services);
+    }
   }
 
   /**
    * Create 2 connections to one node.
    */
-  @RepeatedTest(1)
-  void test_2_multipleConnectionsToOneNode() throws ExecutionException, InterruptedException, BrokenBarrierException {
-    final List<Object> results = runMethodsAsync(
-        (serviceA) -> serviceA.startMonitoring(
-            "node",
-            info,
-            propertySet,
-            FAILURE_DETECTION_TIME,
-            FAILURE_DETECTION_INTERVAL,
-            FAILURE_DETECTION_COUNT),
-        (serviceB) -> serviceB.startMonitoring(
-            "node",
-            info,
-            propertySet,
-            FAILURE_DETECTION_TIME,
-            FAILURE_DETECTION_INTERVAL,
-            FAILURE_DETECTION_COUNT)
-    );
+  @RepeatedTest(1000)
+  void test_2_multipleConnectionsToOneNode() throws InterruptedException, BrokenBarrierException, ExecutionException {
+    final int numConnections = 10;
+    final List<Set<String>> nodeKeyList = generateNodeKeys(numConnections, false);
+    final List<DefaultMonitorService> services = generateServices(numConnections);
 
-    List<MonitorConnectionContext> contexts = results.stream()
-        .map(obj -> (MonitorConnectionContext) obj)
-        .collect(Collectors.toList());
-    List<MonitorConnectionContext> capturedContexts = captor.getAllValues();
+    try {
+      final List<Object> results = runMethodsAsync(
+          numConnections,
+          services,
+          nodeKeyList,
+          (service, nodes) -> {
+            final int val = counter.getAndIncrement();
+            if (val != 0) {
+              concurrentCounter.getAndIncrement();
+            }
 
-    assertEquals(1, DefaultMonitorService.MONITOR_MAP.size());
-    assertEquals(2, capturedContexts.size());
-    assertTrue((contexts.size() == capturedContexts.size())
-        && contexts.containsAll(capturedContexts)
-        && capturedContexts.containsAll(contexts));
+            final MonitorConnectionContext context = service
+                .startMonitoring(
+                    nodes,
+                    info,
+                    propertySet,
+                    FAILURE_DETECTION_TIME,
+                    FAILURE_DETECTION_INTERVAL,
+                    FAILURE_DETECTION_COUNT);
 
-    verify(monitorInitializer).createMonitor(eq(info), eq(propertySet));
+            counter.getAndDecrement();
+            return context;
+          }
+      );
+
+      final List<MonitorConnectionContext> contexts = results.stream()
+          .map(obj -> (MonitorConnectionContext) obj)
+          .collect(Collectors.toList());
+      final List<MonitorConnectionContext> capturedContexts = captor.getAllValues();
+
+      assertEquals(1, services.get(0).threadContainer.getMonitorMap().size());
+      assertEquals(numConnections, capturedContexts.size());
+      assertTrue((contexts.size() == capturedContexts.size())
+          && contexts.containsAll(capturedContexts)
+          && capturedContexts.containsAll(contexts));
+
+      assertTrue(concurrentCounter.get() > 1);
+      verify(monitorInitializer).createMonitor(eq(info), eq(propertySet));
+    } finally {
+      releaseResources(services);
+    }
   }
 
   private DefaultMonitorService createNewMonitorService() {
@@ -204,53 +228,67 @@ class MultiThreadedDefaultMonitorServiceTest {
   }
 
   private List<Object> runMethodsAsync(
-      final Function<DefaultMonitorService, Object> methodA,
-      final Function<DefaultMonitorService, Object> methodB
+      final int numConnections,
+      final List<DefaultMonitorService> services,
+      final List<Set<String>> nodeKeysList,
+      final BiFunction<DefaultMonitorService, Set<String>, Object> method
   ) throws BrokenBarrierException, InterruptedException, ExecutionException {
     final String exceptionMessage = "Test thread interrupted due to an unexpected exception.";
-    final ExecutionTime threadATime = new ExecutionTime();
-    final ExecutionTime threadBTime = new ExecutionTime();
 
-    final CyclicBarrier gate = new CyclicBarrier(3);
-    final DefaultMonitorService serviceA = createNewMonitorService();
-    final DefaultMonitorService serviceB = createNewMonitorService();
+    final CyclicBarrier gate = new CyclicBarrier(numConnections + 1);
+    final List<CompletableFuture<Object>> threads = new ArrayList<>();
 
-    final CompletableFuture<Object> threadA = CompletableFuture.supplyAsync(() -> {
-      try {
-        gate.await();
-      } catch (final InterruptedException | BrokenBarrierException e) {
-        fail(exceptionMessage, e);
-      }
+    for (int i = 0; i < numConnections; i++) {
+      final DefaultMonitorService service = services.get(i);
+      final Set<String> nodeKeys = nodeKeysList.get(i);
 
-      final long startTime = System.nanoTime();
-      final Object result = methodA.apply(serviceA);
-      final long endTime = System.nanoTime();
-      threadATime.setTime(startTime, endTime);
-      return result;
-    });
+      threads.add(CompletableFuture.supplyAsync(() -> {
+        try {
+          gate.await();
+        } catch (final InterruptedException | BrokenBarrierException e) {
+          fail(exceptionMessage, e);
+        }
 
-    final CompletableFuture<Object> threadB = CompletableFuture.supplyAsync(() -> {
-      try {
-        gate.await();
-      } catch (final InterruptedException | BrokenBarrierException e) {
-        fail(exceptionMessage, e);
-      }
-
-      final long startTime = System.nanoTime();
-      final Object result = methodB.apply(serviceB);
-      final long endTime = System.nanoTime();
-      threadBTime.setTime(startTime, endTime);
-      return result;
-    });
+        return method.apply(service, nodeKeys);
+      }));
+    }
 
     gate.await();
 
     final List<Object> contexts = new ArrayList<>();
-    contexts.add(threadA.get());
-    contexts.add(threadB.get());
-
-    Assertions.assertTrue(threadATime.isOverlapped(threadBTime));
+    for (final CompletableFuture<Object> thread : threads) {
+      contexts.add(thread.get());
+    }
 
     return contexts;
+  }
+
+  private void releaseResources(final List<DefaultMonitorService> services) {
+    for (final DefaultMonitorService defaultMonitorService : services) {
+      defaultMonitorService.releaseResources();
+    }
+  }
+
+  private List<Set<String>> generateNodeKeys(final int numConnections, final boolean diffNode) {
+    final Set<String> singleNode = new HashSet<>(Collections.singletonList("node"));
+
+    final List<Set<String>> nodeKeysList = new ArrayList<>();
+    final Function<Integer, Set<String>> generateNodeKeysFunc = diffNode
+        ? (i) -> new HashSet<>(Collections.singletonList(String.format("node%d", i)))
+        : (i) -> singleNode;
+
+    for (int i = 0; i < numConnections; i++) {
+      nodeKeysList.add(generateNodeKeysFunc.apply(i));
+    }
+
+    return nodeKeysList;
+  }
+
+  private List<DefaultMonitorService> generateServices(final int numConnections) {
+    final List<DefaultMonitorService> services = new ArrayList<>();
+    for (int i = 0; i < numConnections; i++) {
+      services.add(createNewMonitorService());
+    }
+    return services;
   }
 }
