@@ -48,12 +48,13 @@ import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 
 import java.sql.Connection;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Stream;
 
-import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -62,7 +63,11 @@ class NodeMonitoringFailoverPluginTest {
   @Mock
   private NodeMonitoringFailoverPlugin.IMonitorServiceInitializer monitorServiceInitializer;
   @Mock
-  private static Connection connection;
+  private Connection connection;
+  @Mock
+  private Statement statement;
+  @Mock
+  private ResultSet resultSet;
   @Mock
   private PropertySet propertySet;
   @Mock
@@ -101,7 +106,7 @@ class NodeMonitoringFailoverPluginTest {
   private AutoCloseable closeable;
 
   @BeforeEach
-  void init() {
+  void init() throws SQLException {
     closeable = MockitoAnnotations.openMocks(this);
     plugin = new NodeMonitoringFailoverPlugin();
 
@@ -239,7 +244,8 @@ class NodeMonitoringFailoverPluginTest {
    *
    * @return different sets of arguments.
    */
-  private static Stream<Arguments> generateNullArguments() throws SQLException {
+  private static Stream<Arguments> generateNullArguments() {
+    final Connection connection = Mockito.mock(Connection.class);
     final PropertySet set = new DefaultPropertySet();
     final HostInfo info = new HostInfo();
     final IFailoverPlugin failoverPlugin = new DefaultFailoverPlugin();
@@ -254,7 +260,7 @@ class NodeMonitoringFailoverPluginTest {
     );
   }
 
-  private void initDefaultMockReturns() {
+  private void initDefaultMockReturns() throws SQLException {
     when(hostInfo.getHost())
         .thenReturn(NODE);
     when(monitorServiceInitializer.create(Mockito.any()))
@@ -268,9 +274,11 @@ class NodeMonitoringFailoverPluginTest {
         Mockito.anyInt()))
         .thenReturn(context);
 
-    plugin = Mockito.spy(plugin);
-    doNothing()
-        .when(plugin).initNodeKeys(Mockito.any(Connection.class));
+    when(connection.createStatement()).thenReturn(statement);
+    when(statement.executeQuery(Mockito.anyString())).thenReturn(resultSet);
+    when(resultSet.next()).thenReturn(false);
+    when(hostInfo.getHost()).thenReturn("host");
+    when(hostInfo.getHost()).thenReturn("port");
 
     when(propertySet.getBooleanProperty(Mockito.eq(PropertyKey.nativeFailureDetectionEnabled)))
         .thenReturn(nativeFailureDetectionEnabledProperty);
