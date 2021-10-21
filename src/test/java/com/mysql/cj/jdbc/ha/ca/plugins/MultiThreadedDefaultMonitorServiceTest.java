@@ -93,6 +93,7 @@ class MultiThreadedDefaultMonitorServiceTest {
   @BeforeEach
   void init() {
     closeable = MockitoAnnotations.openMocks(this);
+    captor = ArgumentCaptor.forClass(MonitorConnectionContext.class);
 
     when(monitorInitializer.createMonitor(
         Mockito.any(HostInfo.class),
@@ -100,9 +101,6 @@ class MultiThreadedDefaultMonitorServiceTest {
         .thenReturn(monitor);
     when(executorServiceInitializer.createExecutorService()).thenReturn(service);
     doReturn(taskA).when(service).submit(Mockito.any(Monitor.class));
-
-    captor = ArgumentCaptor.forClass(MonitorConnectionContext.class);
-
     doNothing().when(monitor).startMonitoring(captor.capture());
   }
 
@@ -113,9 +111,6 @@ class MultiThreadedDefaultMonitorServiceTest {
     closeable.close();
   }
 
-  /**
-   * Create 2 connections to different nodes.
-   */
   @RepeatedTest(1000)
   void test_1_multipleConnectionsToDifferentNodes()
       throws ExecutionException, InterruptedException, BrokenBarrierException {
@@ -144,9 +139,6 @@ class MultiThreadedDefaultMonitorServiceTest {
     }
   }
 
-  /**
-   * Create 2 connections to one node.
-   */
   @RepeatedTest(1000)
   void test_2_multipleConnectionsToOneNode()
       throws InterruptedException, BrokenBarrierException, ExecutionException {
@@ -176,20 +168,24 @@ class MultiThreadedDefaultMonitorServiceTest {
     }
   }
 
-  private DefaultMonitorService createNewMonitorService() {
-    return new DefaultMonitorService(
-        monitorInitializer,
-        executorServiceInitializer,
-        logger);
-  }
-
+  /**
+   * Run {@link DefaultMonitorService#startMonitoring(Set, HostInfo, PropertySet, int, int, int)} multiple times.
+   *
+   * @param runs        The number of times to run the methods.
+   * @param services    The {@link DefaultMonitorService} used to run each method.
+   * @param nodeKeyList The sets of node keys for each service.
+   * @return The {@link MonitorConnectionContext} returned by {@link DefaultMonitorService#startMonitoring(Set, HostInfo, PropertySet, int, int, int)}.
+   * @throws BrokenBarrierException if the {@link CyclicBarrier} is in a broken state.
+   * @throws InterruptedException   if a thread has been interrupted.
+   * @throws ExecutionException     if an exception occurred within a thread.
+   */
   private List<MonitorConnectionContext> runStartMonitor(
-      final int numConnections,
+      final int runs,
       final List<DefaultMonitorService> services,
       final List<Set<String>> nodeKeyList)
       throws BrokenBarrierException, ExecutionException, InterruptedException {
-    final List<Object> results = runMethodsAsync(
-        numConnections,
+    final List<Object> results = runMethodAsync(
+        runs,
         services,
         nodeKeyList,
         (service, nodes) -> {
@@ -217,32 +213,48 @@ class MultiThreadedDefaultMonitorServiceTest {
         .collect(Collectors.toList());
   }
 
-  private List<Object> runMethodsAsync(
-      final int numConnections,
+  /**
+   * Run a {@link DefaultMonitorService} method concurrently in multiple threads.
+   * A {@link CyclicBarrier} is used to ensure all threads start at the same time.
+   *
+   * @param numThreads   The number of threads to create.
+   * @param services     The services to run in each thread.
+   * @param nodeKeysList The set of nodes assigned to each service.
+   * @param method       A method in {@link DefaultMonitorService} to run in multiple threads.
+   * @return the results from executing the method.
+   * @throws BrokenBarrierException if the {@link CyclicBarrier} is in a broken state.
+   * @throws InterruptedException   if a thread has been interrupted.
+   * @throws ExecutionException     if an exception occurred within a thread.
+   */
+  private List<Object> runMethodAsync(
+      final int numThreads,
       final List<DefaultMonitorService> services,
       final List<Set<String>> nodeKeysList,
       final BiFunction<DefaultMonitorService, Set<String>, Object> method
   ) throws BrokenBarrierException, InterruptedException, ExecutionException {
     final String exceptionMessage = "Test thread interrupted due to an unexpected exception.";
 
-    final CyclicBarrier gate = new CyclicBarrier(numConnections + 1);
+    final CyclicBarrier gate = new CyclicBarrier(numThreads + 1);
     final List<CompletableFuture<Object>> threads = new ArrayList<>();
 
-    for (int i = 0; i < numConnections; i++) {
+    for (int i = 0; i < numThreads; i++) {
       final DefaultMonitorService service = services.get(i);
       final Set<String> nodeKeys = nodeKeysList.get(i);
 
       threads.add(CompletableFuture.supplyAsync(() -> {
         try {
+          // Wait until each thread is ready to start running.
           gate.await();
         } catch (final InterruptedException | BrokenBarrierException e) {
           fail(exceptionMessage, e);
         }
 
+        // Execute the method.
         return method.apply(service, nodeKeys);
       }));
     }
 
+    // Start all threads.
     gate.await();
 
     final List<Object> contexts = new ArrayList<>();
@@ -253,13 +265,14 @@ class MultiThreadedDefaultMonitorServiceTest {
     return contexts;
   }
 
-  private void releaseResources(final List<DefaultMonitorService> services) {
-    for (final DefaultMonitorService defaultMonitorService : services) {
-      defaultMonitorService.releaseResources();
-    }
-  }
-
-  private List<Set<String>> generateNodeKeys(final int numConnections, final boolean diffNode) {
+  /**
+   * Generate multiple sets of node keys pointing to either different nodes or the same node.
+   *
+   * @param numNodeKeys The amount of sets to create.
+   * @param diffNode    Whether the node keys refer to different Aurora cluster nodes.
+   * @return the sets of node keys.
+   */
+  private List<Set<String>> generateNodeKeys(final int numNodeKeys, final boolean diffNode) {
     final Set<String> singleNode = new HashSet<>(Collections.singletonList("node"));
 
     final List<Set<String>> nodeKeysList = new ArrayList<>();
@@ -267,18 +280,38 @@ class MultiThreadedDefaultMonitorServiceTest {
         ? (i) -> new HashSet<>(Collections.singletonList(String.format("node%d", i)))
         : (i) -> singleNode;
 
-    for (int i = 0; i < numConnections; i++) {
+    for (int i = 0; i < numNodeKeys; i++) {
       nodeKeysList.add(generateNodeKeysFunc.apply(i));
     }
 
     return nodeKeysList;
   }
 
-  private List<DefaultMonitorService> generateServices(final int numConnections) {
+  /**
+   * Create multiple {@link DefaultMonitorService} objects.
+   *
+   * @param numServices The number of monitor services to create.
+   * @return a list of monitor services.
+   */
+  private List<DefaultMonitorService> generateServices(final int numServices) {
     final List<DefaultMonitorService> services = new ArrayList<>();
-    for (int i = 0; i < numConnections; i++) {
-      services.add(createNewMonitorService());
+    for (int i = 0; i < numServices; i++) {
+      services.add(new DefaultMonitorService(
+          monitorInitializer,
+          executorServiceInitializer,
+          logger));
     }
     return services;
+  }
+
+  /**
+   * Release any resources used by the given services.
+   *
+   * @param services The {@link DefaultMonitorService} services to clean.
+   */
+  private void releaseResources(final List<DefaultMonitorService> services) {
+    for (final DefaultMonitorService defaultMonitorService : services) {
+      defaultMonitorService.releaseResources();
+    }
   }
 }
