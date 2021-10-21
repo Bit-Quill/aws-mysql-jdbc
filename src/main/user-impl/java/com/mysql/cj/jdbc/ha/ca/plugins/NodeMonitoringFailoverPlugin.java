@@ -26,6 +26,7 @@
 
 package com.mysql.cj.jdbc.ha.ca.plugins;
 
+import com.mysql.cj.Messages;
 import com.mysql.cj.conf.HostInfo;
 import com.mysql.cj.conf.PropertyKey;
 import com.mysql.cj.conf.PropertySet;
@@ -94,25 +95,11 @@ public class NodeMonitoringFailoverPlugin implements IFailoverPlugin {
       IFailoverPlugin next,
       Log log,
       IMonitorServiceInitializer monitorServiceInitializer) {
-    if (connection == null) {
-      throw new NullArgumentException("connection");
-    }
-
-    if (next == null) {
-      throw new NullArgumentException("next");
-    }
-
-    if (log == null) {
-      throw new NullArgumentException("log");
-    }
-
-    if (propertySet == null) {
-      throw new NullArgumentException("propertySet");
-    }
-
-    if (hostInfo == null) {
-      throw new NullArgumentException("hostInfo");
-    }
+    assertArgumentIsNotNull(connection, "connection");
+    assertArgumentIsNotNull(propertySet, "propertySet");
+    assertArgumentIsNotNull(hostInfo, "hostInfo");
+    assertArgumentIsNotNull(next, "next");
+    assertArgumentIsNotNull(log, "log");
 
     this.hostInfo = hostInfo;
     initNodeKeys(connection); // Sets NodeKeys
@@ -241,5 +228,13 @@ public class NodeMonitoringFailoverPlugin implements IFailoverPlugin {
             this.hostInfo.getHost(),
             this.hostInfo.getPort()
         ));
+  }
+
+  private void assertArgumentIsNotNull(Object param, String paramName) {
+    if (param == null) {
+      throw new NullArgumentException(Messages.getString(
+          "NullArgumentException.NullParameter",
+          new String[]{paramName}));
+    }
   }
 }

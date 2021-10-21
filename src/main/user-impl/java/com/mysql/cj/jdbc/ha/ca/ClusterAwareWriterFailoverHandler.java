@@ -278,7 +278,7 @@ public class ClusterAwareWriterFailoverHandler implements WriterFailoverHandler 
       try {
         boolean success = false;
         while (!success) {
-          connectoToReader();
+          connectToReader();
           success = refreshTopologyAndConnectToNewWriter();
           if(!success) {
             closeReaderConnection();
@@ -296,7 +296,7 @@ public class ClusterAwareWriterFailoverHandler implements WriterFailoverHandler 
       }
     }
 
-    private void connectoToReader() throws InterruptedException {
+    private void connectToReader() throws InterruptedException {
       while (true) {
         try {
           ReaderFailoverResult connResult =
