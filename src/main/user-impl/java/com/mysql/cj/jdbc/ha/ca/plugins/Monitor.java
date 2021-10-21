@@ -79,7 +79,9 @@ public class Monitor implements IMonitor {
     this.connectionCheckIntervalMillis = Math.min(
         this.connectionCheckIntervalMillis,
         context.getFailureDetectionIntervalMillis());
-    context.setStartMonitorTime(this.getCurrentTimeMillis());
+    final long currTime = this.getCurrentTimeMillis();
+    context.setStartMonitorTime(currTime);
+    this.lastContextUsedTimestamp = currTime;
     this.contexts.add(context);
   }
 
@@ -87,7 +89,6 @@ public class Monitor implements IMonitor {
   public void stopMonitoring(MonitorConnectionContext context) {
     this.contexts.remove(context);
     this.connectionCheckIntervalMillis = findShortestIntervalMillis();
-    this.lastContextUsedTimestamp = this.getCurrentTimeMillis();
   }
 
   @Override
@@ -141,7 +142,6 @@ public class Monitor implements IMonitor {
   ConnectionStatus checkConnectionStatus(final int shortestFailureDetectionIntervalMillis) {
     try {
       if (this.monitoringConn == null || this.monitoringConn.isClosed()) {
-
         // open a new connection
         Map<String, String> properties = new HashMap<>();
         properties.put(PropertyKey.tcpKeepAlive.getKeyName(),
