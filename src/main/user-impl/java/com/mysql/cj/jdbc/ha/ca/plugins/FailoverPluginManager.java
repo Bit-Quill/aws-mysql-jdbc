@@ -47,20 +47,20 @@ public class FailoverPluginManager {
   protected static final String DEFAULT_PLUGIN_FACTORIES =
       NodeMonitoringFailoverPluginFactory.class.getName();
 
-  protected Log log;
+  protected Log logger;
   protected Connection connection = null;
   protected PropertySet propertySet = null;
   protected HostInfo hostInfo;
   protected IFailoverPlugin headPlugin = null;
 
-  public FailoverPluginManager(Log log) {
-    if (log == null) {
+  public FailoverPluginManager(Log logger) {
+    if (logger == null) {
       throw new NullArgumentException(Messages.getString(
           "NullArgumentException.NullParameter",
-          new String[]{"log"}));
+          new String[]{"logger"}));
     }
 
-    this.log = log;
+    this.logger = logger;
   }
 
   public void init(Connection connection, PropertySet propertySet, HostInfo hostInfo) {
@@ -82,7 +82,7 @@ public class FailoverPluginManager {
             this.propertySet,
             this.hostInfo,
             null,
-            this.log);
+            this.logger);
 
     if (!StringUtils.isNullOrEmpty(factoryClazzNames)) {
       IFailoverPluginFactory[] factories =
@@ -101,7 +101,7 @@ public class FailoverPluginManager {
                 this.propertySet,
                 this.hostInfo,
                 this.headPlugin,
-                this.log);
+                this.logger);
       }
     }
 
@@ -119,7 +119,7 @@ public class FailoverPluginManager {
   }
 
   public void releaseResources() {
-    this.log.logTrace("[FailoverPluginManager.releaseResources]");
+    this.logger.logTrace("[FailoverPluginManager.releaseResources]");
     this.headPlugin.releaseResources();
   }
 }
