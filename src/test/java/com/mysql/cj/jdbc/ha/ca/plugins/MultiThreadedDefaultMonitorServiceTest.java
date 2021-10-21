@@ -27,7 +27,6 @@
 package com.mysql.cj.jdbc.ha.ca.plugins;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.eq;
@@ -41,6 +40,7 @@ import com.mysql.cj.conf.HostInfo;
 import com.mysql.cj.conf.PropertySet;
 import com.mysql.cj.log.Log;
 import com.mysql.cj.log.NullLogger;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.RepeatedTest;
@@ -60,6 +60,7 @@ import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -82,7 +83,9 @@ class MultiThreadedDefaultMonitorServiceTest {
   private final Log logger = new NullLogger("MultiThreadedDefaultMonitorServiceTest");
   private final AtomicInteger counter = new AtomicInteger(0);
   private final AtomicInteger concurrentCounter = new AtomicInteger(0);
-
+  
+  private static final AtomicBoolean isTest1Concurrent = new AtomicBoolean(false);
+  private static final AtomicBoolean isTest2Concurrent = new AtomicBoolean(false);
   private static final int FAILURE_DETECTION_TIME = 10;
   private static final int FAILURE_DETECTION_INTERVAL = 100;
   private static final int FAILURE_DETECTION_COUNT = 3;
@@ -111,6 +114,12 @@ class MultiThreadedDefaultMonitorServiceTest {
     closeable.close();
   }
 
+  @AfterAll
+  static void checkConcurrency() {
+    assertTrue(isTest1Concurrent.get());
+    assertTrue(isTest2Concurrent.get());
+  }
+
   @RepeatedTest(1000)
   void test_1_multipleConnectionsToDifferentNodes()
       throws ExecutionException, InterruptedException, BrokenBarrierException {
@@ -128,12 +137,15 @@ class MultiThreadedDefaultMonitorServiceTest {
 
       assertEquals(numConnections, services.get(0).threadContainer.getMonitorMap().size());
       assertEquals(numConnections, capturedContexts.size());
-      assertNotEquals(0, concurrentCounter.get());
 
       assertTrue((contexts.size() == capturedContexts.size())
           && contexts.containsAll(capturedContexts)
           && capturedContexts.containsAll(contexts));
       verify(monitorInitializer, times(numConnections)).createMonitor(eq(info), eq(propertySet));
+
+      if (concurrentCounter.get() != 0) {
+        isTest1Concurrent.getAndSet(true);
+      }
     } finally {
       releaseResources(services);
     }
@@ -156,13 +168,16 @@ class MultiThreadedDefaultMonitorServiceTest {
 
       assertEquals(1, services.get(0).threadContainer.getMonitorMap().size());
       assertEquals(numConnections, capturedContexts.size());
-      assertNotEquals(0, concurrentCounter.get());
 
       assertTrue((contexts.size() == capturedContexts.size())
           && contexts.containsAll(capturedContexts)
           && capturedContexts.containsAll(contexts));
 
       verify(monitorInitializer).createMonitor(eq(info), eq(propertySet));
+
+      if (concurrentCounter.get() != 0) {
+        isTest2Concurrent.getAndSet(true);
+      }
     } finally {
       releaseResources(services);
     }
