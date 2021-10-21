@@ -39,8 +39,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class Monitor implements IMonitor {
   static class ConnectionStatus {
@@ -62,43 +62,49 @@ public class Monitor implements IMonitor {
   private final HostInfo hostInfo;
   private Connection monitoringConn = null;
   private int connectionCheckIntervalMillis = Integer.MAX_VALUE;
-  private long lastContextUsedTimestamp;
+  private final AtomicLong lastContextUsedTimestamp = new AtomicLong();
   private final long monitorDisposeTimeout;
+  private IMonitorService monitorService;
 
   public Monitor(ConnectionProvider connectionProvider, HostInfo hostInfo, PropertySet propertySet,
-      Log log) {
+      long monitorDisposeTimeout, Log log) {
     this.connectionProvider = connectionProvider;
     this.hostInfo = hostInfo;
     this.propertySet = propertySet;
     this.log = log;
-    this.monitorDisposeTimeout = propertySet.getIntegerProperty(PropertyKey.monitorDisposeTime).getValue();
+    this.monitorDisposeTimeout = monitorDisposeTimeout;
   }
 
   @Override
-  public void startMonitoring(MonitorConnectionContext context) {
+  public synchronized void startMonitoring(MonitorConnectionContext context) {
     this.connectionCheckIntervalMillis = Math.min(
         this.connectionCheckIntervalMillis,
         context.getFailureDetectionIntervalMillis());
-    final long currTime = this.getCurrentTimeMillis();
-    context.setStartMonitorTime(currTime);
-    this.lastContextUsedTimestamp = currTime;
+    final long currentTime = this.getCurrentTimeMillis();
+    context.setStartMonitorTime(currentTime);
+    this.lastContextUsedTimestamp.getAndSet(currentTime);
     this.contexts.add(context);
   }
 
   @Override
-  public void stopMonitoring(MonitorConnectionContext context) {
+  public synchronized void stopMonitoring(MonitorConnectionContext context) {
     this.contexts.remove(context);
     this.connectionCheckIntervalMillis = findShortestIntervalMillis();
   }
 
   @Override
   public long getLastContextUsedTimestamp() {
-    return lastContextUsedTimestamp;
+    return this.lastContextUsedTimestamp.get();
   }
 
   @Override
   public int getNumOfContexts() {
     return this.contexts.size();
+  }
+
+  @Override
+  public void setService(IMonitorService service) {
+    this.monitorService = service;
   }
 
   @Override
@@ -108,7 +114,7 @@ public class Monitor implements IMonitor {
         if (!this.contexts.isEmpty()) {
           final ConnectionStatus status = checkConnectionStatus(this.connectionCheckIntervalMillis);
           final long currentTime = this.getCurrentTimeMillis();
-          this.lastContextUsedTimestamp = currentTime;
+          this.lastContextUsedTimestamp.getAndSet(currentTime);
 
           for (MonitorConnectionContext monitorContext : this.contexts) {
             monitorContext.updateConnectionStatus(
@@ -119,8 +125,8 @@ public class Monitor implements IMonitor {
 
           TimeUnit.MILLISECONDS.sleep(Math.max(0, this.connectionCheckIntervalMillis - status.elapsedTime));
         } else {
-          if ((this.getCurrentTimeMillis() - this.lastContextUsedTimestamp) >= this.monitorDisposeTimeout) {
-            this.removeMonitorFromMap();
+          if ((this.getCurrentTimeMillis() - this.lastContextUsedTimestamp.get()) >= this.monitorDisposeTimeout) {
+            monitorService.removeMonitorFromMap(this);
             break;
           }
           TimeUnit.MILLISECONDS.sleep(THREAD_SLEEP_WHEN_INACTIVE_MILLIS);
@@ -189,23 +195,5 @@ public class Monitor implements IMonitor {
         .min(Comparator.comparing(MonitorConnectionContext::getFailureDetectionIntervalMillis))
         .map(MonitorConnectionContext::getFailureDetectionIntervalMillis)
         .orElse(0);
-  }
-
-  // Synchronize this?
-  private void removeMonitorFromMap() {
-    final Map<String, IMonitor> monitorMap = MonitorThreadContainer.getInstance().getMonitorMap();
-    monitorMap.forEach((key, value) -> {
-      if (value.equals(this)) {
-        monitorMap.remove(key);
-      }
-    });
-
-    final Map<IMonitor, Future<?>> taskMap = MonitorThreadContainer.getInstance().getTasksMap();
-    taskMap.forEach((key, value) -> {
-      if (key.equals(this)) {
-        value.cancel(true);
-        taskMap.remove(key);
-      }
-    });
   }
 }

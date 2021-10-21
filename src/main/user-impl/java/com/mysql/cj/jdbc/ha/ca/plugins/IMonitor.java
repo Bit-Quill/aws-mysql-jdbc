@@ -31,4 +31,5 @@ public interface IMonitor extends Runnable {
   void stopMonitoring(MonitorConnectionContext context);
   long getLastContextUsedTimestamp();
   int getNumOfContexts();
+  void setService(IMonitorService defaultMonitorService);
 }
