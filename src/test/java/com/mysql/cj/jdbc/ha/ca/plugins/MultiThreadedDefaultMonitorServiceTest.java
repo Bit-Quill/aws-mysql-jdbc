@@ -27,6 +27,7 @@
 package com.mysql.cj.jdbc.ha.ca.plugins;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.eq;
@@ -74,14 +75,11 @@ class MultiThreadedDefaultMonitorServiceTest {
   @Mock IExecutorServiceInitializer executorServiceInitializer;
   @Mock ExecutorService service;
   @Mock Future<?> taskA;
-  @Mock Future<?> taskB;
   @Mock HostInfo info;
   @Mock PropertySet propertySet;
-  @Mock IMonitor monitorA;
-  @Mock IMonitor monitorB;
+  @Mock IMonitor monitor;
 
   private final Log logger = new NullLogger("MultiThreadedDefaultMonitorServiceTest");
-
   private final AtomicInteger counter = new AtomicInteger(0);
   private final AtomicInteger concurrentCounter = new AtomicInteger(0);
 
@@ -96,15 +94,16 @@ class MultiThreadedDefaultMonitorServiceTest {
   void init() {
     closeable = MockitoAnnotations.openMocks(this);
 
-    when(monitorInitializer.createMonitor(Mockito.any(HostInfo.class), Mockito.any(PropertySet.class)))
-        .thenReturn(monitorA, monitorB);
+    when(monitorInitializer.createMonitor(
+        Mockito.any(HostInfo.class),
+        Mockito.any(PropertySet.class)))
+        .thenReturn(monitor);
     when(executorServiceInitializer.createExecutorService()).thenReturn(service);
-    doReturn(taskA, taskB).when(service).submit(Mockito.any(Monitor.class));
+    doReturn(taskA).when(service).submit(Mockito.any(Monitor.class));
 
     captor = ArgumentCaptor.forClass(MonitorConnectionContext.class);
 
-    doNothing().when(monitorA).startMonitoring(captor.capture());
-    doNothing().when(monitorB).startMonitoring(captor.capture());
+    doNothing().when(monitor).startMonitoring(captor.capture());
   }
 
   @AfterEach
@@ -118,50 +117,27 @@ class MultiThreadedDefaultMonitorServiceTest {
    * Create 2 connections to different nodes.
    */
   @RepeatedTest(1000)
-  void test_1_multipleConnectionsToDifferentNodes() throws ExecutionException, InterruptedException, BrokenBarrierException {
+  void test_1_multipleConnectionsToDifferentNodes()
+      throws ExecutionException, InterruptedException, BrokenBarrierException {
     final int numConnections = 10;
     final List<Set<String>> nodeKeyList = generateNodeKeys(numConnections, true);
     final List<DefaultMonitorService> services = generateServices(numConnections);
 
     try {
-      final List<Object> results = runMethodsAsync(
+      final List<MonitorConnectionContext> contexts = runStartMonitor(
           numConnections,
           services,
-          nodeKeyList,
-          (service, nodes) -> {
-            final int val = counter.getAndIncrement();
-            if (val != 0) {
-              concurrentCounter.getAndIncrement();
-            }
-
-            final MonitorConnectionContext context = service
-                .startMonitoring(
-                    nodes,
-                    info,
-                    propertySet,
-                    FAILURE_DETECTION_TIME,
-                    FAILURE_DETECTION_INTERVAL,
-                    FAILURE_DETECTION_COUNT);
-
-            counter.getAndDecrement();
-            return context;
-          }
-      );
-
-      final List<MonitorConnectionContext> contexts = results.stream()
-          .map(obj -> (MonitorConnectionContext) obj)
-          .collect(Collectors.toList());
+          nodeKeyList);
 
       final List<MonitorConnectionContext> capturedContexts = captor.getAllValues();
 
       assertEquals(numConnections, services.get(0).threadContainer.getMonitorMap().size());
       assertEquals(numConnections, capturedContexts.size());
+      assertNotEquals(0, concurrentCounter.get());
 
       assertTrue((contexts.size() == capturedContexts.size())
           && contexts.containsAll(capturedContexts)
           && capturedContexts.containsAll(contexts));
-
-      assertTrue(concurrentCounter.get() > 1);
       verify(monitorInitializer, times(numConnections)).createMonitor(eq(info), eq(propertySet));
     } finally {
       releaseResources(services);
@@ -172,48 +148,28 @@ class MultiThreadedDefaultMonitorServiceTest {
    * Create 2 connections to one node.
    */
   @RepeatedTest(1000)
-  void test_2_multipleConnectionsToOneNode() throws InterruptedException, BrokenBarrierException, ExecutionException {
+  void test_2_multipleConnectionsToOneNode()
+      throws InterruptedException, BrokenBarrierException, ExecutionException {
     final int numConnections = 10;
     final List<Set<String>> nodeKeyList = generateNodeKeys(numConnections, false);
     final List<DefaultMonitorService> services = generateServices(numConnections);
 
     try {
-      final List<Object> results = runMethodsAsync(
+      final List<MonitorConnectionContext> contexts = runStartMonitor(
           numConnections,
           services,
-          nodeKeyList,
-          (service, nodes) -> {
-            final int val = counter.getAndIncrement();
-            if (val != 0) {
-              concurrentCounter.getAndIncrement();
-            }
+          nodeKeyList);
 
-            final MonitorConnectionContext context = service
-                .startMonitoring(
-                    nodes,
-                    info,
-                    propertySet,
-                    FAILURE_DETECTION_TIME,
-                    FAILURE_DETECTION_INTERVAL,
-                    FAILURE_DETECTION_COUNT);
-
-            counter.getAndDecrement();
-            return context;
-          }
-      );
-
-      final List<MonitorConnectionContext> contexts = results.stream()
-          .map(obj -> (MonitorConnectionContext) obj)
-          .collect(Collectors.toList());
       final List<MonitorConnectionContext> capturedContexts = captor.getAllValues();
 
       assertEquals(1, services.get(0).threadContainer.getMonitorMap().size());
       assertEquals(numConnections, capturedContexts.size());
+      assertNotEquals(0, concurrentCounter.get());
+
       assertTrue((contexts.size() == capturedContexts.size())
           && contexts.containsAll(capturedContexts)
           && capturedContexts.containsAll(contexts));
 
-      assertTrue(concurrentCounter.get() > 1);
       verify(monitorInitializer).createMonitor(eq(info), eq(propertySet));
     } finally {
       releaseResources(services);
@@ -225,6 +181,40 @@ class MultiThreadedDefaultMonitorServiceTest {
         monitorInitializer,
         executorServiceInitializer,
         logger);
+  }
+
+  private List<MonitorConnectionContext> runStartMonitor(
+      final int numConnections,
+      final List<DefaultMonitorService> services,
+      final List<Set<String>> nodeKeyList)
+      throws BrokenBarrierException, ExecutionException, InterruptedException {
+    final List<Object> results = runMethodsAsync(
+        numConnections,
+        services,
+        nodeKeyList,
+        (service, nodes) -> {
+          final int val = counter.getAndIncrement();
+          if (val != 0) {
+            concurrentCounter.getAndIncrement();
+          }
+
+          final MonitorConnectionContext context = service
+              .startMonitoring(
+                  nodes,
+                  info,
+                  propertySet,
+                  FAILURE_DETECTION_TIME,
+                  FAILURE_DETECTION_INTERVAL,
+                  FAILURE_DETECTION_COUNT);
+
+          counter.getAndDecrement();
+          return context;
+        }
+    );
+
+    return results.stream()
+        .map(obj -> (MonitorConnectionContext) obj)
+        .collect(Collectors.toList());
   }
 
   private List<Object> runMethodsAsync(
