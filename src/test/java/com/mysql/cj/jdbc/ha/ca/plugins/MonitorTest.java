@@ -46,7 +46,6 @@ import java.sql.SQLException;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 
 class MonitorTest {
 
@@ -75,12 +74,14 @@ class MonitorTest {
   @Mock
   Future<?> futureResult;
 
+
   private static final int SHORT_INTERVAL_MILLIS = 30;
   private static final int SHORT_INTERVAL_SECONDS = SHORT_INTERVAL_MILLIS / 1000;
   private static final int LONG_INTERVAL_MILLIS = 300;
   private static final int MONITOR_TIMEOUT_MILLIS = 3000;
 
   private AutoCloseable closeable;
+  private DefaultMonitorService monitorService;
   private Monitor monitor;
 
   @BeforeEach
@@ -115,7 +116,10 @@ class MonitorTest {
         .thenReturn(executorService);
     MonitorThreadContainer.getInstance(executorServiceInitializer);
 
-    monitor = new Monitor(connectionProvider, hostInfo, propertySet, log);
+    monitorService = new DefaultMonitorService(null);
+    monitor = Mockito.spy(new Monitor(connectionProvider, hostInfo, propertySet,
+        propertySet.getIntegerProperty(PropertyKey.monitorDisposeTime).getValue(), log));
+    monitor.setService(monitorService);
   }
 
   @AfterEach
@@ -227,7 +231,10 @@ class MonitorTest {
   }
 
   @Test
-  void test_8_runWithoutContext() throws InterruptedException {
+  void test_8_runWithoutContext() {
+    Mockito.doReturn((long) MONITOR_TIMEOUT_MILLIS)
+        .when(monitor).getCurrentTimeMillis();
+
     // Put monitor into Container Map
     final Map<String, IMonitor> monitorMap = MonitorThreadContainer.getInstance().getMonitorMap();
     final Map<IMonitor, Future<?>> taskMap = MonitorThreadContainer.getInstance().getTasksMap();
@@ -236,9 +243,7 @@ class MonitorTest {
     taskMap.put(monitor, futureResult);
 
     // Run monitor without contexts
-    Thread thread = new Thread(monitor);
-    thread.start();
-    TimeUnit.MILLISECONDS.sleep(MONITOR_TIMEOUT_MILLIS);
+    monitor.run();
 
     // After running with empty context, monitor should be out of the map
     Assertions.assertNull(monitorMap.get(nodeKey));
@@ -256,21 +261,21 @@ class MonitorTest {
 
     // Put context
     monitor.startMonitoring(contextWithShortInterval);
-
-    // Run monitor
-    Thread thread = new Thread(monitor);
+    // Set timer to remove
+    Thread thread = new Thread(() -> {
+      try {
+        Thread.sleep(MONITOR_TIMEOUT_MILLIS);
+      } catch (InterruptedException e) {
+        e.printStackTrace();
+      }
+      monitor.stopMonitoring(contextWithShortInterval);
+    });
     thread.start();
-    TimeUnit.MILLISECONDS.sleep(MONITOR_TIMEOUT_MILLIS);
 
-    //Monitor should be in Container map
-    Assertions.assertNotNull(monitorMap.get(nodeKey));
-    Assertions.assertNotNull(taskMap.get(monitor));
+    // Run monitor, context removed after timer
+    monitor.run();
 
-    // Remove Context
-    monitor.stopMonitoring(contextWithShortInterval);
-    TimeUnit.MILLISECONDS.sleep((2 * MONITOR_TIMEOUT_MILLIS));
-
-    // After running with empty context, monitor should be out of the map
+    // After running monitor should be out of the map
     Assertions.assertNull(monitorMap.get(nodeKey));
     Assertions.assertNull(taskMap.get(monitor));
   }
