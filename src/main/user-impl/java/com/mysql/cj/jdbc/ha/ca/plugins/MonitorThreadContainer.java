@@ -52,6 +52,10 @@ public class MonitorThreadContainer {
     }
 
     public static synchronized void releaseInstance() {
+        if (singleton == null) {
+            return;
+        }
+
         if (classUsage.decrementAndGet() <= 0) {
             singleton.releaseResources();
             singleton = null;
