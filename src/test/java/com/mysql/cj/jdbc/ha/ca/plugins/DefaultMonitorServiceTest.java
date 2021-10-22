@@ -265,4 +265,11 @@ class DefaultMonitorServiceTest {
         FAILURE_DETECTION_INTERVAL_MILLIS,
         FAILURE_DETECTION_COUNT));
   }
+
+  @Test
+  void test_9_releaseResourceTwice() {
+    // Ensure no NullPointerException.
+    monitorService.releaseResources();
+    monitorService.releaseResources();
+  }
 }
