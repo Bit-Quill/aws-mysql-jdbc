@@ -34,7 +34,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class MonitorThreadContainer {
     private static MonitorThreadContainer singleton = null;
-    private static final AtomicInteger CLASS_USAGE = new AtomicInteger();
+    private static final AtomicInteger CLASS_USAGE_COUNT = new AtomicInteger();
     private final Map<String, IMonitor> monitorMap = new ConcurrentHashMap<>();
     private final Map<IMonitor, Future<?>> tasksMap = new ConcurrentHashMap<>();
     private final ExecutorService threadPool;
@@ -46,9 +46,9 @@ public class MonitorThreadContainer {
     public static synchronized MonitorThreadContainer getInstance(IExecutorServiceInitializer executorServiceInitializer) {
         if (singleton == null) {
             singleton = new MonitorThreadContainer(executorServiceInitializer);
-            CLASS_USAGE.getAndSet(0);
+            CLASS_USAGE_COUNT.set(0);
         }
-        CLASS_USAGE.getAndIncrement();
+        CLASS_USAGE_COUNT.getAndIncrement();
         return singleton;
     }
 
@@ -57,7 +57,7 @@ public class MonitorThreadContainer {
             return;
         }
 
-        if (CLASS_USAGE.decrementAndGet() <= 0) {
+        if (CLASS_USAGE_COUNT.decrementAndGet() <= 0) {
             singleton.releaseResources();
             singleton = null;
         }
