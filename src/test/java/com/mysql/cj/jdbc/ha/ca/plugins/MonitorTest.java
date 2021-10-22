@@ -37,6 +37,7 @@ import com.mysql.cj.log.Log;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -100,6 +101,14 @@ class MonitorTest {
     Mockito
         .when(booleanProperty.getStringValue())
         .thenReturn(Boolean.TRUE.toString());
+    Mockito
+        .when(propertySet.getIntegerProperty(Mockito.any(PropertyKey.class)))
+        .thenReturn(intProperty);
+    Mockito
+        .when(intProperty.getValue())
+        .thenReturn(SHORT_INTERVAL_MILLIS);
+
+    // Set-up initial Monitor Map Container
     Mockito
         .when(propertySet.getIntegerProperty(Mockito.any(PropertyKey.class)))
         .thenReturn(intProperty);
@@ -230,9 +239,9 @@ class MonitorTest {
     Mockito.verify(log).logTrace(Mockito.anyString(), Mockito.any(SQLException.class));
   }
 
-  @Test
+  @RepeatedTest(1000)
   void test_8_runWithoutContext() {
-    Mockito.doReturn((long) MONITOR_TIMEOUT_MILLIS)
+    Mockito.doReturn((long) SHORT_INTERVAL_MILLIS)
         .when(monitor).getCurrentTimeMillis();
 
     // Put monitor into Container Map
@@ -250,7 +259,7 @@ class MonitorTest {
     Assertions.assertNull(taskMap.get(monitor));
   }
 
-  @Test
+  @RepeatedTest(1000)
   void test_9_runWithContext() throws InterruptedException {
     // Put monitor into Container Map
     final Map<String, IMonitor> monitorMap = MonitorThreadContainer.getInstance().getMonitorMap();
@@ -264,11 +273,13 @@ class MonitorTest {
     // Set timer to remove
     Thread thread = new Thread(() -> {
       try {
-        Thread.sleep(MONITOR_TIMEOUT_MILLIS);
+        Thread.sleep(SHORT_INTERVAL_MILLIS);
       } catch (InterruptedException e) {
         e.printStackTrace();
       }
-      monitor.stopMonitoring(contextWithShortInterval);
+      finally {
+        monitor.stopMonitoring(contextWithShortInterval);
+      }
     });
     thread.start();
 
