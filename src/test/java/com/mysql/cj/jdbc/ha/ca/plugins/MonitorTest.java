@@ -37,14 +37,12 @@ import com.mysql.cj.log.Log;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 
 import java.sql.SQLException;
-import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
@@ -107,6 +105,14 @@ class MonitorTest {
     Mockito
         .when(intProperty.getValue())
         .thenReturn(SHORT_INTERVAL_MILLIS);
+
+    // Set-up initial Monitor Map Container
+    Mockito
+        .when(propertySet.getIntegerProperty(Mockito.any(PropertyKey.class)))
+        .thenReturn(intProperty);
+    Mockito
+        .when(intProperty.getValue())
+        .thenReturn(MONITOR_TIMEOUT_MILLIS);
 
     // Set-up initial Monitor Map Container
     Mockito
