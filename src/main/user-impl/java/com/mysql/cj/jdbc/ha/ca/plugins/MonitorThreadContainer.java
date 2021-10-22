@@ -34,9 +34,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class MonitorThreadContainer {
     private static MonitorThreadContainer singleton = null;
-    private static final AtomicInteger classUsage = new AtomicInteger();
-    private final Map<String, IMonitor> MONITOR_MAP = new ConcurrentHashMap<>();
-    private final Map<IMonitor, Future<?>> TASKS_MAP = new ConcurrentHashMap<>();
+    private static final AtomicInteger CLASS_USAGE = new AtomicInteger();
+    private final Map<String, IMonitor> monitorMap = new ConcurrentHashMap<>();
+    private final Map<IMonitor, Future<?>> tasksMap = new ConcurrentHashMap<>();
     private final ExecutorService threadPool;
 
     public static MonitorThreadContainer getInstance() {
@@ -46,8 +46,9 @@ public class MonitorThreadContainer {
     public static synchronized MonitorThreadContainer getInstance(IExecutorServiceInitializer executorServiceInitializer) {
         if (singleton == null) {
             singleton = new MonitorThreadContainer(executorServiceInitializer);
+            CLASS_USAGE.getAndSet(0);
         }
-        classUsage.getAndIncrement();
+        CLASS_USAGE.getAndIncrement();
         return singleton;
     }
 
@@ -56,7 +57,7 @@ public class MonitorThreadContainer {
             return;
         }
 
-        if (classUsage.decrementAndGet() <= 0) {
+        if (CLASS_USAGE.decrementAndGet() <= 0) {
             singleton.releaseResources();
             singleton = null;
         }
@@ -67,11 +68,11 @@ public class MonitorThreadContainer {
     }
 
     public Map<String, IMonitor> getMonitorMap() {
-        return MONITOR_MAP;
+        return monitorMap;
     }
 
     public Map<IMonitor, Future<?>> getTasksMap() {
-        return TASKS_MAP;
+        return tasksMap;
     }
 
     public ExecutorService getThreadPool() {
@@ -79,7 +80,7 @@ public class MonitorThreadContainer {
     }
 
     private synchronized void releaseResources() {
-        TASKS_MAP.values().stream()
+        tasksMap.values().stream()
             .filter(val -> !val.isDone() && !val.isCancelled())
             .forEach(val -> val.cancel(true));
 
