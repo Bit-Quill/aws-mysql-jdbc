@@ -268,7 +268,7 @@ class MonitorTest {
   }
 
   @RepeatedTest(1000)
-  void test_9_runWithContext() throws InterruptedException {
+  void test_9_runWithContext() {
     // Put monitor into Container Map
     final Map<String, IMonitor> monitorMap = MonitorThreadContainer.getInstance().getMonitorMap();
     final Map<IMonitor, Future<?>> taskMap = MonitorThreadContainer.getInstance().getTasksMap();
