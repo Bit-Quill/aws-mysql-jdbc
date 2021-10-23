@@ -1,0 +1,112 @@
+/*
+ * AWS JDBC Driver for MySQL
+ * Copyright Amazon.com Inc. or affiliates.
+ *
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice,
+ * this list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation and/or
+ * other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
+ * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT
+ * SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ */
+
+package com.mysql.cj.jdbc.ha.ca.plugins;
+
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
+
+import com.mysql.cj.conf.HostInfo;
+import com.mysql.cj.conf.PropertyKey;
+import com.mysql.cj.conf.PropertySet;
+import com.mysql.cj.conf.RuntimeProperty;
+import com.mysql.cj.log.Log;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.Statement;
+import java.util.concurrent.Callable;
+
+/**
+ * Initialize constants and mock variables common to tests for {@link NodeMonitoringFailoverPlugin}.
+ */
+public class NodeMonitoringFailoverPluginBaseTest {
+  @Mock Connection connection;
+  @Mock Statement statement;
+  @Mock ResultSet resultSet;
+  @Mock PropertySet propertySet;
+  @Mock HostInfo info;
+  @Mock IFailoverPlugin mockNextPlugin;
+  @Mock Log logger;
+  @Mock NodeMonitoringFailoverPlugin.IMonitorServiceInitializer initializer;
+  @Mock MonitorConnectionContext context;
+  @Mock IMonitorService monitorService;
+  @Mock Callable sqlFunc;
+  @Mock RuntimeProperty<Boolean> nativeFailureDetectionEnabledProperty;
+  @Mock RuntimeProperty<Integer> failureDetectionTimeProperty;
+  @Mock RuntimeProperty<Integer> failureDetectionIntervalProperty;
+  @Mock RuntimeProperty<Integer> failureDetectionCountProperty;
+
+  static final String NODE = "node";
+  static final String MONITOR_METHOD_NAME = "executeQuery";
+  static final String NO_MONITOR_METHOD_NAME = "foo";
+  static final int FAILURE_DETECTION_TIME = 10;
+  static final int FAILURE_DETECTION_INTERVAL = 100;
+  static final int FAILURE_DETECTION_COUNT = 5;
+
+  void initDefaultMockReturns() throws Exception {
+    when(info.getHost())
+        .thenReturn(NODE);
+    when(initializer.create(Mockito.any()))
+        .thenReturn(monitorService);
+    when(monitorService.startMonitoring(
+        Mockito.anySet(),
+        Mockito.any(HostInfo.class),
+        Mockito.any(PropertySet.class),
+        Mockito.anyInt(),
+        Mockito.anyInt(),
+        Mockito.anyInt()))
+        .thenReturn(context);
+
+    when(mockNextPlugin.execute(anyString(), Mockito.any(Callable.class))).thenReturn("done");
+
+    when(connection.createStatement()).thenReturn(statement);
+    when(statement.executeQuery(anyString())).thenReturn(resultSet);
+    when(resultSet.next()).thenReturn(false);
+    when(info.getHost()).thenReturn("host");
+    when(info.getHost()).thenReturn("port");
+
+    when(propertySet.getBooleanProperty(Mockito.eq(PropertyKey.nativeFailureDetectionEnabled)))
+        .thenReturn(nativeFailureDetectionEnabledProperty);
+    when(propertySet.getIntegerProperty(Mockito.eq(PropertyKey.failureDetectionTime)))
+        .thenReturn(failureDetectionTimeProperty);
+    when(propertySet.getIntegerProperty(Mockito.eq(PropertyKey.failureDetectionInterval)))
+        .thenReturn(failureDetectionIntervalProperty);
+    when(propertySet.getIntegerProperty(Mockito.eq(PropertyKey.failureDetectionCount)))
+        .thenReturn(failureDetectionCountProperty);
+
+    when(nativeFailureDetectionEnabledProperty.getValue())
+        .thenReturn(Boolean.TRUE);
+    when(failureDetectionTimeProperty.getValue())
+        .thenReturn(FAILURE_DETECTION_TIME);
+    when(failureDetectionIntervalProperty.getValue())
+        .thenReturn(FAILURE_DETECTION_INTERVAL);
+    when(failureDetectionCountProperty.getValue())
+        .thenReturn(FAILURE_DETECTION_COUNT);
+  }
+}
