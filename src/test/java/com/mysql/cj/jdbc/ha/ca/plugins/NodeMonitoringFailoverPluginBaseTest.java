@@ -50,13 +50,13 @@ public class NodeMonitoringFailoverPluginBaseTest {
   @Mock Statement statement;
   @Mock ResultSet resultSet;
   @Mock PropertySet propertySet;
-  @Mock HostInfo info;
-  @Mock IFailoverPlugin mockNextPlugin;
+  @Mock HostInfo hostInfo;
+  @Mock IFailoverPlugin mockPlugin;
   @Mock Log logger;
   @Mock NodeMonitoringFailoverPlugin.IMonitorServiceInitializer initializer;
   @Mock MonitorConnectionContext context;
   @Mock IMonitorService monitorService;
-  @Mock Callable sqlFunc;
+  @Mock Callable sqlFunction;
   @Mock RuntimeProperty<Boolean> nativeFailureDetectionEnabledProperty;
   @Mock RuntimeProperty<Integer> failureDetectionTimeProperty;
   @Mock RuntimeProperty<Integer> failureDetectionIntervalProperty;
@@ -70,7 +70,7 @@ public class NodeMonitoringFailoverPluginBaseTest {
   static final int FAILURE_DETECTION_COUNT = 5;
 
   void initDefaultMockReturns() throws Exception {
-    when(info.getHost())
+    when(hostInfo.getHost())
         .thenReturn(NODE);
     when(initializer.create(Mockito.any()))
         .thenReturn(monitorService);
@@ -83,13 +83,13 @@ public class NodeMonitoringFailoverPluginBaseTest {
         Mockito.anyInt()))
         .thenReturn(context);
 
-    when(mockNextPlugin.execute(anyString(), Mockito.any(Callable.class))).thenReturn("done");
+    when(mockPlugin.execute(anyString(), Mockito.any(Callable.class))).thenReturn("done");
 
     when(connection.createStatement()).thenReturn(statement);
     when(statement.executeQuery(anyString())).thenReturn(resultSet);
     when(resultSet.next()).thenReturn(false);
-    when(info.getHost()).thenReturn("host");
-    when(info.getHost()).thenReturn("port");
+    when(hostInfo.getHost()).thenReturn("host");
+    when(hostInfo.getHost()).thenReturn("port");
 
     when(propertySet.getBooleanProperty(Mockito.eq(PropertyKey.nativeFailureDetectionEnabled)))
         .thenReturn(nativeFailureDetectionEnabledProperty);

@@ -109,8 +109,8 @@ class NodeMonitoringFailoverPluginTest extends NodeMonitoringFailoverPluginBaseT
         .thenReturn(Boolean.FALSE);
     initializePlugin();
 
-    plugin.execute(MONITOR_METHOD_NAME, sqlFunc);
-    verify(mockNextPlugin).execute(Mockito.eq(MONITOR_METHOD_NAME), Mockito.eq(sqlFunc));
+    plugin.execute(MONITOR_METHOD_NAME, sqlFunction);
+    verify(mockPlugin).execute(Mockito.eq(MONITOR_METHOD_NAME), Mockito.eq(sqlFunction));
   }
 
   @Test
@@ -119,9 +119,9 @@ class NodeMonitoringFailoverPluginTest extends NodeMonitoringFailoverPluginBaseT
         .thenReturn(Boolean.TRUE);
     initializePlugin();
 
-    plugin.execute(NO_MONITOR_METHOD_NAME, sqlFunc);
-    verify(mockNextPlugin)
-        .execute(Mockito.eq(NO_MONITOR_METHOD_NAME), Mockito.eq(sqlFunc));
+    plugin.execute(NO_MONITOR_METHOD_NAME, sqlFunction);
+    verify(mockPlugin)
+        .execute(Mockito.eq(NO_MONITOR_METHOD_NAME), Mockito.eq(sqlFunction));
   }
 
   @Test
@@ -132,10 +132,10 @@ class NodeMonitoringFailoverPluginTest extends NodeMonitoringFailoverPluginBaseT
     initializePlugin();
 
     Assertions.assertThrows(Exception.class, () -> {
-      when(mockNextPlugin.execute(Mockito.any(), Mockito.any()))
+      when(mockPlugin.execute(Mockito.any(), Mockito.any()))
           .thenThrow(EXECUTION_EXCEPTION);
 
-      plugin.execute(MONITOR_METHOD_NAME, sqlFunc);
+      plugin.execute(MONITOR_METHOD_NAME, sqlFunction);
     });
 
     verify(monitorService).stopMonitoring(Mockito.eq(context));
@@ -152,14 +152,14 @@ class NodeMonitoringFailoverPluginTest extends NodeMonitoringFailoverPluginBaseT
       when(context.isNodeUnhealthy())
           .thenReturn(Boolean.TRUE);
 
-      when(mockNextPlugin.execute(Mockito.any(), Mockito.any()))
+      when(mockPlugin.execute(Mockito.any(), Mockito.any()))
           .thenAnswer(invocation -> {
             // Imitate running a long query;
             Thread.sleep(60 * 1000);
             return "done";
           });
 
-      plugin.execute(MONITOR_METHOD_NAME, sqlFunc);
+      plugin.execute(MONITOR_METHOD_NAME, sqlFunction);
     });
 
     verify(context).isNodeUnhealthy();
@@ -174,7 +174,7 @@ class NodeMonitoringFailoverPluginTest extends NodeMonitoringFailoverPluginBaseT
         .thenReturn(Boolean.TRUE);
     when(context.isNodeUnhealthy())
         .thenReturn(Boolean.FALSE);
-    when(mockNextPlugin.execute(Mockito.any(), Mockito.any()))
+    when(mockPlugin.execute(Mockito.any(), Mockito.any()))
         .thenAnswer(invocation -> {
           // Imitate running a query for 10 seconds.
           Thread.sleep(10 * 1000);
@@ -183,7 +183,7 @@ class NodeMonitoringFailoverPluginTest extends NodeMonitoringFailoverPluginBaseT
 
     initializePlugin();
 
-    final Object result = plugin.execute(MONITOR_METHOD_NAME, sqlFunc);
+    final Object result = plugin.execute(MONITOR_METHOD_NAME, sqlFunction);
     Assertions.assertEquals(expected, result);
 
     verify(context, Mockito.atLeastOnce()).isNodeUnhealthy();

@@ -125,8 +125,7 @@ public class NodeMonitoringFailoverPlugin implements IFailoverPlugin {
   public Object execute(String methodName, Callable executeSqlFunc) throws Exception {
     final boolean needMonitoring = METHODS_TO_MONITOR.contains(methodName + ",");
 
-    if (!this.isEnabled
-        || !needMonitoring) {
+    if (!this.isEnabled || !needMonitoring) {
       // do direct call
       return this.next.execute(methodName, executeSqlFunc);
     }

@@ -67,14 +67,14 @@ public class MultithreadedNodeMonitoringFailoverPluginTest extends NodeMonitorin
   /**
    * Keep track of whether each test has been executed concurrently at least once.
    */
-  private static final Map<String, AtomicBoolean> IS_TEST_CONCURRENT = new ConcurrentHashMap<>();
+  private static final Map<String, AtomicBoolean> CONCURRENT_TEST_MAP = new ConcurrentHashMap<>();
 
   private AutoCloseable closeable;
 
   @BeforeEach
   void init(TestInfo testInfo) throws Exception {
     closeable = MockitoAnnotations.openMocks(this);
-    IS_TEST_CONCURRENT.computeIfAbsent(
+    CONCURRENT_TEST_MAP.computeIfAbsent(
         testInfo.getDisplayName(),
         k -> new AtomicBoolean(false));
 
@@ -86,7 +86,7 @@ public class MultithreadedNodeMonitoringFailoverPluginTest extends NodeMonitorin
     counter.set(0);
 
     if (concurrentCounter.get() > 0) {
-      IS_TEST_CONCURRENT.get(testInfo.getDisplayName()).getAndSet(true);
+      CONCURRENT_TEST_MAP.get(testInfo.getDisplayName()).getAndSet(true);
     }
 
     concurrentCounter.set(0);
@@ -98,7 +98,7 @@ public class MultithreadedNodeMonitoringFailoverPluginTest extends NodeMonitorin
    */
   @AfterAll
   static void assertConcurrency() {
-    IS_TEST_CONCURRENT.forEach((key, value) -> assertTrue(
+    CONCURRENT_TEST_MAP.forEach((key, value) -> assertTrue(
         value.get(),
         String.format("Test '%s' was executed sequentially.", key)));
   }
@@ -129,7 +129,9 @@ public class MultithreadedNodeMonitoringFailoverPluginTest extends NodeMonitorin
   @RepeatedTest(value = 100, name = "execute with exception")
   void test_2_executeWithException() throws Exception {
     when(context.isNodeUnhealthy()).thenReturn(true);
-    when(mockNextPlugin.execute(anyString(), eq(sqlFunc))).thenAnswer(invocation -> {
+    when(mockPlugin.execute(anyString(), eq(sqlFunction))).thenAnswer(invocation -> {
+      // Sleep for a while to imitate a long query
+      // and allow the monitoring thread time to check node status.
       Thread.sleep(60 * 1000);
       return "done";
     });
@@ -178,8 +180,8 @@ public class MultithreadedNodeMonitoringFailoverPluginTest extends NodeMonitorin
     for (int i = 0; i < numPlugins; i++) {
       final NodeMonitoringFailoverPlugin plugin = new NodeMonitoringFailoverPlugin();
       final NodeMonitoringFailoverPlugin nextPlugin = new NodeMonitoringFailoverPlugin();
-      plugin.init(connection, propertySet, info, nextPlugin, logger, initializer);
-      nextPlugin.init(connection, propertySet, info, mockNextPlugin, logger, initializer);
+      plugin.init(connection, propertySet, hostInfo, nextPlugin, logger, initializer);
+      nextPlugin.init(connection, propertySet, hostInfo, mockPlugin, logger, initializer);
       plugins.add(plugin);
     }
 
@@ -203,7 +205,7 @@ public class MultithreadedNodeMonitoringFailoverPluginTest extends NodeMonitorin
             concurrentCounter.getAndIncrement();
           }
 
-          final Object result = plugin.execute(methodName, sqlFunc);
+          final Object result = plugin.execute(methodName, sqlFunction);
           counter.getAndDecrement();
           return result;
         } catch (Exception e) {
