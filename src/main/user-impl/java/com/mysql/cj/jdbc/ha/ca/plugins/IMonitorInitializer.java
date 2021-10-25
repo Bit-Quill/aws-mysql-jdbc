@@ -31,5 +31,5 @@ import com.mysql.cj.conf.PropertySet;
 
 @FunctionalInterface
 public interface IMonitorInitializer {
-  IMonitor createMonitor(HostInfo hostInfo, PropertySet propertySet);
+  IMonitor createMonitor(HostInfo hostInfo, PropertySet propertySet, IMonitorService monitorService);
 }
