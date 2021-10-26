@@ -54,9 +54,8 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -83,7 +82,7 @@ class MultiThreadedDefaultMonitorServiceTest {
   private final Log logger = new NullLogger("MultiThreadedDefaultMonitorServiceTest");
   private final AtomicInteger counter = new AtomicInteger(0);
   private final AtomicInteger concurrentCounter = new AtomicInteger(0);
-  
+
   private static final AtomicBoolean isTest1Concurrent = new AtomicBoolean(false);
   private static final AtomicBoolean isTest2Concurrent = new AtomicBoolean(false);
   private static final int FAILURE_DETECTION_TIME = 10;
@@ -122,7 +121,7 @@ class MultiThreadedDefaultMonitorServiceTest {
 
   @RepeatedTest(1000)
   void test_1_multipleConnectionsToDifferentNodes()
-      throws ExecutionException, InterruptedException, BrokenBarrierException {
+      throws ExecutionException, InterruptedException {
     final int numConnections = 10;
     final List<Set<String>> nodeKeyList = generateNodeKeys(numConnections, true);
     final List<DefaultMonitorService> services = generateServices(numConnections);
@@ -152,8 +151,7 @@ class MultiThreadedDefaultMonitorServiceTest {
   }
 
   @RepeatedTest(1000)
-  void test_2_multipleConnectionsToOneNode()
-      throws InterruptedException, BrokenBarrierException, ExecutionException {
+  void test_2_multipleConnectionsToOneNode() throws InterruptedException, ExecutionException {
     final int numConnections = 10;
     final List<Set<String>> nodeKeyList = generateNodeKeys(numConnections, false);
     final List<DefaultMonitorService> services = generateServices(numConnections);
@@ -189,16 +187,16 @@ class MultiThreadedDefaultMonitorServiceTest {
    * @param runs        The number of times to run the methods.
    * @param services    The {@link DefaultMonitorService} used to run each method.
    * @param nodeKeyList The sets of node keys for each service.
-   * @return The {@link MonitorConnectionContext} returned by {@link DefaultMonitorService#startMonitoring(Set, HostInfo, PropertySet, int, int, int)}.
-   * @throws BrokenBarrierException if the {@link CyclicBarrier} is in a broken state.
-   * @throws InterruptedException   if a thread has been interrupted.
-   * @throws ExecutionException     if an exception occurred within a thread.
+   * @return The {@link MonitorConnectionContext} returned by
+   * {@link DefaultMonitorService#startMonitoring(Set, HostInfo, PropertySet, int, int, int)}.
+   * @throws InterruptedException if a thread has been interrupted.
+   * @throws ExecutionException   if an exception occurred within a thread.
    */
   private List<MonitorConnectionContext> runStartMonitor(
       final int runs,
       final List<DefaultMonitorService> services,
       final List<Set<String>> nodeKeyList)
-      throws BrokenBarrierException, ExecutionException, InterruptedException {
+      throws ExecutionException, InterruptedException {
     final List<Object> results = runMethodAsync(
         runs,
         services,
@@ -230,26 +228,25 @@ class MultiThreadedDefaultMonitorServiceTest {
 
   /**
    * Run a {@link DefaultMonitorService} method concurrently in multiple threads.
-   * A {@link CyclicBarrier} is used to ensure all threads start at the same time.
+   * A {@link CountDownLatch} is used to ensure all threads start at the same time.
    *
    * @param numThreads   The number of threads to create.
    * @param services     The services to run in each thread.
    * @param nodeKeysList The set of nodes assigned to each service.
    * @param method       A method in {@link DefaultMonitorService} to run in multiple threads.
    * @return the results from executing the method.
-   * @throws BrokenBarrierException if the {@link CyclicBarrier} is in a broken state.
-   * @throws InterruptedException   if a thread has been interrupted.
-   * @throws ExecutionException     if an exception occurred within a thread.
+   * @throws InterruptedException if a thread has been interrupted.
+   * @throws ExecutionException   if an exception occurred within a thread.
    */
   private List<Object> runMethodAsync(
       final int numThreads,
       final List<DefaultMonitorService> services,
       final List<Set<String>> nodeKeysList,
       final BiFunction<DefaultMonitorService, Set<String>, Object> method
-  ) throws BrokenBarrierException, InterruptedException, ExecutionException {
+  ) throws InterruptedException, ExecutionException {
     final String exceptionMessage = "Test thread interrupted due to an unexpected exception.";
 
-    final CyclicBarrier gate = new CyclicBarrier(numThreads + 1);
+    final CountDownLatch latch = new CountDownLatch(1);
     final List<CompletableFuture<Object>> threads = new ArrayList<>();
 
     for (int i = 0; i < numThreads; i++) {
@@ -259,8 +256,8 @@ class MultiThreadedDefaultMonitorServiceTest {
       threads.add(CompletableFuture.supplyAsync(() -> {
         try {
           // Wait until each thread is ready to start running.
-          gate.await();
-        } catch (final InterruptedException | BrokenBarrierException e) {
+          latch.await();
+        } catch (final InterruptedException e) {
           fail(exceptionMessage, e);
         }
 
@@ -270,7 +267,7 @@ class MultiThreadedDefaultMonitorServiceTest {
     }
 
     // Start all threads.
-    gate.await();
+    latch.countDown();
 
     final List<Object> contexts = new ArrayList<>();
     for (final CompletableFuture<Object> thread : threads) {
