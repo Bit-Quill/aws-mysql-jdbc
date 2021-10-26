@@ -56,7 +56,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -229,7 +228,7 @@ class MultiThreadedDefaultMonitorServiceTest {
 
   /**
    * Run a {@link DefaultMonitorService} method concurrently in multiple threads.
-   * A {@link CyclicBarrier} is used to ensure all threads start at the same time.
+   * A {@link CountDownLatch} is used to ensure all threads start at the same time.
    *
    * @param numThreads   The number of threads to create.
    * @param services     The services to run in each thread.
