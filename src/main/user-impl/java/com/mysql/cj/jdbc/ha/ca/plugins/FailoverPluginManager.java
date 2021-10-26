@@ -54,9 +54,7 @@ public class FailoverPluginManager {
 
   public FailoverPluginManager(Log logger) {
     if (logger == null) {
-      throw new IllegalArgumentException(Messages.getString(
-          "IllegalArgumentException.NullParameter",
-          new String[]{"logger"}));
+      throw new NullArgumentException("logger");
     }
 
     this.logger = logger;

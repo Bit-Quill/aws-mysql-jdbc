@@ -231,9 +231,7 @@ public class NodeMonitoringFailoverPlugin implements IFailoverPlugin {
 
   private void assertArgumentIsNotNull(Object param, String paramName) {
     if (param == null) {
-      throw new IllegalArgumentException(Messages.getString(
-          "IllegalArgumentException.NullParameter",
-          new String[]{paramName}));
+      throw new NullArgumentException(paramName);
     }
   }
 }

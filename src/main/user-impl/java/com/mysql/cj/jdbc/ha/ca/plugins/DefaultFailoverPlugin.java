@@ -17,9 +17,7 @@ public class DefaultFailoverPlugin implements IFailoverPlugin {
   @Override
   public void init(Connection connection, PropertySet propertySet, HostInfo hostInfo, IFailoverPlugin next, Log log) {
     if (log == null) {
-      throw new IllegalArgumentException(Messages.getString(
-          "IllegalArgumentException.NullParameter",
-          new String[]{"log"}));
+      throw new NullArgumentException("log");
     }
 
     this.log = log;

@@ -126,7 +126,7 @@ class NodeMonitoringFailoverPluginTest {
       final IFailoverPlugin failoverPlugin,
       final Log log) {
     Assertions.assertThrows(
-        IllegalArgumentException.class,
+        NullArgumentException.class,
         () -> plugin.init(connection, set, info, failoverPlugin, log));
   }
 
