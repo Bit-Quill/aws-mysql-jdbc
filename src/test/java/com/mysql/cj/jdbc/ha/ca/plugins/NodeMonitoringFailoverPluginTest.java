@@ -26,9 +26,6 @@
 
 package com.mysql.cj.jdbc.ha.ca.plugins;
 
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import com.mysql.cj.conf.DefaultPropertySet;
 import com.mysql.cj.conf.HostInfo;
 import com.mysql.cj.conf.PropertyKey;
@@ -56,6 +53,9 @@ import java.sql.Statement;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Stream;
+
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class NodeMonitoringFailoverPluginTest {
 
