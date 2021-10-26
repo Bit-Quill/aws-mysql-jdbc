@@ -33,7 +33,6 @@ import com.mysql.cj.conf.PropertySet;
 import com.mysql.cj.log.Log;
 import com.mysql.cj.util.StringUtils;
 import com.mysql.cj.util.Util;
-import org.jboss.util.NullArgumentException;
 
 import java.sql.Connection;
 import java.util.concurrent.Callable;
@@ -55,8 +54,8 @@ public class FailoverPluginManager {
 
   public FailoverPluginManager(Log logger) {
     if (logger == null) {
-      throw new NullArgumentException(Messages.getString(
-          "NullArgumentException.NullParameter",
+      throw new IllegalArgumentException(Messages.getString(
+          "IllegalArgumentException.NullParameter",
           new String[]{"logger"}));
     }
 

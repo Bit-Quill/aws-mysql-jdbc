@@ -1,9 +1,9 @@
 package com.mysql.cj.jdbc.ha.ca.plugins;
 
+import com.mysql.cj.Messages;
 import com.mysql.cj.conf.HostInfo;
 import com.mysql.cj.conf.PropertySet;
 import com.mysql.cj.log.Log;
-import org.jboss.util.NullArgumentException;
 
 import java.sql.Connection;
 import java.util.concurrent.Callable;
@@ -17,7 +17,9 @@ public class DefaultFailoverPlugin implements IFailoverPlugin {
   @Override
   public void init(Connection connection, PropertySet propertySet, HostInfo hostInfo, IFailoverPlugin next, Log log) {
     if (log == null) {
-      throw new NullArgumentException("log");
+      throw new IllegalArgumentException(Messages.getString(
+          "IllegalArgumentException.NullParameter",
+          new String[]{"log"}));
     }
 
     this.log = log;

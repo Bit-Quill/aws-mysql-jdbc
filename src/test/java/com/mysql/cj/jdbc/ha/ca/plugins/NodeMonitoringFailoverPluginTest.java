@@ -26,6 +26,9 @@
 
 package com.mysql.cj.jdbc.ha.ca.plugins;
 
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import com.mysql.cj.conf.DefaultPropertySet;
 import com.mysql.cj.conf.HostInfo;
 import com.mysql.cj.conf.PropertyKey;
@@ -35,7 +38,6 @@ import com.mysql.cj.exceptions.CJCommunicationsException;
 import com.mysql.cj.log.Log;
 import com.mysql.cj.log.NullLogger;
 import org.jboss.invocation.InvocationException;
-import org.jboss.util.NullArgumentException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -54,9 +56,6 @@ import java.sql.Statement;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Stream;
-
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 class NodeMonitoringFailoverPluginTest {
 
@@ -127,7 +126,7 @@ class NodeMonitoringFailoverPluginTest {
       final IFailoverPlugin failoverPlugin,
       final Log log) {
     Assertions.assertThrows(
-        NullArgumentException.class,
+        IllegalArgumentException.class,
         () -> plugin.init(connection, set, info, failoverPlugin, log));
   }
 
