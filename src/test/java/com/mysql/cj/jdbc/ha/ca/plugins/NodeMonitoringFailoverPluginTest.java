@@ -35,7 +35,6 @@ import com.mysql.cj.exceptions.CJCommunicationsException;
 import com.mysql.cj.log.Log;
 import com.mysql.cj.log.NullLogger;
 import org.jboss.invocation.InvocationException;
-import org.jboss.util.NullArgumentException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;

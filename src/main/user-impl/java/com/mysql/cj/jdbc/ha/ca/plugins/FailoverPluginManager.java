@@ -26,14 +26,12 @@
 
 package com.mysql.cj.jdbc.ha.ca.plugins;
 
-import com.mysql.cj.Messages;
 import com.mysql.cj.conf.HostInfo;
 import com.mysql.cj.conf.PropertyKey;
 import com.mysql.cj.conf.PropertySet;
 import com.mysql.cj.log.Log;
 import com.mysql.cj.util.StringUtils;
 import com.mysql.cj.util.Util;
-import org.jboss.util.NullArgumentException;
 
 import java.sql.Connection;
 import java.util.concurrent.Callable;
@@ -55,9 +53,7 @@ public class FailoverPluginManager {
 
   public FailoverPluginManager(Log logger) {
     if (logger == null) {
-      throw new NullArgumentException(Messages.getString(
-          "NullArgumentException.NullParameter",
-          new String[]{"logger"}));
+      throw new NullArgumentException("logger");
     }
 
     this.logger = logger;
