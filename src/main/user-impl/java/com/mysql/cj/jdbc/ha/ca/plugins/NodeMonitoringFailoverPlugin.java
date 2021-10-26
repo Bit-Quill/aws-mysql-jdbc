@@ -32,7 +32,6 @@ import com.mysql.cj.conf.PropertyKey;
 import com.mysql.cj.conf.PropertySet;
 import com.mysql.cj.exceptions.CJCommunicationsException;
 import com.mysql.cj.log.Log;
-import org.jboss.util.NullArgumentException;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -232,9 +231,7 @@ public class NodeMonitoringFailoverPlugin implements IFailoverPlugin {
 
   private void assertArgumentIsNotNull(Object param, String paramName) {
     if (param == null) {
-      throw new NullArgumentException(Messages.getString(
-          "NullArgumentException.NullParameter",
-          new String[]{paramName}));
+      throw new NullArgumentException(paramName);
     }
   }
 }
