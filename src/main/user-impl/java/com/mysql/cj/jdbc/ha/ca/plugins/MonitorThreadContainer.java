@@ -88,6 +88,10 @@ public class MonitorThreadContainer {
         return threadPool;
     }
 
+    String getNode(Set<String> nodeKeys) {
+        return getNode(nodeKeys, null);
+    }
+
     String getNode(Set<String> nodeKeys, String defaultValue) {
         return nodeKeys
             .stream().filter(monitorMap::containsKey)

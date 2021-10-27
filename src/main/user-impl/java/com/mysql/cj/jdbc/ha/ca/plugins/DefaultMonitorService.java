@@ -106,7 +106,7 @@ public class DefaultMonitorService implements IMonitorService {
 
     // Any 1 node is enough to find the monitor containing the context
     // All nodes will map to the same monitor
-    final String node = this.threadContainer.getNode(context.getNodeKeys(), null);
+    final String node = this.threadContainer.getNode(context.getNodeKeys());
 
     if (node == null) {
       log.logWarn(Messages.getString("DefaultMonitorService.InvalidContext"));
