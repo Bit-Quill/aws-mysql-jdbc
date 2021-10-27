@@ -14,9 +14,6 @@ public class NodeMonitoringFailoverPluginFactory implements IFailoverPluginFacto
       HostInfo hostInfo,
       IFailoverPlugin next,
       Log log) {
-
-    IFailoverPlugin plugin = new NodeMonitoringFailoverPlugin();
-    plugin.init(connection, propertySet, hostInfo, next, log);
-    return plugin;
+    return new NodeMonitoringFailoverPlugin(connection, propertySet, hostInfo, next, log);
   }
 }
