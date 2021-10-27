@@ -26,6 +26,7 @@
 
 package com.mysql.cj.jdbc.ha.ca.plugins;
 
+import com.mysql.cj.Messages;
 import com.mysql.cj.conf.HostInfo;
 import com.mysql.cj.conf.PropertyKey;
 import com.mysql.cj.conf.PropertySet;
@@ -40,6 +41,7 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class Monitor implements IMonitor {
   static class ConnectionStatus {
@@ -61,28 +63,43 @@ public class Monitor implements IMonitor {
   private final HostInfo hostInfo;
   private Connection monitoringConn = null;
   private int connectionCheckIntervalMillis = Integer.MAX_VALUE;
+  private final AtomicLong lastContextUsedTimestamp = new AtomicLong();
+  private final long monitorDisposalTime;
+  private final IMonitorService monitorService;
 
-  public Monitor(ConnectionProvider connectionProvider, HostInfo hostInfo, PropertySet propertySet,
+  public Monitor(
+      ConnectionProvider connectionProvider,
+      HostInfo hostInfo,
+      PropertySet propertySet,
+      long monitorDisposalTime,
+      IMonitorService monitorService,
       Log log) {
     this.connectionProvider = connectionProvider;
     this.hostInfo = hostInfo;
     this.propertySet = propertySet;
     this.log = log;
+    this.monitorDisposalTime = monitorDisposalTime;
+    this.monitorService = monitorService;
   }
 
   @Override
-  public void startMonitoring(MonitorConnectionContext context) {
+  public synchronized void startMonitoring(MonitorConnectionContext context) {
     this.connectionCheckIntervalMillis = Math.min(
         this.connectionCheckIntervalMillis,
         context.getFailureDetectionIntervalMillis());
-
-    context.setStartMonitorTime(this.getCurrentTimeMillis());
-    contexts.add(context);
+    final long currentTime = this.getCurrentTimeMillis();
+    context.setStartMonitorTime(currentTime);
+    this.lastContextUsedTimestamp.set(currentTime);
+    this.contexts.add(context);
   }
 
   @Override
-  public void stopMonitoring(MonitorConnectionContext context) {
-    contexts.remove(context);
+  public synchronized void stopMonitoring(MonitorConnectionContext context) {
+    if (context == null) {
+      log.logWarn(NullArgumentException.constructNullArgumentMessage("context"));
+      return;
+    }
+    this.contexts.remove(context);
     this.connectionCheckIntervalMillis = findShortestIntervalMillis();
   }
 
@@ -90,11 +107,12 @@ public class Monitor implements IMonitor {
   public void run() {
     try {
       while (true) {
-        if (!contexts.isEmpty()) {
+        if (!this.contexts.isEmpty()) {
           final ConnectionStatus status = checkConnectionStatus(this.connectionCheckIntervalMillis);
           final long currentTime = this.getCurrentTimeMillis();
+          this.lastContextUsedTimestamp.set(currentTime);
 
-          for (MonitorConnectionContext monitorContext : contexts) {
+          for (MonitorConnectionContext monitorContext : this.contexts) {
             monitorContext.updateConnectionStatus(
                 currentTime,
                 status.isValid,
@@ -103,6 +121,10 @@ public class Monitor implements IMonitor {
 
           TimeUnit.MILLISECONDS.sleep(Math.max(0, this.connectionCheckIntervalMillis - status.elapsedTime));
         } else {
+          if ((this.getCurrentTimeMillis() - this.lastContextUsedTimestamp.get()) >= this.monitorDisposalTime) {
+            monitorService.notifyUnused(this);
+            break;
+          }
           TimeUnit.MILLISECONDS.sleep(THREAD_SLEEP_WHEN_INACTIVE_MILLIS);
         }
       }
@@ -122,7 +144,6 @@ public class Monitor implements IMonitor {
   ConnectionStatus checkConnectionStatus(final int shortestFailureDetectionIntervalMillis) {
     try {
       if (this.monitoringConn == null || this.monitoringConn.isClosed()) {
-
         // open a new connection
         Map<String, String> properties = new HashMap<>();
         properties.put(PropertyKey.tcpKeepAlive.getKeyName(),
@@ -138,7 +159,7 @@ public class Monitor implements IMonitor {
       final long start = this.getCurrentTimeMillis();
       return new ConnectionStatus(
           this.monitoringConn.isValid(shortestFailureDetectionIntervalMillis / 1000),
-            this.getCurrentTimeMillis() - start);
+          this.getCurrentTimeMillis() - start);
     } catch (SQLException sqlEx) {
       this.log.logTrace("[Monitor]", sqlEx);
       return new ConnectionStatus(false, 0);
@@ -166,7 +187,7 @@ public class Monitor implements IMonitor {
   }
 
   private int findShortestIntervalMillis() {
-    return contexts.stream()
+    return this.contexts.stream()
         .min(Comparator.comparing(MonitorConnectionContext::getFailureDetectionIntervalMillis))
         .map(MonitorConnectionContext::getFailureDetectionIntervalMillis)
         .orElse(0);

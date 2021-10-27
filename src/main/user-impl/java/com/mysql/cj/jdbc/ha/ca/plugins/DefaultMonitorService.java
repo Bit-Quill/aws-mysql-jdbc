@@ -28,6 +28,7 @@ package com.mysql.cj.jdbc.ha.ca.plugins;
 
 import com.mysql.cj.Messages;
 import com.mysql.cj.conf.HostInfo;
+import com.mysql.cj.conf.PropertyKey;
 import com.mysql.cj.conf.PropertySet;
 import com.mysql.cj.jdbc.ha.ca.BasicConnectionProvider;
 import com.mysql.cj.log.Log;
@@ -35,6 +36,7 @@ import com.mysql.cj.log.Log;
 import java.util.concurrent.ExecutorService;
 import java.util.Set;
 import java.util.concurrent.Executors;
+import java.util.function.Supplier;
 
 public class DefaultMonitorService implements IMonitorService {
   MonitorThreadContainer threadContainer;
@@ -44,10 +46,12 @@ public class DefaultMonitorService implements IMonitorService {
 
   public DefaultMonitorService(Log log) {
     this(
-        (hostInfo, propertySet) -> new Monitor(
+        (hostInfo, propertySet, monitorService) -> new Monitor(
             new BasicConnectionProvider(),
             hostInfo,
             propertySet,
+            propertySet.getIntegerProperty(PropertyKey.monitorDisposalTime).getValue(),
+            monitorService,
             log),
         Executors::newCachedThreadPool,
         log
@@ -85,20 +89,49 @@ public class DefaultMonitorService implements IMonitorService {
         failureDetectionCount);
 
     monitor.startMonitoring(context);
-    this.threadContainer.getTasksMap().computeIfAbsent(monitor, k -> this.threadContainer.getThreadPool().submit(monitor));
+    this.threadContainer.addTask(monitor);
 
     return context;
   }
 
   @Override
   public void stopMonitoring(MonitorConnectionContext context) {
-    final IMonitor monitor = this.threadContainer.getMonitorMap().get(context.getNodeKeys().iterator().next());
-    monitor.stopMonitoring(context);
+    if (context == null) {
+      log.logWarn(NullArgumentException.constructNullArgumentMessage("context"));
+      return;
+    }
+
+    // Any 1 node is enough to find the monitor containing the context
+    // All nodes will map to the same monitor
+    final String node = this.threadContainer.getNode(context.getNodeKeys());
+
+    if (node == null) {
+      log.logWarn(Messages.getString("DefaultMonitorService.InvalidContext"));
+      return;
+    }
+
+    this.threadContainer.getMonitor(node).stopMonitoring(context);
   }
 
   @Override
   public void releaseResources() {
     this.threadContainer = null;
     MonitorThreadContainer.releaseInstance();
+  }
+
+  @Override
+  public synchronized void notifyUnused(IMonitor monitor) {
+    if (monitor == null) {
+      log.logWarn(NullArgumentException.constructNullArgumentMessage("monitor"));
+      return;
+    }
+
+    // Remove monitor from the maps
+    this.threadContainer.releaseResource(monitor);
+  }
+
+  protected IMonitor getMonitor(Set<String> nodeKeys, HostInfo hostInfo, PropertySet propertySet) {
+    final Supplier<IMonitor> monitorCreate = () -> monitorInitializer.createMonitor(hostInfo, propertySet, this);
+    return this.threadContainer.getOrCreateMonitor(nodeKeys, monitorCreate);
   }
 }

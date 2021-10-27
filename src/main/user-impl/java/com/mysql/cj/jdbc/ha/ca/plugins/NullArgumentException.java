@@ -34,4 +34,8 @@ public class NullArgumentException extends IllegalArgumentException {
   public NullArgumentException(String param) {
     super(Messages.getString(ERROR_MESSAGE_KEY, new String[]{param}));
   }
+
+  public static String constructNullArgumentMessage(String param) {
+    return Messages.getString(ERROR_MESSAGE_KEY, new String[]{param});
+  }
 }

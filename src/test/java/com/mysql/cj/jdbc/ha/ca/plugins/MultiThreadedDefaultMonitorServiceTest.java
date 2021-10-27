@@ -26,17 +26,8 @@
 
 package com.mysql.cj.jdbc.ha.ca.plugins;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import com.mysql.cj.conf.HostInfo;
+import com.mysql.cj.conf.IntegerProperty;
 import com.mysql.cj.conf.PropertySet;
 import com.mysql.cj.log.Log;
 import com.mysql.cj.log.NullLogger;
@@ -46,7 +37,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.RepeatedTest;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 
 import java.util.ArrayList;
@@ -65,6 +55,17 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 /**
  * Multi-threaded tests for {@link MultiThreadedDefaultMonitorServiceTest}.
  * Repeats each testcase multiple times.
@@ -76,8 +77,9 @@ class MultiThreadedDefaultMonitorServiceTest {
   @Mock ExecutorService service;
   @Mock Future<?> taskA;
   @Mock HostInfo info;
-  @Mock PropertySet propertySet;
   @Mock IMonitor monitor;
+  @Mock PropertySet propertySet;
+  @Mock IntegerProperty integerProperty;
 
   private final Log logger = new NullLogger("MultiThreadedDefaultMonitorServiceTest");
   private final AtomicInteger counter = new AtomicInteger(0);
@@ -88,6 +90,7 @@ class MultiThreadedDefaultMonitorServiceTest {
   private static final int FAILURE_DETECTION_TIME = 10;
   private static final int FAILURE_DETECTION_INTERVAL = 100;
   private static final int FAILURE_DETECTION_COUNT = 3;
+  private static final int MONITOR_DISPOSE_TIME = 60000;
 
   private AutoCloseable closeable;
   private ArgumentCaptor<MonitorConnectionContext> captor;
@@ -98,12 +101,15 @@ class MultiThreadedDefaultMonitorServiceTest {
     captor = ArgumentCaptor.forClass(MonitorConnectionContext.class);
 
     when(monitorInitializer.createMonitor(
-        Mockito.any(HostInfo.class),
-        Mockito.any(PropertySet.class)))
+        any(HostInfo.class),
+        any(PropertySet.class),
+        any(IMonitorService.class)))
         .thenReturn(monitor);
     when(executorServiceInitializer.createExecutorService()).thenReturn(service);
-    doReturn(taskA).when(service).submit(Mockito.any(Monitor.class));
+    doReturn(taskA).when(service).submit(any(Monitor.class));
     doNothing().when(monitor).startMonitoring(captor.capture());
+    when(propertySet.getIntegerProperty(any(String.class))).thenReturn(integerProperty);
+    when(integerProperty.getValue()).thenReturn(MONITOR_DISPOSE_TIME);
   }
 
   @AfterEach
@@ -140,7 +146,7 @@ class MultiThreadedDefaultMonitorServiceTest {
       assertTrue((contexts.size() == capturedContexts.size())
           && contexts.containsAll(capturedContexts)
           && capturedContexts.containsAll(contexts));
-      verify(monitorInitializer, times(numConnections)).createMonitor(eq(info), eq(propertySet));
+      verify(monitorInitializer, times(numConnections)).createMonitor(eq(info), eq(propertySet), any(IMonitorService.class));
 
       if (concurrentCounter.get() != 0) {
         isTest1Concurrent.getAndSet(true);
@@ -171,7 +177,7 @@ class MultiThreadedDefaultMonitorServiceTest {
           && contexts.containsAll(capturedContexts)
           && capturedContexts.containsAll(contexts));
 
-      verify(monitorInitializer).createMonitor(eq(info), eq(propertySet));
+      verify(monitorInitializer).createMonitor(eq(info), eq(propertySet), any(IMonitorService.class));
 
       if (concurrentCounter.get() != 0) {
         isTest2Concurrent.getAndSet(true);

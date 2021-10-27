@@ -286,7 +286,8 @@ public enum PropertyKey {
     nativeFailureDetectionEnabled("nativeFailureDetectionEnabled", true),
     failureDetectionTime("failureDetectionTime", true),
     failureDetectionInterval("failureDetectionInterval", true),
-    failureDetectionCount("nativeFailureDetectionEnabled", true);
+    failureDetectionCount("nativeFailureDetectionEnabled", true),
+    monitorDisposalTime("monitorDisposalTime", true);
 
     private String keyName;
     private String ccAlias = null;

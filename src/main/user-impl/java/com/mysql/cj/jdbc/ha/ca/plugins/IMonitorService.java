@@ -43,4 +43,6 @@ public interface IMonitorService {
   void stopMonitoring(MonitorConnectionContext context);
 
   void releaseResources();
+
+  void notifyUnused(IMonitor monitor);
 }
