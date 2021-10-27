@@ -108,7 +108,6 @@ class NodeMonitoringFailoverPluginTest {
   @BeforeEach
   void init() throws SQLException {
     closeable = MockitoAnnotations.openMocks(this);
-    plugin = new NodeMonitoringFailoverPlugin();
 
     initDefaultMockReturns();
   }
@@ -128,7 +127,7 @@ class NodeMonitoringFailoverPluginTest {
       final Log log) {
     Assertions.assertThrows(
         NullArgumentException.class,
-        () -> plugin.init(connection, set, info, failoverPlugin, log));
+        () -> new NodeMonitoringFailoverPlugin(connection, set, info, failoverPlugin, log));
   }
 
   @Test
@@ -248,8 +247,8 @@ class NodeMonitoringFailoverPluginTest {
     final Connection connection = Mockito.mock(Connection.class);
     final PropertySet set = new DefaultPropertySet();
     final HostInfo info = new HostInfo();
-    final IFailoverPlugin failoverPlugin = new DefaultFailoverPlugin();
     final Log log = new NullLogger("NodeMonitoringFailoverPluginTest");
+    final IFailoverPlugin failoverPlugin = new DefaultFailoverPlugin(log);
 
     return Stream.of(
         Arguments.of(null, set, info, failoverPlugin, log),
@@ -298,6 +297,6 @@ class NodeMonitoringFailoverPluginTest {
   }
 
   private void initializePlugin() {
-    plugin.init(connection, propertySet, hostInfo, mockPlugin, logger, monitorServiceInitializer);
+    plugin = new NodeMonitoringFailoverPlugin(connection, propertySet, hostInfo, mockPlugin, logger, monitorServiceInitializer);
   }
 }

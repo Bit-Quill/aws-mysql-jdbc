@@ -69,16 +69,13 @@ public class NodeMonitoringFailoverPlugin implements IFailoverPlugin {
     IMonitorService create(Log log);
   }
 
-  public NodeMonitoringFailoverPlugin() {
-  }
-
-  public void init(
+  public NodeMonitoringFailoverPlugin(
       Connection connection,
       PropertySet propertySet,
       HostInfo hostInfo,
       IFailoverPlugin next,
       Log log) {
-    this.init(
+    this(
         connection,
         propertySet,
         hostInfo,
@@ -87,7 +84,7 @@ public class NodeMonitoringFailoverPlugin implements IFailoverPlugin {
         DefaultMonitorService::new);
   }
 
-  void init(
+  public NodeMonitoringFailoverPlugin(
       Connection connection,
       PropertySet propertySet,
       HostInfo hostInfo,

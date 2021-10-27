@@ -13,8 +13,6 @@ public class DefaultFailoverPluginFactory implements IFailoverPluginFactory {
       PropertySet propertySet,
       HostInfo hostInfo,
       IFailoverPlugin next, Log log) {
-    final IFailoverPlugin plugin = new DefaultFailoverPlugin();
-    plugin.init(connection, propertySet, hostInfo, next, log);
-    return plugin;
+    return new DefaultFailoverPlugin(log);
   }
 }
