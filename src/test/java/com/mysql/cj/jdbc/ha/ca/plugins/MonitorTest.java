@@ -94,6 +94,7 @@ class MonitorTest {
   private static final int SHORT_INTERVAL_SECONDS = SHORT_INTERVAL_MILLIS / 1000;
   private static final int LONG_INTERVAL_MILLIS = 300;
 
+  private DefaultMonitorService monitorService;
   private AutoCloseable closeable;
   private Monitor monitor;
 
@@ -119,7 +120,7 @@ class MonitorTest {
         .thenReturn(executorService);
     MonitorThreadContainer.getInstance(executorServiceInitializer);
 
-    DefaultMonitorService monitorService = new DefaultMonitorService(null);
+    monitorService = new DefaultMonitorService(null);
     monitor = spy(new Monitor(
         connectionProvider,
         hostInfo,
@@ -131,6 +132,7 @@ class MonitorTest {
 
   @AfterEach
   void cleanUp() throws Exception {
+    monitorService.releaseResources();
     MonitorThreadContainer.releaseInstance();
     closeable.close();
   }
@@ -238,8 +240,8 @@ class MonitorTest {
     doReturn((long) SHORT_INTERVAL_MILLIS)
         .when(monitor).getCurrentTimeMillis();
 
-    // Put monitor into Container Map
-    final MonitorThreadContainer container = MonitorThreadContainer.getInstance();
+    // Put monitor into container map
+    final MonitorThreadContainer container = MonitorThreadContainer.getInstance(executorServiceInitializer);
     final Map<String, IMonitor> monitorMap = container.getMonitorMap();
     final Map<IMonitor, Future<?>> taskMap = container.getTasksMap();
     final String nodeKey = "monitorA";
@@ -260,8 +262,8 @@ class MonitorTest {
 
   @RepeatedTest(1000)
   void test_9_runWithContext() {
-    // Put monitor into Container Map
-    final MonitorThreadContainer container = MonitorThreadContainer.getInstance();
+    // Put monitor into container map
+    final MonitorThreadContainer container = MonitorThreadContainer.getInstance(executorServiceInitializer);
     final Map<String, IMonitor> monitorMap = container.getMonitorMap();
     final Map<IMonitor, Future<?>> taskMap = container.getTasksMap();
     final String nodeKey = "monitorA";

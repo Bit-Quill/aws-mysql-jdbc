@@ -39,11 +39,11 @@ public class MonitorThreadContainer {
     private final Map<IMonitor, Future<?>> tasksMap = new ConcurrentHashMap<>();
     private final ExecutorService threadPool;
 
-    public static MonitorThreadContainer getInstance() {
-        return getInstance(null);
-    }
-
     public static synchronized MonitorThreadContainer getInstance(IExecutorServiceInitializer executorServiceInitializer) {
+        if (executorServiceInitializer == null) {
+            return null;
+        }
+
         if (singleton == null) {
             singleton = new MonitorThreadContainer(executorServiceInitializer);
             CLASS_USAGE_COUNT.set(0);
