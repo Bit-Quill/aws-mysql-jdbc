@@ -178,10 +178,8 @@ public class MultithreadedNodeMonitoringFailoverPluginTest extends NodeMonitorin
     final List<NodeMonitoringFailoverPlugin> plugins = new ArrayList<>();
 
     for (int i = 0; i < numPlugins; i++) {
-      final NodeMonitoringFailoverPlugin plugin = new NodeMonitoringFailoverPlugin();
-      final NodeMonitoringFailoverPlugin nextPlugin = new NodeMonitoringFailoverPlugin();
-      plugin.init(connection, propertySet, hostInfo, nextPlugin, logger, initializer);
-      nextPlugin.init(connection, propertySet, hostInfo, mockPlugin, logger, initializer);
+      final NodeMonitoringFailoverPlugin nextPlugin = new NodeMonitoringFailoverPlugin(connection, propertySet, hostInfo, mockPlugin, logger, initializer);
+      final NodeMonitoringFailoverPlugin plugin = new NodeMonitoringFailoverPlugin(connection, propertySet, hostInfo, nextPlugin, logger, initializer);
       plugins.add(plugin);
     }
 
