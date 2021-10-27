@@ -26,11 +26,16 @@
 
 package com.mysql.cj.jdbc.ha.ca.plugins;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 
 public class MonitorThreadContainer {
     private static MonitorThreadContainer singleton = null;
@@ -39,11 +44,11 @@ public class MonitorThreadContainer {
     private final Map<IMonitor, Future<?>> tasksMap = new ConcurrentHashMap<>();
     private final ExecutorService threadPool;
 
-    public static MonitorThreadContainer getInstance() {
-        return getInstance(null);
+    public static synchronized MonitorThreadContainer getInstance() {
+        return getInstance(Executors::newCachedThreadPool);
     }
 
-    public static synchronized MonitorThreadContainer getInstance(IExecutorServiceInitializer executorServiceInitializer) {
+    static synchronized MonitorThreadContainer getInstance(IExecutorServiceInitializer executorServiceInitializer) {
         if (singleton == null) {
             singleton = new MonitorThreadContainer(executorServiceInitializer);
             CLASS_USAGE_COUNT.set(0);
@@ -77,6 +82,47 @@ public class MonitorThreadContainer {
 
     public ExecutorService getThreadPool() {
         return threadPool;
+    }
+
+    String getNode(Set<String> nodeKeys) {
+        return getNode(nodeKeys, null);
+    }
+
+    String getNode(Set<String> nodeKeys, String defaultValue) {
+        return nodeKeys
+            .stream().filter(monitorMap::containsKey)
+            .findAny()
+            .orElse(defaultValue);
+    }
+
+    IMonitor getMonitor(String node) {
+        return monitorMap.get(node);
+    }
+
+    IMonitor getOrCreateMonitor(Set<String> nodeKeys, Supplier<IMonitor> monitorSupplier) {
+        final String node = getNode(nodeKeys, nodeKeys.iterator().next());
+        final IMonitor monitor = monitorMap.computeIfAbsent(node, k -> monitorSupplier.get());
+        populateMonitorMap(nodeKeys, monitor);
+        return monitor;
+    }
+
+    private void populateMonitorMap(Set<String> nodeKeys, IMonitor monitor) {
+        for (String nodeKey : nodeKeys) {
+            monitorMap.putIfAbsent(nodeKey, monitor);
+        }
+    }
+
+    void addTask(IMonitor monitor) {
+        tasksMap.computeIfAbsent(monitor, k -> threadPool.submit(monitor));
+    }
+
+    public void releaseResource(IMonitor monitor) {
+        final List<IMonitor> monitorList = Collections.singletonList(monitor);
+        monitorMap.values().removeAll(monitorList);
+        tasksMap.computeIfPresent(monitor, (k, v) -> {
+            v.cancel(true);
+            return null;
+        });
     }
 
     private synchronized void releaseResources() {

@@ -26,16 +26,15 @@
 
 package com.mysql.cj.jdbc.ha.ca.plugins;
 
+import com.mysql.cj.conf.DefaultPropertySet;
 import com.mysql.cj.conf.HostInfo;
 import com.mysql.cj.conf.PropertySet;
 import com.mysql.cj.log.Log;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 
 import java.util.Collections;
@@ -43,6 +42,18 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class DefaultMonitorServiceTest {
   private static final Set<String> NODE_KEYS = new HashSet<>(Collections.singletonList("any.node.domain"));
@@ -66,32 +77,30 @@ class DefaultMonitorServiceTest {
   private Future<?> task;
   @Mock
   private HostInfo info;
-  @Mock
-  private PropertySet set;
 
+  private PropertySet propertySet;
   private AutoCloseable closeable;
   private DefaultMonitorService monitorService;
   private ArgumentCaptor<MonitorConnectionContext> contextCaptor;
 
   @BeforeEach
   void init() {
+    propertySet = new DefaultPropertySet();
     closeable = MockitoAnnotations.openMocks(this);
     contextCaptor = ArgumentCaptor.forClass(MonitorConnectionContext.class);
 
-    Mockito
-        .when(monitorInitializer.createMonitor(
-            Mockito.any(HostInfo.class),
-            Mockito.any(PropertySet.class)))
+    when(monitorInitializer.createMonitor(
+        any(HostInfo.class),
+        any(PropertySet.class),
+        any(IMonitorService.class)))
         .thenReturn(monitorA, monitorB);
 
-    Mockito
-        .when(executorServiceInitializer.createExecutorService())
+    when(executorServiceInitializer.createExecutorService())
         .thenReturn(executorService);
 
-    Mockito
-        .doReturn(task)
+    doReturn(task)
         .when(executorService)
-        .submit(Mockito.any(IMonitor.class));
+        .submit(any(IMonitor.class));
 
     monitorService = new DefaultMonitorService(
         monitorInitializer,
@@ -107,25 +116,23 @@ class DefaultMonitorServiceTest {
 
   @Test
   void test_1_startMonitoringWithNoExecutor() {
-    Mockito.doNothing().when(monitorA).startMonitoring(contextCaptor.capture());
+    doNothing().when(monitorA).startMonitoring(contextCaptor.capture());
 
     monitorService.startMonitoring(
         NODE_KEYS,
         info,
-        set,
+        propertySet,
         FAILURE_DETECTION_TIME_MILLIS,
         FAILURE_DETECTION_INTERVAL_MILLIS,
         FAILURE_DETECTION_COUNT);
 
-    Assertions.assertNotNull(contextCaptor.getValue());
-    Mockito
-        .verify(executorService)
-        .submit(Mockito.eq(monitorA));
+    assertNotNull(contextCaptor.getValue());
+    verify(executorService).submit(eq(monitorA));
   }
 
   @Test
   void test_2_startMonitoringCalledMultipleTimes() {
-    Mockito.doNothing().when(monitorA).startMonitoring(contextCaptor.capture());
+    doNothing().when(monitorA).startMonitoring(contextCaptor.capture());
 
     final int runs = 5;
 
@@ -133,56 +140,54 @@ class DefaultMonitorServiceTest {
       monitorService.startMonitoring(
           NODE_KEYS,
           info,
-          set,
+          propertySet,
           FAILURE_DETECTION_TIME_MILLIS,
           FAILURE_DETECTION_INTERVAL_MILLIS,
           FAILURE_DETECTION_COUNT);
     }
 
-    Assertions.assertNotNull(contextCaptor.getValue());
+    assertNotNull(contextCaptor.getValue());
 
     // executorService should only be called once.
-    Mockito
-        .verify(executorService)
-        .submit(Mockito.eq(monitorA));
+    verify(executorService).submit(eq(monitorA));
   }
 
   @Test
   void test_3_stopMonitoringWithInterruptedThread() {
-    Mockito.doNothing().when(monitorA).stopMonitoring(contextCaptor.capture());
+    doNothing().when(monitorA).stopMonitoring(contextCaptor.capture());
 
     final MonitorConnectionContext context = monitorService.startMonitoring(
         NODE_KEYS,
         info,
-        set,
+        propertySet,
         FAILURE_DETECTION_TIME_MILLIS,
         FAILURE_DETECTION_INTERVAL_MILLIS,
         FAILURE_DETECTION_COUNT);
 
     monitorService.stopMonitoring(context);
 
-    Assertions.assertEquals(context, contextCaptor.getValue());
-    Mockito.verify(monitorA).stopMonitoring(Mockito.any());
+    assertEquals(context, contextCaptor.getValue());
+    verify(monitorA).stopMonitoring(any());
   }
 
   @Test
   void test_4_stopMonitoringCalledTwice() {
-    Mockito.doNothing().when(monitorA).stopMonitoring(contextCaptor.capture());
+    doNothing().when(monitorA).stopMonitoring(contextCaptor.capture());
 
     final MonitorConnectionContext context = monitorService.startMonitoring(
         NODE_KEYS,
         info,
-        set,
+        propertySet,
         FAILURE_DETECTION_TIME_MILLIS,
         FAILURE_DETECTION_INTERVAL_MILLIS,
         FAILURE_DETECTION_COUNT);
 
     monitorService.stopMonitoring(context);
 
-    Assertions.assertEquals(context, contextCaptor.getValue());
+    assertEquals(context, contextCaptor.getValue());
 
     monitorService.stopMonitoring(context);
-    Mockito.verify(monitorA, Mockito.times(2)).stopMonitoring(Mockito.any());
+    verify(monitorA, times(2)).stopMonitoring(any());
   }
 
   @Test
@@ -194,16 +199,16 @@ class DefaultMonitorServiceTest {
     final Set<String> nodeKeysTwo = new HashSet<>();
     nodeKeysTwo.add("nodeTwo.domain");
 
-    final IMonitor monitorOne = monitorService.getMonitor(nodeKeys, info, set);
-    Assertions.assertNotNull(monitorOne);
+    final IMonitor monitorOne = monitorService.getMonitor(nodeKeys, info, propertySet);
+    assertNotNull(monitorOne);
 
     // Should get the same monitor as before as contain the same key "nodeTwo.domain"
-    final IMonitor monitorOneSame = monitorService.getMonitor(nodeKeysTwo, info, set);
-    Assertions.assertNotNull(monitorOneSame);
-    Assertions.assertEquals(monitorOne, monitorOneSame);
+    final IMonitor monitorOneSame = monitorService.getMonitor(nodeKeysTwo, info, propertySet);
+    assertNotNull(monitorOneSame);
+    assertEquals(monitorOne, monitorOneSame);
 
     // Make sure createMonitor was called once
-    Mockito.verify(monitorInitializer).createMonitor(Mockito.eq(info), Mockito.eq(set));
+    verify(monitorInitializer).createMonitor(eq(info), eq(propertySet), eq(monitorService));
   }
 
   @Test
@@ -211,18 +216,18 @@ class DefaultMonitorServiceTest {
     final Set<String> nodeKeys = new HashSet<>();
     nodeKeys.add("nodeNEW.domain");
 
-    final IMonitor monitorOne = monitorService.getMonitor(nodeKeys, info, set);
-    Assertions.assertNotNull(monitorOne);
+    final IMonitor monitorOne = monitorService.getMonitor(nodeKeys, info, propertySet);
+    assertNotNull(monitorOne);
 
     // Ensuring monitor is the same one and not creating a new one
-    final IMonitor monitorOneDupe = monitorService.getMonitor(nodeKeys, info, set);
-    Assertions.assertEquals(monitorOne, monitorOneDupe);
+    final IMonitor monitorOneDupe = monitorService.getMonitor(nodeKeys, info, propertySet);
+    assertEquals(monitorOne, monitorOneDupe);
 
     // Ensuring monitors are not the same as they have different keys
-    // "node.domain" compared to "nodeOne.domain"
-    final IMonitor monitorTwo = monitorService.getMonitor(NODE_KEYS, info, set);
-    Assertions.assertNotNull(monitorTwo);
-    Assertions.assertNotEquals(monitorOne, monitorTwo);
+    // "any.node.domain" compared to "nodeNEW.domain"
+    final IMonitor monitorTwo = monitorService.getMonitor(NODE_KEYS, info, propertySet);
+    assertNotNull(monitorTwo);
+    assertNotEquals(monitorOne, monitorTwo);
   }
 
   @Test
@@ -237,30 +242,30 @@ class DefaultMonitorServiceTest {
     final Set<String> nodeKeysThree = new HashSet<>();
     nodeKeysThree.add("nodeB");
 
-    final IMonitor monitorOne = monitorService.getMonitor(nodeKeys, info, set);
-    Assertions.assertNotNull(monitorOne);
+    final IMonitor monitorOne = monitorService.getMonitor(nodeKeys, info, propertySet);
+    assertNotNull(monitorOne);
 
     // Add a new key using the same monitor
-    // Adding "nodeTwo.domain" as a new key using the same monitor as "nodeOne.domain"
-    final IMonitor monitorOneDupe = monitorService.getMonitor(nodeKeysTwo, info, set);
-    Assertions.assertEquals(monitorOne, monitorOneDupe);
+    // Adding "nodeB" as a new key using the same monitor as "nodeA"
+    final IMonitor monitorOneDupe = monitorService.getMonitor(nodeKeysTwo, info, propertySet);
+    assertEquals(monitorOne, monitorOneDupe);
 
-    // Using new key should return same monitor
-    final IMonitor monitorOneDupeAgain = monitorService.getMonitor(nodeKeysThree, info, set);
-    Assertions.assertEquals(monitorOne, monitorOneDupeAgain);
+    // Using new keyset but same node, "nodeB" should return same monitor
+    final IMonitor monitorOneDupeAgain = monitorService.getMonitor(nodeKeysThree, info, propertySet);
+    assertEquals(monitorOne, monitorOneDupeAgain);
 
     // Make sure createMonitor was called once
-    Mockito.verify(monitorInitializer).createMonitor(Mockito.eq(info), Mockito.eq(set));
+    verify(monitorInitializer).createMonitor(eq(info), eq(propertySet), eq(monitorService));
   }
 
   @Test
   void test_8_startMonitoringNoNodeKeys() {
     final Set<String> nodeKeysEmpty = new HashSet<>();
 
-    Assertions.assertThrows(IllegalArgumentException.class, () -> monitorService.startMonitoring(
+    assertThrows(IllegalArgumentException.class, () -> monitorService.startMonitoring(
         nodeKeysEmpty,
         info,
-        set,
+        propertySet,
         FAILURE_DETECTION_TIME_MILLIS,
         FAILURE_DETECTION_INTERVAL_MILLIS,
         FAILURE_DETECTION_COUNT));
