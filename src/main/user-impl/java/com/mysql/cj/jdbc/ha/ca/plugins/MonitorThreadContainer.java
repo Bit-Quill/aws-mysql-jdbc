@@ -49,10 +49,6 @@ public class MonitorThreadContainer {
     }
 
     static synchronized MonitorThreadContainer getInstance(IExecutorServiceInitializer executorServiceInitializer) {
-        if (executorServiceInitializer == null) {
-            return null;
-        }
-
         if (singleton == null) {
             singleton = new MonitorThreadContainer(executorServiceInitializer);
             CLASS_USAGE_COUNT.set(0);
@@ -110,7 +106,7 @@ public class MonitorThreadContainer {
         return monitor;
     }
 
-    void populateMonitorMap(Set<String> nodeKeys, IMonitor monitor) {
+    private void populateMonitorMap(Set<String> nodeKeys, IMonitor monitor) {
         for (String nodeKey : nodeKeys) {
             monitorMap.putIfAbsent(nodeKey, monitor);
         }
