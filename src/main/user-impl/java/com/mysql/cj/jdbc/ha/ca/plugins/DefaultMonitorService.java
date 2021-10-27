@@ -33,10 +33,9 @@ import com.mysql.cj.conf.PropertySet;
 import com.mysql.cj.jdbc.ha.ca.BasicConnectionProvider;
 import com.mysql.cj.log.Log;
 
-import java.util.Collections;
-import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Executors;
+import java.util.function.Supplier;
 
 public class DefaultMonitorService implements IMonitorService {
   MonitorThreadContainer threadContainer;
@@ -93,7 +92,7 @@ public class DefaultMonitorService implements IMonitorService {
         failureDetectionCount);
 
     monitor.startMonitoring(context);
-    this.threadContainer.getTasksMap().computeIfAbsent(monitor, k -> this.threadContainer.getThreadPool().submit(monitor));
+    this.threadContainer.addTask(monitor);
 
     return context;
   }
@@ -109,18 +108,14 @@ public class DefaultMonitorService implements IMonitorService {
 
     // Any 1 node is enough to find the monitor containing the context
     // All nodes will map to the same monitor
-    final String node = context.getNodeKeys()
-        .stream().filter(this.threadContainer.getMonitorMap()::containsKey)
-        .findAny()
-        .orElse(null);
+    final String node = this.threadContainer.getNode(context.getNodeKeys(), null);
 
     if (node == null) {
       log.logWarn(Messages.getString("DefaultMonitorService.InvalidContext"));
       return;
     }
 
-    final IMonitor monitor = this.threadContainer.getMonitorMap().get(node);
-    monitor.stopMonitoring(context);
+    this.threadContainer.getMonitor(node).stopMonitoring(context);
   }
 
   @Override
@@ -138,23 +133,12 @@ public class DefaultMonitorService implements IMonitorService {
       return;
     }
 
-    // Remove monitors from the maps
-    final List<IMonitor> monitorList = Collections.singletonList(monitor);
-    this.threadContainer.getMonitorMap().values().removeAll(monitorList);
-    this.threadContainer.getTasksMap().computeIfPresent(monitor, (k, v) -> {
-      v.cancel(true);
-      return null;
-    });
+    // Remove monitor from the maps
+    this.threadContainer.releaseMonitor(monitor);
   }
 
   protected IMonitor getMonitor(Set<String> nodeKeys, HostInfo hostInfo, PropertySet propertySet) {
-    final String node = nodeKeys.stream().filter(this.threadContainer.getMonitorMap()::containsKey).findFirst().orElse(nodeKeys.iterator().next());
-    final IMonitor monitor = this.threadContainer.getMonitorMap().computeIfAbsent(node, k -> monitorInitializer.createMonitor(hostInfo, propertySet, this));
-
-    for (String nodeKey : nodeKeys) {
-      this.threadContainer.getMonitorMap().putIfAbsent(nodeKey, monitor);
-    }
-
-    return monitor;
+    final Supplier<IMonitor> monitorCreate = () -> monitorInitializer.createMonitor(hostInfo, propertySet, this);
+    return this.threadContainer.getOrCreateMonitor(nodeKeys, monitorCreate);
   }
 }

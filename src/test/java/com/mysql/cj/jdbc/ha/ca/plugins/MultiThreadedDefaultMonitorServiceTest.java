@@ -26,8 +26,8 @@
 
 package com.mysql.cj.jdbc.ha.ca.plugins;
 
-import com.mysql.cj.conf.DefaultPropertySet;
 import com.mysql.cj.conf.HostInfo;
+import com.mysql.cj.conf.IntegerProperty;
 import com.mysql.cj.conf.PropertySet;
 import com.mysql.cj.log.Log;
 import com.mysql.cj.log.NullLogger;
@@ -78,6 +78,8 @@ class MultiThreadedDefaultMonitorServiceTest {
   @Mock Future<?> taskA;
   @Mock HostInfo info;
   @Mock IMonitor monitor;
+  @Mock PropertySet propertySet;
+  @Mock IntegerProperty integerProperty;
 
   private final Log logger = new NullLogger("MultiThreadedDefaultMonitorServiceTest");
   private final AtomicInteger counter = new AtomicInteger(0);
@@ -88,14 +90,13 @@ class MultiThreadedDefaultMonitorServiceTest {
   private static final int FAILURE_DETECTION_TIME = 10;
   private static final int FAILURE_DETECTION_INTERVAL = 100;
   private static final int FAILURE_DETECTION_COUNT = 3;
+  private static final int MONITOR_DISPOSE_TIME = 60000;
 
-  private PropertySet propertySet;
   private AutoCloseable closeable;
   private ArgumentCaptor<MonitorConnectionContext> captor;
 
   @BeforeEach
   void init() {
-    propertySet = new DefaultPropertySet();
     closeable = MockitoAnnotations.openMocks(this);
     captor = ArgumentCaptor.forClass(MonitorConnectionContext.class);
 
@@ -107,6 +108,8 @@ class MultiThreadedDefaultMonitorServiceTest {
     when(executorServiceInitializer.createExecutorService()).thenReturn(service);
     doReturn(taskA).when(service).submit(any(Monitor.class));
     doNothing().when(monitor).startMonitoring(captor.capture());
+    when(propertySet.getIntegerProperty(any(String.class))).thenReturn(integerProperty);
+    when(integerProperty.getValue()).thenReturn(MONITOR_DISPOSE_TIME);
   }
 
   @AfterEach

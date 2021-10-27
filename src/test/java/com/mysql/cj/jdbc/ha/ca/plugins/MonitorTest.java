@@ -56,6 +56,7 @@ import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyInt;
 import static org.mockito.Mockito.anyLong;
 import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.spy;
@@ -89,12 +90,13 @@ class MonitorTest {
   ExecutorService executorService;
   @Mock
   Future<?> futureResult;
+  @Mock
+  DefaultMonitorService monitorService;
 
   private static final int SHORT_INTERVAL_MILLIS = 30;
   private static final int SHORT_INTERVAL_SECONDS = SHORT_INTERVAL_MILLIS / 1000;
   private static final int LONG_INTERVAL_MILLIS = 300;
 
-  private DefaultMonitorService monitorService;
   private AutoCloseable closeable;
   private Monitor monitor;
 
@@ -120,7 +122,6 @@ class MonitorTest {
         .thenReturn(executorService);
     MonitorThreadContainer.getInstance(executorServiceInitializer);
 
-    monitorService = new DefaultMonitorService(null);
     monitor = spy(new Monitor(
         connectionProvider,
         hostInfo,
@@ -237,13 +238,19 @@ class MonitorTest {
 
   @RepeatedTest(1000)
   void test_8_runWithoutContext() {
+    final MonitorThreadContainer container = MonitorThreadContainer.getInstance(executorServiceInitializer);
+    final Map<String, IMonitor> monitorMap = container.getMonitorMap();
+    final Map<IMonitor, Future<?>> taskMap = container.getTasksMap();
+
+    doAnswer(invocation -> {
+      container.releaseMonitor(invocation.getArgument(0));
+      return null;
+    }).when(monitorService).notifyUnused(any(IMonitor.class));
+
     doReturn((long) SHORT_INTERVAL_MILLIS)
         .when(monitor).getCurrentTimeMillis();
 
     // Put monitor into container map
-    final MonitorThreadContainer container = MonitorThreadContainer.getInstance(executorServiceInitializer);
-    final Map<String, IMonitor> monitorMap = container.getMonitorMap();
-    final Map<IMonitor, Future<?>> taskMap = container.getTasksMap();
     final String nodeKey = "monitorA";
     monitorMap.put(nodeKey, monitor);
     taskMap.put(monitor, futureResult);
@@ -262,10 +269,16 @@ class MonitorTest {
 
   @RepeatedTest(1000)
   void test_9_runWithContext() {
-    // Put monitor into container map
     final MonitorThreadContainer container = MonitorThreadContainer.getInstance(executorServiceInitializer);
     final Map<String, IMonitor> monitorMap = container.getMonitorMap();
     final Map<IMonitor, Future<?>> taskMap = container.getTasksMap();
+
+    doAnswer(invocation -> {
+      container.releaseMonitor(invocation.getArgument(0));
+      return null;
+    }).when(monitorService).notifyUnused(any(IMonitor.class));
+
+    // Put monitor into container map
     final String nodeKey = "monitorA";
     monitorMap.put(nodeKey, monitor);
     taskMap.put(monitor, futureResult);
