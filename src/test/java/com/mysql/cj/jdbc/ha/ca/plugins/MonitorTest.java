@@ -126,7 +126,7 @@ class MonitorTest {
         connectionProvider,
         hostInfo,
         propertySet,
-        propertySet.getIntegerProperty(PropertyKey.monitorDisposeTime).getValue(),
+        propertySet.getIntegerProperty(PropertyKey.monitorDisposalTime).getValue(),
         monitorService,
         log));
   }
@@ -243,7 +243,7 @@ class MonitorTest {
     final Map<IMonitor, Future<?>> taskMap = container.getTasksMap();
 
     doAnswer(invocation -> {
-      container.releaseMonitor(invocation.getArgument(0));
+      container.releaseResource(invocation.getArgument(0));
       return null;
     }).when(monitorService).notifyUnused(any(IMonitor.class));
 
@@ -274,7 +274,7 @@ class MonitorTest {
     final Map<IMonitor, Future<?>> taskMap = container.getTasksMap();
 
     doAnswer(invocation -> {
-      container.releaseMonitor(invocation.getArgument(0));
+      container.releaseResource(invocation.getArgument(0));
       return null;
     }).when(monitorService).notifyUnused(any(IMonitor.class));
 

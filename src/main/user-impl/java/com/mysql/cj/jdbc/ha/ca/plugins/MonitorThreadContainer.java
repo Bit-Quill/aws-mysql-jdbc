@@ -116,7 +116,7 @@ public class MonitorThreadContainer {
         tasksMap.computeIfAbsent(monitor, k -> threadPool.submit(monitor));
     }
 
-    public void releaseMonitor(IMonitor monitor) {
+    public void releaseResource(IMonitor monitor) {
         final List<IMonitor> monitorList = Collections.singletonList(monitor);
         monitorMap.values().removeAll(monitorList);
         tasksMap.computeIfPresent(monitor, (k, v) -> {

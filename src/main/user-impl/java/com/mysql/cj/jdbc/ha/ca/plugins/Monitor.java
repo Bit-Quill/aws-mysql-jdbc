@@ -64,21 +64,21 @@ public class Monitor implements IMonitor {
   private Connection monitoringConn = null;
   private int connectionCheckIntervalMillis = Integer.MAX_VALUE;
   private final AtomicLong lastContextUsedTimestamp = new AtomicLong();
-  private final long monitorDisposeTimeout;
+  private final long monitorDisposalTime;
   private final IMonitorService monitorService;
 
   public Monitor(
       ConnectionProvider connectionProvider,
       HostInfo hostInfo,
       PropertySet propertySet,
-      long monitorDisposeTimeout,
+      long monitorDisposalTime,
       IMonitorService monitorService,
       Log log) {
     this.connectionProvider = connectionProvider;
     this.hostInfo = hostInfo;
     this.propertySet = propertySet;
     this.log = log;
-    this.monitorDisposeTimeout = monitorDisposeTimeout;
+    this.monitorDisposalTime = monitorDisposalTime;
     this.monitorService = monitorService;
   }
 
@@ -96,9 +96,7 @@ public class Monitor implements IMonitor {
   @Override
   public synchronized void stopMonitoring(MonitorConnectionContext context) {
     if (context == null) {
-      log.logWarn(Messages.getString(
-          "NullArgumentException.NullParameter",
-          new String[]{"context"}));
+      log.logWarn(NullArgumentException.constructNullArgumentMessage("context"));
       return;
     }
     this.contexts.remove(context);
@@ -123,7 +121,7 @@ public class Monitor implements IMonitor {
 
           TimeUnit.MILLISECONDS.sleep(Math.max(0, this.connectionCheckIntervalMillis - status.elapsedTime));
         } else {
-          if ((this.getCurrentTimeMillis() - this.lastContextUsedTimestamp.get()) >= this.monitorDisposeTimeout) {
+          if ((this.getCurrentTimeMillis() - this.lastContextUsedTimestamp.get()) >= this.monitorDisposalTime) {
             monitorService.notifyUnused(this);
             break;
           }

@@ -49,7 +49,7 @@ public class DefaultMonitorService implements IMonitorService {
             new BasicConnectionProvider(),
             hostInfo,
             propertySet,
-            propertySet.getIntegerProperty(PropertyKey.monitorDisposeTime).getValue(),
+            propertySet.getIntegerProperty(PropertyKey.monitorDisposalTime).getValue(),
             monitorService,
             log),
         Executors::newCachedThreadPool,
@@ -100,9 +100,7 @@ public class DefaultMonitorService implements IMonitorService {
   @Override
   public void stopMonitoring(MonitorConnectionContext context) {
     if (context == null) {
-      log.logWarn(Messages.getString(
-          "NullArgumentException.NullParameter",
-          new String[]{"context"}));
+      log.logWarn(NullArgumentException.constructNullArgumentMessage("context"));
       return;
     }
 
@@ -127,14 +125,12 @@ public class DefaultMonitorService implements IMonitorService {
   @Override
   public synchronized void notifyUnused(IMonitor monitor) {
     if (monitor == null) {
-      log.logWarn(Messages.getString(
-          "NullArgumentException.NullParameter",
-          new String[]{"monitor"}));
+      log.logWarn(NullArgumentException.constructNullArgumentMessage("monitor"));
       return;
     }
 
     // Remove monitor from the maps
-    this.threadContainer.releaseMonitor(monitor);
+    this.threadContainer.releaseResource(monitor);
   }
 
   protected IMonitor getMonitor(Set<String> nodeKeys, HostInfo hostInfo, PropertySet propertySet) {
