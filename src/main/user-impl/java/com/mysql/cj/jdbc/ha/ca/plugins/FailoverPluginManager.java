@@ -29,6 +29,7 @@ package com.mysql.cj.jdbc.ha.ca.plugins;
 import com.mysql.cj.conf.HostInfo;
 import com.mysql.cj.conf.PropertyKey;
 import com.mysql.cj.conf.PropertySet;
+import com.mysql.cj.jdbc.ha.ca.ClusterAwareConnectionProxy;
 import com.mysql.cj.log.Log;
 import com.mysql.cj.util.StringUtils;
 import com.mysql.cj.util.Util;
@@ -50,6 +51,7 @@ public class FailoverPluginManager {
   protected PropertySet propertySet = null;
   protected HostInfo hostInfo;
   protected IFailoverPlugin headPlugin = null;
+  ClusterAwareConnectionProxy proxy;
 
   public FailoverPluginManager(Log logger) {
     if (logger == null) {
@@ -59,10 +61,9 @@ public class FailoverPluginManager {
     this.logger = logger;
   }
 
-  public void init(Connection connection, PropertySet propertySet, HostInfo hostInfo) {
-    this.connection = connection;
+  public void init(ClusterAwareConnectionProxy proxy, PropertySet propertySet) {
+    this.proxy = proxy;
     this.propertySet = propertySet;
-    this.hostInfo = hostInfo;
 
     String factoryClazzNames = propertySet
         .getStringProperty(PropertyKey.failoverPluginsFactories)
@@ -74,9 +75,8 @@ public class FailoverPluginManager {
 
     this.headPlugin = new DefaultFailoverPluginFactory()
         .getInstance(
-            this.connection,
+            this.proxy,
             this.propertySet,
-            this.hostInfo,
             null,
             this.logger);
 
@@ -93,9 +93,8 @@ public class FailoverPluginManager {
       for (int i = factories.length - 1; i >= 0; i--) {
         this.headPlugin = factories[i]
             .getInstance(
-                this.connection,
+                this.proxy,
                 this.propertySet,
-                this.hostInfo,
                 this.headPlugin,
                 this.logger);
       }

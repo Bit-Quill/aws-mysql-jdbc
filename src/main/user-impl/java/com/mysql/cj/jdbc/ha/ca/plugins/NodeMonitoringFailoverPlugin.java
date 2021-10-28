@@ -26,11 +26,11 @@
 
 package com.mysql.cj.jdbc.ha.ca.plugins;
 
-import com.mysql.cj.Messages;
 import com.mysql.cj.conf.HostInfo;
 import com.mysql.cj.conf.PropertyKey;
 import com.mysql.cj.conf.PropertySet;
 import com.mysql.cj.exceptions.CJCommunicationsException;
+import com.mysql.cj.jdbc.ha.ca.ClusterAwareConnectionProxy;
 import com.mysql.cj.log.Log;
 
 import java.sql.Connection;
@@ -55,14 +55,15 @@ public class NodeMonitoringFailoverPlugin implements IFailoverPlugin {
   protected IFailoverPlugin next;
   protected Log log;
   protected PropertySet propertySet;
-  protected HostInfo hostInfo;
-  protected boolean isEnabled = true;
+  protected boolean isEnabled;
   protected int failureDetectionTimeMillis;
   protected int failureDetectionIntervalMillis;
   protected int failureDetectionCount;
   private IMonitorService monitorService;
   private MonitorConnectionContext monitorContext;
   private final Set<String> nodeKeys = new HashSet<>();
+  private final ClusterAwareConnectionProxy proxy;
+  private Connection connection;
 
   @FunctionalInterface
   interface IMonitorServiceInitializer {
@@ -70,35 +71,31 @@ public class NodeMonitoringFailoverPlugin implements IFailoverPlugin {
   }
 
   public NodeMonitoringFailoverPlugin(
-      Connection connection,
+      ClusterAwareConnectionProxy proxy,
       PropertySet propertySet,
-      HostInfo hostInfo,
       IFailoverPlugin next,
       Log log) {
     this(
-        connection,
+        proxy,
         propertySet,
-        hostInfo,
         next,
         log,
         DefaultMonitorService::new);
   }
 
-  public NodeMonitoringFailoverPlugin(
-      Connection connection,
+  NodeMonitoringFailoverPlugin(
+      ClusterAwareConnectionProxy proxy,
       PropertySet propertySet,
-      HostInfo hostInfo,
       IFailoverPlugin next,
       Log log,
       IMonitorServiceInitializer monitorServiceInitializer) {
-    assertArgumentIsNotNull(connection, "connection");
+    assertArgumentIsNotNull(proxy, "proxy");
     assertArgumentIsNotNull(propertySet, "propertySet");
-    assertArgumentIsNotNull(hostInfo, "hostInfo");
     assertArgumentIsNotNull(next, "next");
     assertArgumentIsNotNull(log, "log");
 
-    this.hostInfo = hostInfo;
-    initNodeKeys(connection); // Sets NodeKeys
+    this.proxy = proxy;
+    this.connection = proxy.getCurrentConnection();
     this.propertySet = propertySet;
     this.log = log;
     this.next = next;
@@ -153,9 +150,13 @@ public class NodeMonitoringFailoverPlugin implements IFailoverPlugin {
           "[NodeMonitoringFailoverPlugin.execute]: method=%s, monitoring is activated",
           methodName));
 
+      final Set<String> nodeKeys = getUpdatedNodeKeys(
+          checkFailover(proxy.getCurrentConnection()),
+          proxy.getCurrentHostInfo());
+
       this.monitorContext = this.monitorService.startMonitoring(
-          this.nodeKeys,
-          this.hostInfo,
+          nodeKeys,
+          this.proxy.getCurrentHostInfo(),
           this.propertySet,
           this.failureDetectionTimeMillis,
           this.failureDetectionIntervalMillis,
@@ -184,7 +185,6 @@ public class NodeMonitoringFailoverPlugin implements IFailoverPlugin {
       }
       throw (Exception) throwable;
     } finally {
-      // TODO: double check this
       this.monitorService.stopMonitoring(this.monitorContext);
       if (executor != null) {
         executor.shutdownNow();
@@ -208,11 +208,18 @@ public class NodeMonitoringFailoverPlugin implements IFailoverPlugin {
     this.next.releaseResources();
   }
 
-  protected void initNodeKeys(Connection connection) {
+  /**
+   * If the connection is using a different hostname, add that host name to the set.
+   *
+   * @param connection The current connection.
+   * @param hostInfo   Information about the current connection.
+   * @return Updated set of node keys.
+   */
+  protected Set<String> getUpdatedNodeKeys(Connection connection, HostInfo hostInfo) {
     try (Statement stmt = connection.createStatement()) {
       try (ResultSet rs = stmt.executeQuery(RETRIEVE_HOST_PORT_SQL)) {
         while (rs.next()) {
-          nodeKeys.add(rs.getString(1));
+          this.nodeKeys.add(rs.getString(1));
         }
       }
     } catch (SQLException sqlException) {
@@ -221,16 +228,37 @@ public class NodeMonitoringFailoverPlugin implements IFailoverPlugin {
           "[NodeMonitoringFailoverPlugin.initNodes]: Could not retrieve Host:Port from querying");
     }
 
-    nodeKeys.add(
+    this.nodeKeys.add(
         String.format("%s:%s",
-            this.hostInfo.getHost(),
-            this.hostInfo.getPort()
+            hostInfo.getHost(),
+            hostInfo.getPort()
         ));
+
+    return this.nodeKeys;
   }
 
   private void assertArgumentIsNotNull(Object param, String paramName) {
     if (param == null) {
       throw new NullArgumentException(paramName);
     }
+  }
+
+  /**
+   * Check if the connection has changed due to failover.
+   * If so, clear the set of keys for the dead node
+   * and remove monitor's references to that node.
+   *
+   * @param newConnection The connection used by {@link ClusterAwareConnectionProxy}.
+   * @return the most up-to-date connection.
+   */
+  private Connection checkFailover(Connection newConnection) {
+    final boolean isSameConnection = this.connection.equals(newConnection);
+    if (!isSameConnection) {
+      this.monitorService.stopMonitoringForAllConnections(this.nodeKeys);
+      this.nodeKeys.clear();
+      this.connection = newConnection;
+    }
+
+    return this.connection;
   }
 }

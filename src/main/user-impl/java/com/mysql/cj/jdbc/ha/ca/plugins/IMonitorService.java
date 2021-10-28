@@ -40,7 +40,20 @@ public interface IMonitorService {
       int failureDetectionIntervalMillis,
       int failureDetectionCount);
 
+  /**
+   * Stop monitoring for a connection represented by the given
+   * {@link MonitorConnectionContext}. Removes the context from the {@link Monitor}.
+   * @param context The {@link MonitorConnectionContext} representing a connection.
+   */
   void stopMonitoring(MonitorConnectionContext context);
+
+  /**
+   * Stop monitoring the node for all connections represented by the given set of node keys.
+   * Usually used during the failover process.
+   *
+   * @param nodeKeys All known references to an Aurora node.
+   */
+  void stopMonitoringForAllConnections(Set<String> nodeKeys);
 
   void releaseResources();
 
