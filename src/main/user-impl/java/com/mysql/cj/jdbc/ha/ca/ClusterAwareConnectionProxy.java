@@ -1229,7 +1229,7 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
       }
     }
 
-    if(this.pluginManager != null) {
+    if (this.pluginManager != null) {
       this.pluginManager.releaseResources();
     }
 
