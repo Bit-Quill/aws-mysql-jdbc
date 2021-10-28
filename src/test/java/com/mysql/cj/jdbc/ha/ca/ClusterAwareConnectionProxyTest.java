@@ -72,13 +72,13 @@ import java.util.Properties;
  * ClusterAwareConnectionProxyTest class.
  */
 public class ClusterAwareConnectionProxyTest {
-  @Mock private ConnectionImpl mockConn;
+  @Mock private ConnectionImpl mockConnection;
   @Mock private TopologyService mockTopologyService;
   @Mock private ConnectionProvider mockConnectionProvider;
   @Mock private JdbcPropertySet mockPropertySet;
   @Mock private NativeSession mockSession;
-  @Mock private Log mockLog;
-  @Mock private FailoverPluginManager pluginManager;
+  @Mock private Log mockLogger;
+  @Mock private FailoverPluginManager mockPluginManager;
   @Mock private WriterFailoverHandler mockWriterFailoverHandler;
   @Mock private ReaderFailoverHandler mockReaderFailoverHandler;
   @Mock private RuntimeProperty<Boolean> mockLocalSessionState;
@@ -94,13 +94,13 @@ public class ClusterAwareConnectionProxyTest {
   void init() throws SQLException {
     closeable = MockitoAnnotations.openMocks(this);
 
-    when(mockTopologyService.getTopology(eq(mockConn), any(Boolean.class))).thenReturn(mockTopology);
-    when(mockTopologyService.getHostByName(mockConn)).thenReturn(writerHost);
+    when(mockTopologyService.getTopology(eq(mockConnection), any(Boolean.class))).thenReturn(mockTopology);
+    when(mockTopologyService.getHostByName(mockConnection)).thenReturn(writerHost);
 
-    when(mockConnectionProvider.connect(any(HostInfo.class))).thenReturn(mockConn);
-    when(mockConn.getSession()).thenReturn(mockSession);
-    when(mockSession.getLog()).thenReturn(mockLog);
-    when(mockConn.getPropertySet()).thenReturn(mockPropertySet);
+    when(mockConnectionProvider.connect(any(HostInfo.class))).thenReturn(mockConnection);
+    when(mockConnection.getSession()).thenReturn(mockSession);
+    when(mockSession.getLog()).thenReturn(mockLogger);
+    when(mockConnection.getPropertySet()).thenReturn(mockPropertySet);
 
     when(mockLocalSessionState.getValue()).thenReturn(false);
     when(mockConnectTimeout.getValue()).thenReturn(0);
@@ -129,7 +129,7 @@ public class ClusterAwareConnectionProxyTest {
     final ClusterAwareConnectionProxy proxy = getClusterAwareConnectionProxy(conStr);
 
     assertFalse(proxy.enableFailoverSetting);
-    assertSame(mockConn, proxy.getConnection());
+    assertSame(mockConnection, proxy.getConnection());
   }
 
   @Test
@@ -156,7 +156,7 @@ public class ClusterAwareConnectionProxyTest {
     final ConnectionUrl conStr = ConnectionUrl.getConnectionUrlInstance(url, new Properties());
 
     final List<HostInfo> emptyTopology = new ArrayList<>();
-    when(mockTopologyService.getTopology(eq(mockConn), any(Boolean.class)))
+    when(mockTopologyService.getTopology(eq(mockConnection), any(Boolean.class)))
         .thenReturn(emptyTopology);
 
     final ClusterAwareConnectionProxy proxy = getClusterAwareConnectionProxy(conStr);
@@ -181,9 +181,9 @@ public class ClusterAwareConnectionProxyTest {
   public void testRdsCluster() throws SQLException {
     final JdbcPropertySet propertySet = new JdbcPropertySetImpl();
 
-    when(mockConn.getSession()).thenReturn(mockSession);
-    when(mockSession.getLog()).thenReturn(mockLog);
-    when(mockConn.getPropertySet()).thenReturn(propertySet);
+    when(mockConnection.getSession()).thenReturn(mockSession);
+    when(mockSession.getLog()).thenReturn(mockLogger);
+    when(mockConnection.getPropertySet()).thenReturn(propertySet);
 
     final String url =
         "jdbc:mysql:aws://my-cluster-name.cluster-XYZ.us-east-2.rds.amazonaws.com:1234/test";
@@ -336,7 +336,7 @@ public class ClusterAwareConnectionProxyTest {
     final ConnectionUrl conStr = ConnectionUrl.getConnectionUrlInstance(url, new Properties());
 
     final List<HostInfo> emptyTopology = new ArrayList<>();
-    when(mockTopologyService.getTopology(eq(mockConn), any(Boolean.class)))
+    when(mockTopologyService.getTopology(eq(mockConnection), any(Boolean.class)))
         .thenReturn(emptyTopology);
 
     final ClusterAwareConnectionProxy proxy = getClusterAwareConnectionProxy(conStr);
@@ -362,9 +362,9 @@ public class ClusterAwareConnectionProxyTest {
     topology.add(readerB_Host);
 
     when(mockTopologyService.getCachedTopology()).thenReturn(topology);
-    when(mockTopologyService.getTopology(eq(mockConn), any(Boolean.class))).thenReturn(topology);
-    when(mockTopologyService.getHostByName(mockConn)).thenReturn(writerHost);
-    when(mockConnectionProvider.connect(refEq(writerHost))).thenReturn(mockConn);
+    when(mockTopologyService.getTopology(eq(mockConnection), any(Boolean.class))).thenReturn(topology);
+    when(mockTopologyService.getHostByName(mockConnection)).thenReturn(writerHost);
+    when(mockConnectionProvider.connect(refEq(writerHost))).thenReturn(mockConnection);
 
     final ClusterAwareConnectionProxy proxy = getClusterAwareConnectionProxy(conStr);
 
@@ -388,10 +388,10 @@ public class ClusterAwareConnectionProxyTest {
     topology.add(writerHost);
     topology.add(readerAHost);
 
-    when(mockConnectionProvider.connect(refEq(readerAHost))).thenReturn(mockConn);
-    when(mockTopologyService.getTopology(eq(mockConn), any(Boolean.class))).thenReturn(topology);
+    when(mockConnectionProvider.connect(refEq(readerAHost))).thenReturn(mockConnection);
+    when(mockTopologyService.getTopology(eq(mockConnection), any(Boolean.class))).thenReturn(topology);
     when(mockTopologyService.getCachedTopology()).thenReturn(topology);
-    when(mockTopologyService.getHostByName(mockConn)).thenReturn(readerAHost);
+    when(mockTopologyService.getHostByName(mockConnection)).thenReturn(readerAHost);
 
     final ClusterAwareConnectionProxy proxy = getClusterAwareConnectionProxy(conStr);
 
@@ -417,12 +417,12 @@ public class ClusterAwareConnectionProxyTest {
     topology.add(readerA_Host);
     topology.add(readerB_Host);
 
-    when(mockConnectionProvider.connect(refEq(readerA_Host))).thenReturn(mockConn);
+    when(mockConnectionProvider.connect(refEq(readerA_Host))).thenReturn(mockConnection);
 
     when(mockTopologyService.getCachedTopology()).thenReturn(topology);
     when(mockTopologyService.getLastUsedReaderHost()).thenReturn(readerA_Host);
-    when(mockTopologyService.getTopology(eq(mockConn), any(Boolean.class))).thenReturn(topology);
-    when(mockTopologyService.getHostByName(mockConn)).thenReturn(readerA_Host);
+    when(mockTopologyService.getTopology(eq(mockConnection), any(Boolean.class))).thenReturn(topology);
+    when(mockTopologyService.getHostByName(mockConnection)).thenReturn(readerA_Host);
 
     final ClusterAwareConnectionProxy proxy = getClusterAwareConnectionProxy(conStr);
 
@@ -433,8 +433,8 @@ public class ClusterAwareConnectionProxyTest {
 
   @Test
   public void testForWriterReconnectWhenInvalidInitialWriterConnection() throws SQLException {
-    final ConnectionImpl mockCachedWriterConn = mockConn;
-    final ConnectionImpl mockActualWriterConn = mockConn;
+    final ConnectionImpl mockCachedWriterConn = mockConnection;
+    final ConnectionImpl mockActualWriterConn = mockConnection;
 
     final String url =
         "jdbc:mysql:aws://my-cluster-name.cluster-XYZ.us-east-2.rds.amazonaws.com:1234/test";
@@ -479,8 +479,8 @@ public class ClusterAwareConnectionProxyTest {
     // It is possible that they don't know the reader/writer status of this instance, so we cannot
     // assume they want a read-only connection.
     // As a result, if this direct connection fails, we should reconnect to the writer.
-    final ConnectionImpl mockDirectReaderConn = mockConn;
-    final ConnectionImpl mockWriterConn = mockConn;
+    final ConnectionImpl mockDirectReaderConn = mockConnection;
+    final ConnectionImpl mockWriterConn = mockConnection;
 
     final String url = "jdbc:mysql:aws://reader-b-host.XYZ.us-east-2.rds.amazonaws.com";
     final ConnectionUrl conStr = ConnectionUrl.getConnectionUrlInstance(url, new Properties());
@@ -511,8 +511,8 @@ public class ClusterAwareConnectionProxyTest {
 
   @Test
   public void testConnectToWriterFromReaderOnSetReadOnlyFalse() throws SQLException {
-    final ConnectionImpl mockReaderConnection = mockConn;
-    final ConnectionImpl mockWriterConnection = mockConn;
+    final ConnectionImpl mockReaderConnection = mockConnection;
+    final ConnectionImpl mockWriterConnection = mockConnection;
 
     final String url =
         "jdbc:mysql:aws://my-cluster-name.cluster-ro-XYZ.us-east-2.rds.amazonaws.com:1234/test";
@@ -549,13 +549,13 @@ public class ClusterAwareConnectionProxyTest {
     assertTrue(proxy.isCurrentConnectionWriter());
   }
 
-  private ClusterAwareConnectionProxy getClusterAwareConnectionProxy(ConnectionUrl conStr) throws SQLException {
+  private ClusterAwareConnectionProxy getClusterAwareConnectionProxy(ConnectionUrl connectionUrl) throws SQLException {
     return new ClusterAwareConnectionProxy(
-        conStr,
+        connectionUrl,
         mockConnectionProvider,
         mockTopologyService,
         mockWriterFailoverHandler,
         mockReaderFailoverHandler,
-        (log) -> pluginManager);
+        (log) -> mockPluginManager);
   }
 }
