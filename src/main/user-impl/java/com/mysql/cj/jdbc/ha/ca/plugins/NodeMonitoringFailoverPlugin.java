@@ -123,10 +123,9 @@ public class NodeMonitoringFailoverPlugin implements IFailoverPlugin {
 
   @Override
   public Object execute(String methodName, Callable executeSqlFunc) throws Exception {
-    boolean needMonitoring = METHODS_TO_MONITOR.contains(methodName + ",");
+    final boolean needMonitoring = METHODS_TO_MONITOR.contains(methodName + ",");
 
-    if (!this.isEnabled
-        || !needMonitoring) {
+    if (!this.isEnabled || !needMonitoring) {
       // do direct call
       return this.next.execute(methodName, executeSqlFunc);
     }
@@ -162,9 +161,8 @@ public class NodeMonitoringFailoverPlugin implements IFailoverPlugin {
           this.failureDetectionIntervalMillis,
           this.failureDetectionCount);
 
-      Future<Object> executeFuncFuture;
       executor = Executors.newSingleThreadExecutor();
-      executeFuncFuture = executor.submit(() -> this.next.execute(methodName, executeSqlFunc));
+      final Future<Object> executeFuncFuture = executor.submit(() -> this.next.execute(methodName, executeSqlFunc));
       executor.shutdown(); // stop executor to accept new tasks
 
       boolean isDone = executeFuncFuture.isDone();
