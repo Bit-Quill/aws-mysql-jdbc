@@ -26,12 +26,14 @@
 
 package com.mysql.cj.jdbc.ha.ca.plugins;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyInt;
 import static org.mockito.Mockito.anySet;
 import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -53,7 +55,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -110,9 +114,12 @@ public class MultithreadedNodeMonitoringFailoverPluginTest extends NodeMonitorin
     when(context.isNodeUnhealthy()).thenReturn(false);
     final int numConnections = 10;
     final int wantedNumberOfInvocations = NUM_PLUGINS_PER_SERVICE * numConnections;
-
     final List<NodeMonitoringFailoverPlugin> plugins = initPlugins(numConnections);
-    runExecuteAsync(numConnections, MONITOR_METHOD_NAME, plugins);
+    List<CompletableFuture<Object>> threads = runExecuteAsync(numConnections, plugins);
+
+    for (final CompletableFuture<Object> thread : threads) {
+      thread.get();
+    }
 
     verify(monitorService, times(wantedNumberOfInvocations)).startMonitoring(
         anySet(),
@@ -141,28 +148,38 @@ public class MultithreadedNodeMonitoringFailoverPluginTest extends NodeMonitorin
     final int wantedNumberOfInvocations = NUM_PLUGINS_PER_SERVICE * numConnections;
 
     final List<NodeMonitoringFailoverPlugin> plugins = initPlugins(numConnections);
-    runExecuteAsync(numConnections, MONITOR_METHOD_NAME, plugins);
 
-    verify(monitorService, times(wantedNumberOfInvocations)).startMonitoring(
-        anySet(),
-        any(HostInfo.class),
-        any(PropertySet.class),
-        anyInt(),
-        anyInt(),
-        anyInt()
-    );
+    List<CompletableFuture<Object>> threads = runExecuteAsync(numConnections, plugins);
 
-    verify(monitorService, times(wantedNumberOfInvocations))
-        .stopMonitoring(eq(context));
+    final Throwable originalException = assertThrows(
+        CompletionException.class,
+        () -> {
+          CompletableFuture.allOf(threads.toArray(new CompletableFuture[0])).join();
+          verify(monitorService, times(wantedNumberOfInvocations)).startMonitoring(
+              anySet(),
+              any(HostInfo.class),
+              any(PropertySet.class),
+              anyInt(),
+              anyInt(),
+              anyInt()
+          );
+          verify(monitorService, atLeast(wantedNumberOfInvocations)).stopMonitoring(eq(context));
+        })
+        .getCause();
+    assertTrue(originalException instanceof CJCommunicationsException);
   }
 
   @RepeatedTest(value = 100, name = "execute with monitoring feature disabled")
-  void test_3_executeWithMonitorDisabled() throws Exception {
+  void test_3_executeWithMonitorDisabled() throws ExecutionException, InterruptedException {
     when(nativeFailureDetectionEnabledProperty.getValue()).thenReturn(false);
     final int numConnections = 10;
 
     final List<NodeMonitoringFailoverPlugin> plugins = initPlugins(numConnections);
-    runExecuteAsync(numConnections, NO_MONITOR_METHOD_NAME, plugins);
+    List<CompletableFuture<Object>> threads = runExecuteAsync(numConnections, plugins);
+
+    for (final CompletableFuture<Object> thread : threads) {
+      thread.get();
+    }
 
     verify(monitorService, never()).startMonitoring(
         anySet(),
@@ -188,37 +205,44 @@ public class MultithreadedNodeMonitoringFailoverPluginTest extends NodeMonitorin
     return plugins;
   }
 
-  private void runExecuteAsync(
+  private List<CompletableFuture<Object>> runExecuteAsync(
       int numConnections,
-      String methodName,
       List<NodeMonitoringFailoverPlugin> plugins
-  ) throws ExecutionException, InterruptedException {
-
+  ) {
+    final String exceptionMessage = "Test thread interrupted due to an unexpected exception.";
     final List<CompletableFuture<Object>> threads = new ArrayList<>();
+    final CountDownLatch latch = new CountDownLatch(1);
 
     for (int i = 0; i < numConnections; i++) {
       final NodeMonitoringFailoverPlugin plugin = plugins.get(i);
       threads.add(CompletableFuture.supplyAsync(() -> {
         try {
+          try {
+            // Wait until each thread is ready to start running.
+            latch.await();
+          } catch (final InterruptedException e) {
+            fail(exceptionMessage, e);
+          }
+
           final int val = counter.getAndIncrement();
           if (val != 0) {
             concurrentCounter.getAndIncrement();
           }
 
-          final Object result = plugin.execute(methodName, sqlFunction);
+          final Object result = plugin.execute(NodeMonitoringFailoverPluginBaseTest.MONITOR_METHOD_NAME, sqlFunction);
           counter.getAndDecrement();
           return result;
         } catch (Exception e) {
-          if (!(e instanceof CJCommunicationsException)) {
-            fail("unexpected error", e);
+          if (e instanceof CJCommunicationsException) {
+            throw new CompletionException(e);
           }
+          fail("unexpected error", e);
           return null;
         }
       }));
     }
 
-    for (CompletableFuture<Object> thread : threads) {
-      thread.get();
-    }
+    latch.countDown();
+    return threads;
   }
 }
