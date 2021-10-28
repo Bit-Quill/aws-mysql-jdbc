@@ -199,8 +199,12 @@ public class NodeMonitoringFailoverPlugin implements IFailoverPlugin {
 
   @Override
   public void releaseResources() {
-    this.monitorService.releaseResources();
-    this.monitorService = null;
+    // releaseResources may be called multiple times throughout the failover process.
+    if (this.monitorService != null) {
+      this.monitorService.releaseResources();
+      this.monitorService = null;
+    }
+
     this.next.releaseResources();
   }
 
