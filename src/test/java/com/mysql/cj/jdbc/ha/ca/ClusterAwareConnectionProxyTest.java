@@ -94,8 +94,7 @@ public class ClusterAwareConnectionProxyTest {
   void init() throws SQLException {
     closeable = MockitoAnnotations.openMocks(this);
 
-    when(mockTopologyService.getTopology(eq(mockConn), any(Boolean.class)))
-        .thenReturn(mockTopology);
+    when(mockTopologyService.getTopology(eq(mockConn), any(Boolean.class))).thenReturn(mockTopology);
     when(mockTopologyService.getHostByName(mockConn)).thenReturn(writerHost);
 
     when(mockConnectionProvider.connect(any(HostInfo.class))).thenReturn(mockConn);
@@ -105,8 +104,6 @@ public class ClusterAwareConnectionProxyTest {
 
     when(mockLocalSessionState.getValue()).thenReturn(false);
     when(mockConnectTimeout.getValue()).thenReturn(0);
-    when(mockConnectTimeout.getValue()).thenReturn(0);
-
     when(mockPropertySet.getBooleanProperty(PropertyKey.useLocalSessionState)).thenReturn(mockLocalSessionState);
     when(mockPropertySet.getIntegerProperty(PropertyKey.connectTimeout)).thenReturn(mockConnectTimeout);
     when(mockPropertySet.getIntegerProperty(PropertyKey.socketTimeout)).thenReturn(mockSocketTimeout);
