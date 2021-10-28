@@ -26,7 +26,10 @@
 
 package com.mysql.cj.jdbc.ha.ca.plugins;
 
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyInt;
+import static org.mockito.Mockito.anySet;
+import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.when;
 
 import com.mysql.cj.conf.HostInfo;
@@ -75,12 +78,12 @@ public class NodeMonitoringFailoverPluginBaseTest {
     when(initializer.create(Mockito.any()))
         .thenReturn(monitorService);
     when(monitorService.startMonitoring(
-        Mockito.anySet(),
-        Mockito.any(HostInfo.class),
-        Mockito.any(PropertySet.class),
-        Mockito.anyInt(),
-        Mockito.anyInt(),
-        Mockito.anyInt()))
+        anySet(),
+        any(HostInfo.class),
+        any(PropertySet.class),
+        anyInt(),
+        anyInt(),
+        anyInt()))
         .thenReturn(context);
 
     when(mockPlugin.execute(anyString(), Mockito.any(Callable.class))).thenReturn("done");

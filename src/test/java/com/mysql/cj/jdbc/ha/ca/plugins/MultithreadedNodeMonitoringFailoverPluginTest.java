@@ -28,6 +28,9 @@ package com.mysql.cj.jdbc.ha.ca.plugins;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyInt;
+import static org.mockito.Mockito.anySet;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.never;
@@ -43,7 +46,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.TestInfo;
-import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 
 import java.util.ArrayList;
@@ -113,12 +115,12 @@ public class MultithreadedNodeMonitoringFailoverPluginTest extends NodeMonitorin
     runExecuteAsync(numConnections, MONITOR_METHOD_NAME, plugins);
 
     verify(monitorService, times(wantedNumberOfInvocations)).startMonitoring(
-        Mockito.anySet(),
-        Mockito.any(HostInfo.class),
-        Mockito.any(PropertySet.class),
-        Mockito.anyInt(),
-        Mockito.anyInt(),
-        Mockito.anyInt()
+        anySet(),
+        any(HostInfo.class),
+        any(PropertySet.class),
+        anyInt(),
+        anyInt(),
+        anyInt()
     );
 
     // Expect 2 times the number of connections.
@@ -142,12 +144,12 @@ public class MultithreadedNodeMonitoringFailoverPluginTest extends NodeMonitorin
     runExecuteAsync(numConnections, MONITOR_METHOD_NAME, plugins);
 
     verify(monitorService, times(wantedNumberOfInvocations)).startMonitoring(
-        Mockito.anySet(),
-        Mockito.any(HostInfo.class),
-        Mockito.any(PropertySet.class),
-        Mockito.anyInt(),
-        Mockito.anyInt(),
-        Mockito.anyInt()
+        anySet(),
+        any(HostInfo.class),
+        any(PropertySet.class),
+        anyInt(),
+        anyInt(),
+        anyInt()
     );
 
     verify(monitorService, times(wantedNumberOfInvocations))
@@ -163,12 +165,12 @@ public class MultithreadedNodeMonitoringFailoverPluginTest extends NodeMonitorin
     runExecuteAsync(numConnections, NO_MONITOR_METHOD_NAME, plugins);
 
     verify(monitorService, never()).startMonitoring(
-        Mockito.anySet(),
-        Mockito.any(HostInfo.class),
-        Mockito.any(PropertySet.class),
-        Mockito.anyInt(),
-        Mockito.anyInt(),
-        Mockito.anyInt()
+        anySet(),
+        any(HostInfo.class),
+        any(PropertySet.class),
+        anyInt(),
+        anyInt(),
+        anyInt()
     );
 
     verify(monitorService, never()).stopMonitoring(eq(context));
