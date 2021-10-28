@@ -67,6 +67,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executor;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -275,7 +276,8 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
       ConnectionProvider connectionProvider,
       TopologyService service,
       WriterFailoverHandler writerFailoverHandler,
-      ReaderFailoverHandler readerFailoverHandler)
+      ReaderFailoverHandler readerFailoverHandler,
+      Function<Log, FailoverPluginManager> failoverPluginManagerInitializer)
       throws SQLException {
     super(connectionUrl);
     this.initialConnectionProps = connectionUrl.getMainHost().getHostProperties();
@@ -293,7 +295,7 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
     this.writerFailoverHandler = writerFailoverHandler;
     this.readerFailoverHandler = readerFailoverHandler;
 
-    initProxy(connectionUrl);
+    initProxy(connectionUrl, failoverPluginManagerInitializer);
   }
 
   protected synchronized void initSettings(ConnectionUrl connectionUrl) throws SQLException {
@@ -334,6 +336,13 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
   }
 
   protected synchronized void initProxy(ConnectionUrl connUrl) throws SQLException {
+    this.initProxy(connUrl, FailoverPluginManager::new);
+  }
+
+  private synchronized void initProxy(
+      ConnectionUrl connUrl,
+      Function<Log, FailoverPluginManager> failoverPluginManagerInitializer)
+      throws SQLException {
     if (!this.enableFailoverSetting) {
       // Use a standard default connection - no further initialization required
       this.currentConnection = this.connectionProvider.connect(connUrl.getMainHost());
@@ -364,8 +373,8 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
       }
     }
 
-    if(this.pluginManager == null) {
-      this.pluginManager = new FailoverPluginManager(this.log);
+    if (this.pluginManager == null) {
+      this.pluginManager = failoverPluginManagerInitializer.apply(log);
       this.pluginManager.init(this.currentConnection,
           this.currentConnection.getPropertySet(),
           this.currentHostIndex != NO_CONNECTION_INDEX ? this.hosts.get(this.currentHostIndex) : connUrl.getMainHost()
@@ -837,9 +846,10 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
       failoverReader(failedHostIdx);
     }
 
-    if(this.pluginManager != null) {
-      this.pluginManager.releaseResources(); // TODO: do we need to release resources here?
-      this.pluginManager.init(this.currentConnection,
+    if (this.pluginManager != null) {
+      this.pluginManager.releaseResources();
+      this.pluginManager.init(
+          this.currentConnection,
           this.currentConnection.getPropertySet(),
           this.hosts.get(this.currentHostIndex));
     }
