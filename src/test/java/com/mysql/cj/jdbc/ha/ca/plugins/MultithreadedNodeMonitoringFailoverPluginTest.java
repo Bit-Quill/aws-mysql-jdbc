@@ -26,7 +26,6 @@
 
 package com.mysql.cj.jdbc.ha.ca.plugins;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -44,9 +43,6 @@ import static org.mockito.Mockito.when;
 import com.mysql.cj.conf.HostInfo;
 import com.mysql.cj.conf.PropertySet;
 import com.mysql.cj.exceptions.CJCommunicationsException;
-import com.mysql.cj.log.Log;
-import com.mysql.cj.log.LogFactory;
-import com.mysql.cj.log.StandardLogger;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
