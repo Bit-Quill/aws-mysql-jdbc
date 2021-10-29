@@ -11,7 +11,7 @@ on:
 jobs:
   ubuntu-latest-aurora-build-and-run-failover-tests:
     name: 'Run Tests in `com.mysql.cj.jdbc'
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     steps:
       - name: Clone Repository
         uses: actions/checkout@v2
@@ -23,7 +23,8 @@ jobs:
           java-version: 8
       - name: 'Run Tests'
         run: |
-          ./gradlew --no-parallel --no-daemon build test --tests "com.mysql.cj.jdbc.*"
+          ./gradlew --no-parallel --no-daemon build test --tests "com.mysql.cj.jdbc.ha.ca.plugins.*"
+#          ./gradlew --no-parallel --no-daemon build test --tests "com.mysql.cj.jdbc.ha.ca.plugins.MultithreadedNodeMonitoringFailoverPluginTest"
       - name: Archive junit results
         if: ${{ always() }}
         uses: actions/upload-artifact@v2
