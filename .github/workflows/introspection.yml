@@ -11,14 +11,7 @@ on:
 jobs:
   ubuntu-latest-aurora-build-and-run-failover-tests:
     name: 'Run Tests in `com.mysql.cj.jdbc'
-    runs-on: ${{ matrix.platforms.os }}
-    strategy:
-      # just an example matrix
-      matrix:
-        platforms:
-          - os: ubuntu-latest
-          - os: macos-latest
-          - os: windows-latest
+    runs-on: windows-latest
     steps:
       - name: Clone Repository
         uses: actions/checkout@v2
