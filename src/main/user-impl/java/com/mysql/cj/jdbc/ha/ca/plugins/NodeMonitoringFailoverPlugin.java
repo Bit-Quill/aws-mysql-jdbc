@@ -26,7 +26,6 @@
 
 package com.mysql.cj.jdbc.ha.ca.plugins;
 
-import com.mysql.cj.Messages;
 import com.mysql.cj.conf.HostInfo;
 import com.mysql.cj.conf.PropertyKey;
 import com.mysql.cj.conf.PropertySet;
@@ -56,7 +55,7 @@ public class NodeMonitoringFailoverPlugin implements IFailoverPlugin {
   protected Log log;
   protected PropertySet propertySet;
   protected HostInfo hostInfo;
-  protected boolean isEnabled = true;
+  protected boolean isEnabled;
   protected int failureDetectionTimeMillis;
   protected int failureDetectionIntervalMillis;
   protected int failureDetectionCount;
@@ -178,6 +177,7 @@ public class NodeMonitoringFailoverPlugin implements IFailoverPlugin {
 
       result = executeFuncFuture.get();
     } catch (ExecutionException exception) {
+      this.monitorService.stopMonitoring(this.monitorContext);
       final Throwable throwable = exception.getCause();
       if (throwable instanceof Error) {
         throw (Error) throwable;

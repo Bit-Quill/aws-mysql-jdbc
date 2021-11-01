@@ -148,6 +148,7 @@ public class MultithreadedNodeMonitoringFailoverPluginTest extends NodeMonitorin
     final int wantedNumberOfInvocations = NUM_PLUGINS_PER_SERVICE * numConnections;
 
     final List<NodeMonitoringFailoverPlugin> plugins = initPlugins(numConnections);
+
     List<CompletableFuture<Object>> threads = runExecuteAsync(numConnections, plugins);
 
     final Throwable originalException = assertThrows(
@@ -165,10 +166,7 @@ public class MultithreadedNodeMonitoringFailoverPluginTest extends NodeMonitorin
         anyInt()
     );
 
-    for (final CompletableFuture<Object> thread : threads) {
-      assertTrue(thread.isCompletedExceptionally());
-    }
-    verify(monitorService, atLeast(wantedNumberOfInvocations - 1)).stopMonitoring(eq(context));
+    verify(monitorService, atLeast(wantedNumberOfInvocations)).stopMonitoring(eq(context));
   }
 
   @RepeatedTest(value = 100, name = "execute with monitoring feature disabled")

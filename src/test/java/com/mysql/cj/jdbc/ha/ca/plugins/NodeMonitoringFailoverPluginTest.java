@@ -26,6 +26,7 @@
 
 package com.mysql.cj.jdbc.ha.ca.plugins;
 
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -138,7 +139,7 @@ class NodeMonitoringFailoverPluginTest extends NodeMonitoringFailoverPluginBaseT
       plugin.execute(MONITOR_METHOD_NAME, sqlFunction);
     });
 
-    verify(monitorService).stopMonitoring(Mockito.eq(context));
+    verify(monitorService, atLeastOnce()).stopMonitoring(Mockito.eq(context));
   }
 
   @Test

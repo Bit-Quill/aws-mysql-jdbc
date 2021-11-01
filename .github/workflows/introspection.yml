@@ -24,7 +24,6 @@ jobs:
       - name: 'Run Tests'
         run: |
           ./gradlew --no-parallel --no-daemon build test --tests "com.mysql.cj.jdbc.ha.ca.plugins.*"
-#          ./gradlew --no-parallel --no-daemon build test --tests "com.mysql.cj.jdbc.ha.ca.plugins.MultithreadedNodeMonitoringFailoverPluginTest"
       - name: Archive junit results
         if: ${{ always() }}
         uses: actions/upload-artifact@v2
