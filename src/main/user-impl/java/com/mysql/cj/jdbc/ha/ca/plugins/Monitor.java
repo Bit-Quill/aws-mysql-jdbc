@@ -115,7 +115,7 @@ public class Monitor implements IMonitor {
       this.stopped.set(true);
       while (true) {
         if (!this.contexts.isEmpty()) {
-          final ConnectionStatus status = checkConnectionStatus(this.connectionCheckIntervalMillis);
+          final ConnectionStatus status = checkConnectionStatus(this.getConnectionCheckIntervalMillis());
           final long currentTime = this.getCurrentTimeMillis();
           this.lastContextUsedTimestamp.set(currentTime);
 
@@ -126,8 +126,9 @@ public class Monitor implements IMonitor {
                 this.connectionCheckIntervalMillis);
           }
 
-          TimeUnit.MILLISECONDS.sleep(Math.max(0, this.connectionCheckIntervalMillis - status.elapsedTime));
+          TimeUnit.MILLISECONDS.sleep(Math.max(0, this.getConnectionCheckIntervalMillis() - status.elapsedTime));
         } else {
+          System.out.println("while empty");
           if ((this.getCurrentTimeMillis() - this.lastContextUsedTimestamp.get()) >= this.monitorDisposalTime) {
             monitorService.notifyUnused(this);
             break;
@@ -180,6 +181,10 @@ public class Monitor implements IMonitor {
   }
 
   int getConnectionCheckIntervalMillis() {
+    if (this.connectionCheckIntervalMillis == Integer.MAX_VALUE) {
+      // connectionCheckIntervalMillis is at Integer.MAX_VALUE because there are no contexts available.
+      return 0;
+    }
     return this.connectionCheckIntervalMillis;
   }
 
