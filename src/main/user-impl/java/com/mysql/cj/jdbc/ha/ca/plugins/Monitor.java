@@ -128,7 +128,6 @@ public class Monitor implements IMonitor {
 
           TimeUnit.MILLISECONDS.sleep(Math.max(0, this.getConnectionCheckIntervalMillis() - status.elapsedTime));
         } else {
-          System.out.println("while empty");
           if ((this.getCurrentTimeMillis() - this.lastContextUsedTimestamp.get()) >= this.monitorDisposalTime) {
             monitorService.notifyUnused(this);
             break;
