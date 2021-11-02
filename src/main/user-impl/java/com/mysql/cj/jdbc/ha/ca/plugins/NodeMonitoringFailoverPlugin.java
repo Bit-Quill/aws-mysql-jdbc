@@ -52,14 +52,11 @@ public class NodeMonitoringFailoverPlugin implements IFailoverPlugin {
   static final String METHODS_TO_MONITOR = "executeQuery,";
   private static final String RETRIEVE_HOST_PORT_SQL = "SELECT CONCAT(@@hostname, ':', @@port)";
 
-  protected IFailoverPlugin next;
+  protected IFailoverPlugin nextPlugin;
   protected Log log;
   protected PropertySet propertySet;
-  protected boolean isEnabled;
-  protected int failureDetectionTimeMillis;
-  protected int failureDetectionIntervalMillis;
-  protected int failureDetectionCount;
   private IMonitorService monitorService;
+  private IMonitorServiceInitializer monitorServiceInitializer;
   private MonitorConnectionContext monitorContext;
   private final Set<String> nodeKeys = new HashSet<>();
   private final ClusterAwareConnectionProxy proxy;
@@ -73,12 +70,12 @@ public class NodeMonitoringFailoverPlugin implements IFailoverPlugin {
   public NodeMonitoringFailoverPlugin(
       ClusterAwareConnectionProxy proxy,
       PropertySet propertySet,
-      IFailoverPlugin next,
+      IFailoverPlugin nextPlugin,
       Log log) {
     this(
         proxy,
         propertySet,
-        next,
+        nextPlugin,
         log,
         DefaultMonitorService::new);
   }
@@ -86,64 +83,59 @@ public class NodeMonitoringFailoverPlugin implements IFailoverPlugin {
   NodeMonitoringFailoverPlugin(
       ClusterAwareConnectionProxy proxy,
       PropertySet propertySet,
-      IFailoverPlugin next,
+      IFailoverPlugin nextPlugin,
       Log log,
       IMonitorServiceInitializer monitorServiceInitializer) {
     assertArgumentIsNotNull(proxy, "proxy");
     assertArgumentIsNotNull(propertySet, "propertySet");
-    assertArgumentIsNotNull(next, "next");
+    assertArgumentIsNotNull(nextPlugin, "next");
     assertArgumentIsNotNull(log, "log");
 
     this.proxy = proxy;
     this.connection = proxy.getCurrentConnection();
     this.propertySet = propertySet;
     this.log = log;
-    this.next = next;
-
-    this.isEnabled = this.propertySet
-        .getBooleanProperty(PropertyKey.nativeFailureDetectionEnabled)
-        .getValue();
-    this.failureDetectionTimeMillis = this.propertySet
-        .getIntegerProperty(PropertyKey.failureDetectionTime)
-        .getValue();
-    this.failureDetectionIntervalMillis = this.propertySet
-        .getIntegerProperty(PropertyKey.failureDetectionInterval)
-        .getValue();
-    this.failureDetectionCount = this.propertySet
-        .getIntegerProperty(PropertyKey.failureDetectionCount)
-        .getValue();
+    this.nextPlugin = nextPlugin;
+    this.monitorServiceInitializer =  monitorServiceInitializer;
 
     generateNodeKeys(this.proxy.getCurrentConnection());
-
-    if (this.isEnabled) {
-      this.monitorService = monitorServiceInitializer.create(this.log);
-    }
   }
 
+  /**
+   * Checks if failover is enabled by the user.
+   * If enabled, starts a monitor as well as calling the executable SQL function
+   * Else, call executable SQL function directly without monitor
+   * @param methodName Name of the method to monitor
+   * @param executeSqlFunc Callable SQL statement
+   * @return Results of the Callable SQL function
+   * @throws Exception if an error occurs
+   */
   @Override
   public Object execute(String methodName, Callable executeSqlFunc) throws Exception {
-    final boolean needMonitoring = METHODS_TO_MONITOR.contains(methodName + ",");
-
-    if (!this.isEnabled || !needMonitoring) {
-      // do direct call
-      return this.next.execute(methodName, executeSqlFunc);
-    }
+    final boolean needsMonitoring = METHODS_TO_MONITOR.contains(methodName + ",");
 
     // update config settings since they may change
-    this.isEnabled = this.propertySet
+    final boolean isEnabled = this.propertySet
         .getBooleanProperty(PropertyKey.nativeFailureDetectionEnabled)
         .getValue();
-    this.failureDetectionTimeMillis = this.propertySet
+
+    if (!isEnabled || !needsMonitoring) {
+      // do direct call
+      return this.nextPlugin.execute(methodName, executeSqlFunc);
+    }
+
+    final int failureDetectionTimeMillis = this.propertySet
         .getIntegerProperty(PropertyKey.failureDetectionTime)
         .getValue();
-    this.failureDetectionIntervalMillis = this.propertySet
+    final int failureDetectionIntervalMillis = this.propertySet
         .getIntegerProperty(PropertyKey.failureDetectionInterval)
         .getValue();
-    this.failureDetectionCount = this.propertySet
+    final int failureDetectionCount = this.propertySet
         .getIntegerProperty(PropertyKey.failureDetectionCount)
         .getValue();
 
     // use a separate thread to execute method
+    initMonitorService();
 
     Object result;
     ExecutorService executor = null;
@@ -158,12 +150,12 @@ public class NodeMonitoringFailoverPlugin implements IFailoverPlugin {
           this.nodeKeys,
           this.proxy.getCurrentHostInfo(),
           this.propertySet,
-          this.failureDetectionTimeMillis,
-          this.failureDetectionIntervalMillis,
-          this.failureDetectionCount);
+          failureDetectionTimeMillis,
+          failureDetectionIntervalMillis,
+          failureDetectionCount);
 
       executor = Executors.newSingleThreadExecutor();
-      final Future<Object> executeFuncFuture = executor.submit(() -> this.next.execute(methodName, executeSqlFunc));
+      final Future<Object> executeFuncFuture = executor.submit(() -> this.nextPlugin.execute(methodName, executeSqlFunc));
       executor.shutdown(); // stop executor to accept new tasks
 
       boolean isDone = executeFuncFuture.isDone();
@@ -197,6 +189,12 @@ public class NodeMonitoringFailoverPlugin implements IFailoverPlugin {
     return result;
   }
 
+  private void initMonitorService() {
+    if (this.monitorService == null) {
+      this.monitorService = this.monitorServiceInitializer.create(this.log);
+    }
+  }
+
   @Override
   public void releaseResources() {
     // releaseResources may be called multiple times throughout the failover process.
@@ -205,7 +203,7 @@ public class NodeMonitoringFailoverPlugin implements IFailoverPlugin {
     }
 
     this.monitorService = null;
-    this.next.releaseResources();
+    this.nextPlugin.releaseResources();
   }
 
   private void assertArgumentIsNotNull(Object param, String paramName) {

@@ -26,11 +26,6 @@
 
 package com.mysql.cj.jdbc.ha.ca.plugins;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import com.mysql.cj.conf.DefaultPropertySet;
 import com.mysql.cj.conf.PropertySet;
 import com.mysql.cj.exceptions.CJCommunicationsException;
@@ -44,11 +39,21 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Stream;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.atMostOnce;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class NodeMonitoringFailoverPluginTest extends NodeMonitoringFailoverPluginBaseTest {
   private static final ExecutionException EXECUTION_EXCEPTION = new ExecutionException(
@@ -83,66 +88,48 @@ class NodeMonitoringFailoverPluginTest extends NodeMonitoringFailoverPluginBaseT
   }
 
   @Test
-  void test_2_initWithFailoverEnabled() {
-    when(nativeFailureDetectionEnabledProperty.getValue())
-        .thenReturn(Boolean.TRUE);
-
-    initializePlugin();
-
-    verify(initializer).create(Mockito.eq(logger));
-  }
-
-  @Test
-  void test_3_initWithFailoverDisabled() {
-    when(nativeFailureDetectionEnabledProperty.getValue())
-        .thenReturn(Boolean.FALSE);
-
-    initializePlugin();
-
-    verify(initializer, Mockito.never()).create(Mockito.any());
-  }
-
-  @Test
-  void test_4_executeWithFailoverDisabled() throws Exception {
+  void test_2_executeWithFailoverDisabled() throws Exception {
     when(nativeFailureDetectionEnabledProperty.getValue())
         .thenReturn(Boolean.FALSE);
 
     initializePlugin();
     plugin.execute(MONITOR_METHOD_NAME, sqlFunction);
 
-    verify(mockPlugin).execute(Mockito.eq(MONITOR_METHOD_NAME), Mockito.eq(sqlFunction));
+    verify(initializer, never()).create(any());
+    verify(mockPlugin).execute(eq(MONITOR_METHOD_NAME), eq(sqlFunction));
   }
 
   @Test
-  void test_5_executeWithNoNeedToMonitor() throws Exception {
+  void test_3_executeWithNoNeedToMonitor() throws Exception {
     when(nativeFailureDetectionEnabledProperty.getValue())
         .thenReturn(Boolean.TRUE);
 
     initializePlugin();
     plugin.execute(NO_MONITOR_METHOD_NAME, sqlFunction);
 
-    verify(mockPlugin).execute(Mockito.eq(NO_MONITOR_METHOD_NAME), Mockito.eq(sqlFunction));
+    verify(initializer, atMostOnce()).create(logger);
+    verify(mockPlugin).execute(eq(NO_MONITOR_METHOD_NAME), eq(sqlFunction));
   }
 
   @Test
-  void test_6_executeThrowsExecutionException() {
+  void test_4_executeThrowsExecutionException() {
     when(nativeFailureDetectionEnabledProperty.getValue())
         .thenReturn(Boolean.TRUE);
 
     initializePlugin();
 
     assertThrows(Exception.class, () -> {
-      when(mockPlugin.execute(Mockito.any(), Mockito.any()))
+      when(mockPlugin.execute(any(), any()))
           .thenThrow(EXECUTION_EXCEPTION);
 
       plugin.execute(MONITOR_METHOD_NAME, sqlFunction);
     });
 
-    verify(monitorService).stopMonitoring(Mockito.eq(context));
+    verify(monitorService).stopMonitoring(eq(context));
   }
 
   @Test
-  void test_7_executeWithUnhealthyNode() {
+  void test_5_executeWithUnhealthyNode() {
     when(nativeFailureDetectionEnabledProperty.getValue())
         .thenReturn(Boolean.TRUE);
 
@@ -152,7 +139,7 @@ class NodeMonitoringFailoverPluginTest extends NodeMonitoringFailoverPluginBaseT
       when(context.isNodeUnhealthy())
           .thenReturn(Boolean.TRUE);
 
-      when(mockPlugin.execute(Mockito.any(), Mockito.any()))
+      when(mockPlugin.execute(any(), any()))
           .thenAnswer(invocation -> {
             // Imitate running a long query;
             Thread.sleep(60 * 1000);
@@ -163,18 +150,18 @@ class NodeMonitoringFailoverPluginTest extends NodeMonitoringFailoverPluginBaseT
     });
 
     verify(context).isNodeUnhealthy();
-    verify(monitorService).stopMonitoring(Mockito.eq(context));
+    verify(monitorService).stopMonitoring(eq(context));
   }
 
   @Test
-  void test_8_executeSuccessfulWithLongQuery() throws Exception {
+  void test_6_executeSuccessfulWithLongQuery() throws Exception {
     final String expected = "foo";
 
     when(nativeFailureDetectionEnabledProperty.getValue())
         .thenReturn(Boolean.TRUE);
     when(context.isNodeUnhealthy())
         .thenReturn(Boolean.FALSE);
-    when(mockPlugin.execute(Mockito.any(), Mockito.any()))
+    when(mockPlugin.execute(any(), any()))
         .thenAnswer(invocation -> {
           // Imitate running a query for 10 seconds.
           Thread.sleep(10 * 1000);
@@ -185,8 +172,8 @@ class NodeMonitoringFailoverPluginTest extends NodeMonitoringFailoverPluginBaseT
     final Object result = plugin.execute(MONITOR_METHOD_NAME, sqlFunction);
 
     assertEquals(expected, result);
-    verify(context, Mockito.atLeastOnce()).isNodeUnhealthy();
-    verify(monitorService).stopMonitoring(Mockito.eq(context));
+    verify(context, atLeastOnce()).isNodeUnhealthy();
+    verify(monitorService).stopMonitoring(eq(context));
   }
 
   /**
@@ -197,7 +184,7 @@ class NodeMonitoringFailoverPluginTest extends NodeMonitoringFailoverPluginBaseT
    * @return different sets of arguments.
    */
   private static Stream<Arguments> generateNullArguments() {
-    final ClusterAwareConnectionProxy proxy = Mockito.mock(ClusterAwareConnectionProxy.class);
+    final ClusterAwareConnectionProxy proxy = mock(ClusterAwareConnectionProxy.class);
     final PropertySet set = new DefaultPropertySet();
     final Log log = new NullLogger("NodeMonitoringFailoverPluginTest");
     final IFailoverPlugin failoverPlugin = new DefaultFailoverPlugin(log);
