@@ -112,7 +112,7 @@ public class Monitor implements IMonitor {
   @Override
   public void run() {
     try {
-      this.stopped.set(true);
+      this.stopped.set(false);
       while (true) {
         if (!this.contexts.isEmpty()) {
           final ConnectionStatus status = checkConnectionStatus(this.getConnectionCheckIntervalMillis());
