@@ -26,19 +26,19 @@
 
 package com.mysql.cj.jdbc.ha.ca.plugins;
 
-import static org.mockito.Mockito.doNothing;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.mysql.cj.conf.DefaultPropertySet;
-import com.mysql.cj.conf.HostInfo;
 import com.mysql.cj.conf.PropertySet;
 import com.mysql.cj.exceptions.CJCommunicationsException;
+import com.mysql.cj.jdbc.ha.ca.ClusterAwareConnectionProxy;
 import com.mysql.cj.log.Log;
 import com.mysql.cj.log.NullLogger;
 import org.jboss.invocation.InvocationException;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -47,7 +47,6 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 
-import java.sql.Connection;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Stream;
 
@@ -57,7 +56,6 @@ class NodeMonitoringFailoverPluginTest extends NodeMonitoringFailoverPluginBaseT
       new InvocationException("exception", new Throwable()));
 
   private NodeMonitoringFailoverPlugin plugin;
-
   private AutoCloseable closeable;
 
   @BeforeEach
@@ -75,14 +73,13 @@ class NodeMonitoringFailoverPluginTest extends NodeMonitoringFailoverPluginBaseT
   @ParameterizedTest
   @MethodSource("generateNullArguments")
   void test_1_initWithNullArguments(
-      final Connection connection,
+      final ClusterAwareConnectionProxy proxy,
       final PropertySet set,
-      final HostInfo info,
       final IFailoverPlugin failoverPlugin,
       final Log log) {
-    Assertions.assertThrows(
+    assertThrows(
         NullArgumentException.class,
-        () -> new NodeMonitoringFailoverPlugin(connection, set, info, failoverPlugin, log));
+        () -> new NodeMonitoringFailoverPlugin(proxy, set, failoverPlugin, log));
   }
 
   @Test
@@ -101,6 +98,7 @@ class NodeMonitoringFailoverPluginTest extends NodeMonitoringFailoverPluginBaseT
         .thenReturn(Boolean.FALSE);
 
     initializePlugin();
+
     verify(initializer, Mockito.never()).create(Mockito.any());
   }
 
@@ -108,9 +106,10 @@ class NodeMonitoringFailoverPluginTest extends NodeMonitoringFailoverPluginBaseT
   void test_4_executeWithFailoverDisabled() throws Exception {
     when(nativeFailureDetectionEnabledProperty.getValue())
         .thenReturn(Boolean.FALSE);
-    initializePlugin();
 
+    initializePlugin();
     plugin.execute(MONITOR_METHOD_NAME, sqlFunction);
+
     verify(mockPlugin).execute(Mockito.eq(MONITOR_METHOD_NAME), Mockito.eq(sqlFunction));
   }
 
@@ -118,11 +117,11 @@ class NodeMonitoringFailoverPluginTest extends NodeMonitoringFailoverPluginBaseT
   void test_5_executeWithNoNeedToMonitor() throws Exception {
     when(nativeFailureDetectionEnabledProperty.getValue())
         .thenReturn(Boolean.TRUE);
-    initializePlugin();
 
+    initializePlugin();
     plugin.execute(NO_MONITOR_METHOD_NAME, sqlFunction);
-    verify(mockPlugin)
-        .execute(Mockito.eq(NO_MONITOR_METHOD_NAME), Mockito.eq(sqlFunction));
+
+    verify(mockPlugin).execute(Mockito.eq(NO_MONITOR_METHOD_NAME), Mockito.eq(sqlFunction));
   }
 
   @Test
@@ -132,7 +131,7 @@ class NodeMonitoringFailoverPluginTest extends NodeMonitoringFailoverPluginBaseT
 
     initializePlugin();
 
-    Assertions.assertThrows(Exception.class, () -> {
+    assertThrows(Exception.class, () -> {
       when(mockPlugin.execute(Mockito.any(), Mockito.any()))
           .thenThrow(EXECUTION_EXCEPTION);
 
@@ -149,7 +148,7 @@ class NodeMonitoringFailoverPluginTest extends NodeMonitoringFailoverPluginBaseT
 
     initializePlugin();
 
-    Assertions.assertThrows(CJCommunicationsException.class, () -> {
+    assertThrows(CJCommunicationsException.class, () -> {
       when(context.isNodeUnhealthy())
           .thenReturn(Boolean.TRUE);
 
@@ -183,38 +182,35 @@ class NodeMonitoringFailoverPluginTest extends NodeMonitoringFailoverPluginBaseT
         });
 
     initializePlugin();
-
     final Object result = plugin.execute(MONITOR_METHOD_NAME, sqlFunction);
-    Assertions.assertEquals(expected, result);
 
+    assertEquals(expected, result);
     verify(context, Mockito.atLeastOnce()).isNodeUnhealthy();
     verify(monitorService).stopMonitoring(Mockito.eq(context));
   }
 
   /**
    * Generate different sets of method arguments where one argument is null to ensure
-   * {@link NodeMonitoringFailoverPlugin#init(Connection, PropertySet, HostInfo, IFailoverPlugin, Log)}
+   * {@link NodeMonitoringFailoverPlugin#NodeMonitoringFailoverPlugin(ClusterAwareConnectionProxy, PropertySet, IFailoverPlugin, Log)}
    * can handle null arguments correctly.
    *
    * @return different sets of arguments.
    */
   private static Stream<Arguments> generateNullArguments() {
-    final Connection connection = Mockito.mock(Connection.class);
+    final ClusterAwareConnectionProxy proxy = Mockito.mock(ClusterAwareConnectionProxy.class);
     final PropertySet set = new DefaultPropertySet();
-    final HostInfo info = new HostInfo();
     final Log log = new NullLogger("NodeMonitoringFailoverPluginTest");
     final IFailoverPlugin failoverPlugin = new DefaultFailoverPlugin(log);
 
     return Stream.of(
-        Arguments.of(null, set, info, failoverPlugin, log),
-        Arguments.of(connection, null, info, failoverPlugin, log),
-        Arguments.of(connection, set, null, failoverPlugin, log),
-        Arguments.of(connection, set, info, null, log),
-        Arguments.of(connection, set, info, failoverPlugin, null)
+        Arguments.of(null, set, failoverPlugin, log),
+        Arguments.of(proxy, null, failoverPlugin, log),
+        Arguments.of(proxy, set, null, log),
+        Arguments.of(proxy, set, failoverPlugin, null)
     );
   }
 
   private void initializePlugin() {
-    plugin = new NodeMonitoringFailoverPlugin(connection, propertySet, hostInfo, mockPlugin, logger, initializer);
+    plugin = new NodeMonitoringFailoverPlugin(proxy, propertySet, mockPlugin, logger, initializer);
   }
 }

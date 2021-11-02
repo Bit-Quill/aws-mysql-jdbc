@@ -114,6 +114,18 @@ public class DefaultMonitorService implements IMonitorService {
   }
 
   @Override
+  public void stopMonitoringForAllConnections(Set<String> nodeKeys) {
+    final String node = this.threadContainer.getNode(nodeKeys);
+    if (node == null) {
+      this.log.logDebug("No existing monitor for the given set of node keys.");
+      return;
+    }
+    final IMonitor monitor = this.threadContainer.getMonitor(node);
+    monitor.clearContexts();
+    this.threadContainer.resetResource(monitor);
+  }
+
+  @Override
   public void releaseResources() {
     this.threadContainer = null;
     MonitorThreadContainer.releaseInstance();
