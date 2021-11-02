@@ -159,6 +159,7 @@ public class MonitorThreadContainer {
     }
 
     private synchronized void releaseResources() {
+        monitorMap.clear();
         tasksMap.values().stream()
             .filter(val -> !val.isDone() && !val.isCancelled())
             .forEach(val -> val.cancel(true));
