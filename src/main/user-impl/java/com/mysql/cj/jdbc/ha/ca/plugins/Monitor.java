@@ -26,7 +26,6 @@
 
 package com.mysql.cj.jdbc.ha.ca.plugins;
 
-import com.mysql.cj.Messages;
 import com.mysql.cj.conf.HostInfo;
 import com.mysql.cj.conf.PropertyKey;
 import com.mysql.cj.conf.PropertySet;
@@ -41,6 +40,7 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class Monitor implements IMonitor {
@@ -66,6 +66,7 @@ public class Monitor implements IMonitor {
   private final AtomicLong lastContextUsedTimestamp = new AtomicLong();
   private final long monitorDisposalTime;
   private final IMonitorService monitorService;
+  private final AtomicBoolean stopped = new AtomicBoolean(true);
 
   public Monitor(
       ConnectionProvider connectionProvider,
@@ -103,12 +104,18 @@ public class Monitor implements IMonitor {
     this.connectionCheckIntervalMillis = findShortestIntervalMillis();
   }
 
+  public synchronized void clearContexts() {
+    this.contexts.clear();
+    this.connectionCheckIntervalMillis = findShortestIntervalMillis();
+  }
+
   @Override
   public void run() {
     try {
+      this.stopped.set(false);
       while (true) {
         if (!this.contexts.isEmpty()) {
-          final ConnectionStatus status = checkConnectionStatus(this.connectionCheckIntervalMillis);
+          final ConnectionStatus status = checkConnectionStatus(this.getConnectionCheckIntervalMillis());
           final long currentTime = this.getCurrentTimeMillis();
           this.lastContextUsedTimestamp.set(currentTime);
 
@@ -119,7 +126,7 @@ public class Monitor implements IMonitor {
                 this.connectionCheckIntervalMillis);
           }
 
-          TimeUnit.MILLISECONDS.sleep(Math.max(0, this.connectionCheckIntervalMillis - status.elapsedTime));
+          TimeUnit.MILLISECONDS.sleep(Math.max(0, this.getConnectionCheckIntervalMillis() - status.elapsedTime));
         } else {
           if ((this.getCurrentTimeMillis() - this.lastContextUsedTimestamp.get()) >= this.monitorDisposalTime) {
             monitorService.notifyUnused(this);
@@ -134,6 +141,7 @@ public class Monitor implements IMonitor {
       if (this.monitoringConn != null) {
         try {
           this.monitoringConn.close();
+          this.stopped.set(true);
         } catch (SQLException ex) {
           // ignore
         }
@@ -172,7 +180,16 @@ public class Monitor implements IMonitor {
   }
 
   int getConnectionCheckIntervalMillis() {
+    if (this.connectionCheckIntervalMillis == Integer.MAX_VALUE) {
+      // connectionCheckIntervalMillis is at Integer.MAX_VALUE because there are no contexts available.
+      return 0;
+    }
     return this.connectionCheckIntervalMillis;
+  }
+
+  @Override
+  public boolean isStopped() {
+    return this.stopped.get();
   }
 
   private HostInfo copy(HostInfo src, Map<String, String> props) {
@@ -187,6 +204,10 @@ public class Monitor implements IMonitor {
   }
 
   private int findShortestIntervalMillis() {
+    if (this.contexts.isEmpty()) {
+      return Integer.MAX_VALUE;
+    }
+
     return this.contexts.stream()
         .min(Comparator.comparing(MonitorConnectionContext::getFailureDetectionIntervalMillis))
         .map(MonitorConnectionContext::getFailureDetectionIntervalMillis)

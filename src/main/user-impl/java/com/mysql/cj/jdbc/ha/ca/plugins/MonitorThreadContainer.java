@@ -29,8 +29,10 @@ package com.mysql.cj.jdbc.ha.ca.plugins;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -42,6 +44,7 @@ public class MonitorThreadContainer {
     private static final AtomicInteger CLASS_USAGE_COUNT = new AtomicInteger();
     private final Map<String, IMonitor> monitorMap = new ConcurrentHashMap<>();
     private final Map<IMonitor, Future<?>> tasksMap = new ConcurrentHashMap<>();
+    private final Queue<IMonitor> availableMonitors = new ConcurrentLinkedDeque<>();
     private final ExecutorService threadPool;
 
     public static synchronized MonitorThreadContainer getInstance() {
@@ -101,7 +104,21 @@ public class MonitorThreadContainer {
 
     IMonitor getOrCreateMonitor(Set<String> nodeKeys, Supplier<IMonitor> monitorSupplier) {
         final String node = getNode(nodeKeys, nodeKeys.iterator().next());
-        final IMonitor monitor = monitorMap.computeIfAbsent(node, k -> monitorSupplier.get());
+        final IMonitor monitor = monitorMap.computeIfAbsent(node, k -> {
+            if (!availableMonitors.isEmpty()) {
+                final IMonitor failoverMonitor = availableMonitors.remove();
+                if (!failoverMonitor.isStopped()) {
+                    return failoverMonitor;
+                }
+                tasksMap.computeIfPresent(failoverMonitor, (key, v) -> {
+                    v.cancel(true);
+                    return null;
+                });
+            }
+
+            return monitorSupplier.get();
+        });
+
         populateMonitorMap(nodeKeys, monitor);
         return monitor;
     }
@@ -114,6 +131,22 @@ public class MonitorThreadContainer {
 
     void addTask(IMonitor monitor) {
         tasksMap.computeIfAbsent(monitor, k -> threadPool.submit(monitor));
+    }
+
+    /**
+     * Clear all references used by the given monitor.
+     * Put the monitor in to a queue waiting to be reused.
+     *
+     * @param monitor The monitor to reset.
+     */
+    public void resetResource(IMonitor monitor) {
+        if (monitor == null) {
+            return;
+        }
+
+        final List<IMonitor> monitorList = Collections.singletonList(monitor);
+        monitorMap.values().removeAll(monitorList);
+        availableMonitors.add(monitor);
     }
 
     public void releaseResource(IMonitor monitor) {

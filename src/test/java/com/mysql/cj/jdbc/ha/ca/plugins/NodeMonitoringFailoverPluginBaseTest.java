@@ -36,6 +36,7 @@ import com.mysql.cj.conf.HostInfo;
 import com.mysql.cj.conf.PropertyKey;
 import com.mysql.cj.conf.PropertySet;
 import com.mysql.cj.conf.RuntimeProperty;
+import com.mysql.cj.jdbc.ha.ca.ClusterAwareConnectionProxy;
 import com.mysql.cj.log.Log;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -49,6 +50,7 @@ import java.util.concurrent.Callable;
  * Initialize constants and mock variables common to tests for {@link NodeMonitoringFailoverPlugin}.
  */
 public class NodeMonitoringFailoverPluginBaseTest {
+  @Mock ClusterAwareConnectionProxy proxy;
   @Mock Connection connection;
   @Mock Statement statement;
   @Mock ResultSet resultSet;
@@ -88,6 +90,8 @@ public class NodeMonitoringFailoverPluginBaseTest {
 
     when(mockPlugin.execute(anyString(), Mockito.any(Callable.class))).thenReturn("done");
 
+    when(proxy.getCurrentConnection()).thenReturn(connection);
+    when(proxy.getCurrentHostInfo()).thenReturn(hostInfo);
     when(connection.createStatement()).thenReturn(statement);
     when(statement.executeQuery(anyString())).thenReturn(resultSet);
     when(resultSet.next()).thenReturn(false);
