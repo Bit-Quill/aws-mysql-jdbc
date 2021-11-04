@@ -113,6 +113,8 @@ public class NodeMonitoringFailoverPlugin implements IFailoverPlugin {
         .getIntegerProperty(PropertyKey.failureDetectionCount)
         .getValue();
 
+    generateNodeKeys(this.proxy.getCurrentConnection());
+
     if (this.isEnabled) {
       this.monitorService = monitorServiceInitializer.create(this.log);
     }
@@ -150,12 +152,10 @@ public class NodeMonitoringFailoverPlugin implements IFailoverPlugin {
           "[NodeMonitoringFailoverPlugin.execute]: method=%s, monitoring is activated",
           methodName));
 
-      final Set<String> nodeKeys = getUpdatedNodeKeys(
-          checkFailover(proxy.getCurrentConnection()),
-          proxy.getCurrentHostInfo());
+      checkFailover(this.proxy.getCurrentConnection());
 
       this.monitorContext = this.monitorService.startMonitoring(
-          nodeKeys,
+          this.nodeKeys,
           this.proxy.getCurrentHostInfo(),
           this.propertySet,
           this.failureDetectionTimeMillis,
@@ -208,14 +208,36 @@ public class NodeMonitoringFailoverPlugin implements IFailoverPlugin {
     this.next.releaseResources();
   }
 
+  private void assertArgumentIsNotNull(Object param, String paramName) {
+    if (param == null) {
+      throw new NullArgumentException(paramName);
+    }
+  }
+
   /**
-   * If the connection is using a different hostname, add that host name to the set.
+   * Check if the connection has changed due to failover.
+   * If so, remove monitor's references to that node and
+   * regenerate the set of node keys referencing the node we need to monitor.
    *
-   * @param connection The current connection.
-   * @param hostInfo   Information about the current connection.
-   * @return Updated set of node keys.
+   * @param newConnection The connection used by {@link ClusterAwareConnectionProxy}.
    */
-  protected Set<String> getUpdatedNodeKeys(Connection connection, HostInfo hostInfo) {
+  private void checkFailover(Connection newConnection) {
+    final boolean isSameConnection = this.connection.equals(newConnection);
+    if (!isSameConnection) {
+      this.monitorService.stopMonitoringForAllConnections(this.nodeKeys);
+      this.connection = newConnection;
+      generateNodeKeys(this.connection);
+    }
+  }
+
+  /**
+   * Generate a set of node keys representing the node to monitor.
+   *
+   * @param connection the connection to a specific Aurora node.
+   */
+  private void generateNodeKeys(Connection connection) {
+    this.nodeKeys.clear();
+    final HostInfo hostInfo = this.proxy.getCurrentHostInfo();
     try (Statement stmt = connection.createStatement()) {
       try (ResultSet rs = stmt.executeQuery(RETRIEVE_HOST_PORT_SQL)) {
         while (rs.next()) {
@@ -233,32 +255,5 @@ public class NodeMonitoringFailoverPlugin implements IFailoverPlugin {
             hostInfo.getHost(),
             hostInfo.getPort()
         ));
-
-    return this.nodeKeys;
-  }
-
-  private void assertArgumentIsNotNull(Object param, String paramName) {
-    if (param == null) {
-      throw new NullArgumentException(paramName);
-    }
-  }
-
-  /**
-   * Check if the connection has changed due to failover.
-   * If so, clear the set of keys for the dead node
-   * and remove monitor's references to that node.
-   *
-   * @param newConnection The connection used by {@link ClusterAwareConnectionProxy}.
-   * @return the most up-to-date connection.
-   */
-  private Connection checkFailover(Connection newConnection) {
-    final boolean isSameConnection = this.connection.equals(newConnection);
-    if (!isSameConnection) {
-      this.monitorService.stopMonitoringForAllConnections(this.nodeKeys);
-      this.nodeKeys.clear();
-      this.connection = newConnection;
-    }
-
-    return this.connection;
   }
 }
