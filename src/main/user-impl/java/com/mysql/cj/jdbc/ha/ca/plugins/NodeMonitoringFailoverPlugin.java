@@ -102,13 +102,13 @@ public class NodeMonitoringFailoverPlugin implements IFailoverPlugin {
   }
 
   /**
-   * Checks if failover is enabled by the user.
-   * If enabled, starts a monitor as well as calling the executable SQL function
-   * Else, call executable SQL function directly without monitor
-   * @param methodName Name of the method to monitor
-   * @param executeSqlFunc Callable SQL statement
-   * @return Results of the Callable SQL function
-   * @throws Exception if an error occurs
+   * Executes the given SQL function with {@link Monitor} if failover monitoring is enabled.
+   * Otherwise, executes the SQL function directly.
+   *
+   * @param methodName     Name of the method to monitor.
+   * @param executeSqlFunc {@link Callable} SQL function.
+   * @return Results of the {@link Callable} SQL function.
+   * @throws Exception if an error occurs.
    */
   @Override
   public Object execute(String methodName, Callable executeSqlFunc) throws Exception {
