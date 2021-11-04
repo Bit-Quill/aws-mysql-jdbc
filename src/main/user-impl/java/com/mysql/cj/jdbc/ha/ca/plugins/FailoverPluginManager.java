@@ -26,7 +26,6 @@
 
 package com.mysql.cj.jdbc.ha.ca.plugins;
 
-import com.mysql.cj.conf.HostInfo;
 import com.mysql.cj.conf.PropertyKey;
 import com.mysql.cj.conf.PropertySet;
 import com.mysql.cj.jdbc.ha.ca.ClusterAwareConnectionProxy;
@@ -34,7 +33,6 @@ import com.mysql.cj.log.Log;
 import com.mysql.cj.util.StringUtils;
 import com.mysql.cj.util.Util;
 
-import java.sql.Connection;
 import java.util.concurrent.Callable;
 
 //TODO: rename class name to more generic one. This plugin manager has nothing to do with failover so the current class name is confusing and misleading.
@@ -47,11 +45,10 @@ public class FailoverPluginManager {
       NodeMonitoringFailoverPluginFactory.class.getName();
 
   protected Log logger;
-  protected Connection connection = null;
   protected PropertySet propertySet = null;
-  protected HostInfo hostInfo;
   protected IFailoverPlugin headPlugin = null;
   ClusterAwareConnectionProxy proxy;
+  private final Thread shutdownHook = new Thread(this::releaseResources);
 
   public FailoverPluginManager(Log logger) {
     if (logger == null) {
@@ -59,6 +56,7 @@ public class FailoverPluginManager {
     }
 
     this.logger = logger;
+    Runtime.getRuntime().addShutdownHook(shutdownHook);
   }
 
   public void init(ClusterAwareConnectionProxy proxy, PropertySet propertySet) {
@@ -116,5 +114,6 @@ public class FailoverPluginManager {
   public void releaseResources() {
     this.logger.logTrace("[FailoverPluginManager.releaseResources]");
     this.headPlugin.releaseResources();
+    Runtime.getRuntime().removeShutdownHook(shutdownHook);
   }
 }
