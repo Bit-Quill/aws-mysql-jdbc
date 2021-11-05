@@ -563,6 +563,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug7952() throws Exception {
         String host = getEncodedHostPortPairFromTestsuiteUrl() + "," + getEncodedHostPortPairFromTestsuiteUrl();
@@ -5110,6 +5111,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug68733() throws Exception {
         Properties props = new Properties();
@@ -7792,6 +7794,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug21934573() throws Exception {
         Properties props = new Properties();
@@ -8396,6 +8399,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug21286268() throws Exception {
         final String SOURCE = "source";
@@ -10475,6 +10479,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug88242() throws Exception {
         Properties props = new Properties();
@@ -10577,6 +10582,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug27131768() throws Exception {
         Properties props = new Properties();
@@ -10712,6 +10718,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug90753() throws Exception {
         String initialWaitTimeout = getMysqlVariable("wait_timeout");
