@@ -6237,7 +6237,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      *
      * @throws Exception
      */
-    @Disabled
+
     @Test
     public void testBug67803() throws Exception {
         MysqlXADataSource dataSource = new MysqlXADataSource();
@@ -6283,7 +6283,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      *
      * @throws Exception
      */
-    @Disabled
+
     @Test
     public void testBug72712() throws Exception {
         // this test is only run when character_set_server=latin1
@@ -6319,7 +6319,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      *
      * @throws Exception
      */
-    @Disabled
+
     @Test
     public void testBug62577() throws Exception {
         Properties props = getHostFreePropertiesFromTestsuiteUrl();
@@ -6350,7 +6350,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         testBug62577TestUrl(String.format("jdbc:mysql://%s,%s/%s?%s", hostSpec, hostSpec, database, cfg2));
     }
 
-    @Disabled
+
     @Test
     private void testBug62577TestUrl(String url) throws Exception {
         MysqlXADataSource dataSource = new MysqlXADataSource();
@@ -6488,7 +6488,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      *
      * @throws Exception
      */
-    @Disabled
+
     @Test
     public void testBug73053() throws Exception {
         /*
