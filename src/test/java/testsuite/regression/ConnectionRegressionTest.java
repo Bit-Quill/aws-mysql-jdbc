@@ -6912,7 +6912,6 @@ public class ConnectionRegressionTest extends BaseTestCase {
      *
      * @throws Exception
      */
-    @Disabled
     @Test
     public void testBug19354014() throws Exception {
         if (!versionMeetsMinimum(5, 5, 7)) {
@@ -6945,7 +6944,6 @@ public class ConnectionRegressionTest extends BaseTestCase {
      *
      * @throws Exception
      */
-    @Disabled
     @Test
     public void testBug75168() throws Exception {
         final Properties props = new Properties();
@@ -7050,7 +7048,6 @@ public class ConnectionRegressionTest extends BaseTestCase {
      *
      * @throws Exception
      */
-    @Disabled
     @Test
     public void testBug71084() throws Exception {
         createTable("testBug71084", "(id INT, dt DATE)");
@@ -7145,7 +7142,6 @@ public class ConnectionRegressionTest extends BaseTestCase {
      *
      * @throws Exception
      */
-    @Disabled
     @Test
     public void testBug20685022() throws Exception {
         if (!isCommunityEdition()) {
