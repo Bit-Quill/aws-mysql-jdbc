@@ -5974,7 +5974,6 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
-    @Disabled
     @Test
     public void testBug71038() throws Exception {
         Properties p = new Properties();
@@ -6176,7 +6175,6 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
-    @Disabled
     @Test
     public void testBug67803() throws Exception {
         MysqlXADataSource dataSource = new MysqlXADataSource();
@@ -10524,6 +10522,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug88232() throws Exception {
         createTable("testBug88232", "(id INT)", "INNODB");
