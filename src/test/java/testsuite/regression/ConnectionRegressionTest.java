@@ -202,7 +202,6 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
-    @Disabled
     @Test
     public void testCollation41() throws Exception {
         if (isAdminConnectionConfigured()) {
@@ -774,7 +773,6 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
-    @Disabled
     @Test
     public void testNewCharsetsConfiguration() throws Exception {
         Properties props = new Properties();
@@ -1214,7 +1212,6 @@ public class ConnectionRegressionTest extends BaseTestCase {
         }
     }
 
-    @Disabled
     @Test
     public void testCSC5765() throws Exception {
         Properties props = new Properties();
@@ -1672,7 +1669,6 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
-    @Disabled
     @Test
     public void testFailoverReadOnly() throws Exception {
         Properties props = getHostFreePropertiesFromTestsuiteUrl();
@@ -1739,7 +1735,6 @@ public class ConnectionRegressionTest extends BaseTestCase {
         }
     }
 
-    @Disabled
     @Test
     public void testPropertiesDescriptionsKeys() throws Exception {
         DriverPropertyInfo[] dpi = new NonRegisteringDriver().getPropertyInfo(dbUrl, null);
@@ -1980,7 +1975,6 @@ public class ConnectionRegressionTest extends BaseTestCase {
         }
     }
 
-    @Disabled
     @Test
     public void testUnreliableSocketFactory() throws Exception {
         Properties props = new Properties();
@@ -2001,7 +1995,6 @@ public class ConnectionRegressionTest extends BaseTestCase {
         }
     }
 
-    @Disabled
     @Test
     public void testReplicationConnectionGroupHostManagement() throws Exception {
         String replicationGroup1 = "rg1";
@@ -2070,7 +2063,6 @@ public class ConnectionRegressionTest extends BaseTestCase {
         }
     }
 
-    @Disabled
     @Test
     public void testReplicationConnectionHostManagement() throws Exception {
         Properties props = new Properties();
@@ -2162,7 +2154,6 @@ public class ConnectionRegressionTest extends BaseTestCase {
         }
     }
 
-    @Disabled
     @Test
     public void testReplicationConnectWithNoSource() throws Exception {
         Properties props = new Properties();
@@ -2195,7 +2186,6 @@ public class ConnectionRegressionTest extends BaseTestCase {
         }
     }
 
-    @Disabled
     @Test
     public void testReplicationConnectWithMultipleSources() throws Exception {
         Properties props = new Properties();
@@ -2218,7 +2208,6 @@ public class ConnectionRegressionTest extends BaseTestCase {
         assertTrue(conn2.isHostSource(third.getHostPortPair()));
     }
 
-    @Disabled
     @Test
     public void testReplicationConnectionMemory() throws Exception {
         Properties props = new Properties();
@@ -2263,7 +2252,6 @@ public class ConnectionRegressionTest extends BaseTestCase {
         assertTrue(conn3.isHostReplica(third.getHostPortPair()));
     }
 
-    @Disabled
     @Test
     public void testReplicationJMXInterfaces() throws Exception {
         Properties props = new Properties();
@@ -2330,7 +2318,6 @@ public class ConnectionRegressionTest extends BaseTestCase {
         assertTrue(bean.getRegisteredConnectionGroups().contains(replicationGroup));
     }
 
-    @Disabled
     @Test
     private ReplicationGroupManagerMBean getReplicationMBean() throws Exception {
         MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
@@ -2339,7 +2326,6 @@ public class ConnectionRegressionTest extends BaseTestCase {
         return MBeanServerInvocationHandler.newProxyInstance(mbs, mbeanName, ReplicationGroupManagerMBean.class, false);
     }
 
-    @Disabled
     @Test
     public void testBug43421() throws Exception {
         Properties props = new Properties();
@@ -2840,7 +2826,6 @@ public class ConnectionRegressionTest extends BaseTestCase {
         }
     }
 
-    @Disabled
     @Test
     public void testAutoCommitLB() throws Exception {
         Properties props = new Properties();
@@ -3080,7 +3065,6 @@ public class ConnectionRegressionTest extends BaseTestCase {
         }
     }
 
-    @Disabled
     @Test
     public void testReconnectWithCachedConfig() throws Exception {
         Connection rConn = getConnectionWithProps("autoReconnect=true,initialTimeout=2,maxReconnects=3,cacheServerConfiguration=true,elideSetAutoCommits=true");
@@ -3118,7 +3102,6 @@ public class ConnectionRegressionTest extends BaseTestCase {
     }
 
     @SuppressWarnings("resource")
-    @Disabled
     @Test
     public void testChangeUser() throws Exception {
         Properties props = getPropertiesFromTestsuiteUrl();
@@ -3146,7 +3129,6 @@ public class ConnectionRegressionTest extends BaseTestCase {
         testConn.close();
     }
 
-    @Disabled
     @Test
     public void testChangeUserNoDb() throws Exception {
         String databaseName = "testchangeusernodb";
@@ -3178,7 +3160,6 @@ public class ConnectionRegressionTest extends BaseTestCase {
         con.close();
     }
 
-    @Disabled
     @Test
     public void testChangeUserClosedConn() throws Exception {
         Properties props = getPropertiesFromTestsuiteUrl();
@@ -3256,7 +3237,6 @@ public class ConnectionRegressionTest extends BaseTestCase {
         }
     }
 
-    @Disabled
     @Test
     public void testDefaultPlugin() throws Exception {
         if (!versionMeetsMinimum(5, 5, 7)) {
@@ -3315,7 +3295,6 @@ public class ConnectionRegressionTest extends BaseTestCase {
         }
     }
 
-    @Disabled
     @Test
     public void testDisabledPlugins() throws Exception {
         if (!versionMeetsMinimum(5, 5, 7)) {
@@ -3377,7 +3356,6 @@ public class ConnectionRegressionTest extends BaseTestCase {
         }
     }
 
-    @Disabled
     @Test
     public void testAuthTestPlugin() throws Exception {
         if (!versionMeetsMinimum(5, 5, 7)) {
@@ -3453,7 +3431,6 @@ public class ConnectionRegressionTest extends BaseTestCase {
         }
     }
 
-    @Disabled
     @Test
     public void testTwoQuestionsPlugin() throws Exception {
         if (!versionMeetsMinimum(5, 5, 7)) {
@@ -3524,7 +3501,6 @@ public class ConnectionRegressionTest extends BaseTestCase {
         }
     }
 
-    @Disabled
     @Test
     public void testThreeAttemptsPlugin() throws Exception {
         if (!versionMeetsMinimum(5, 5, 7)) {
@@ -3713,7 +3689,6 @@ public class ConnectionRegressionTest extends BaseTestCase {
         }
     }
 
-    @Disabled
     @Test
     public void testOldPasswordPlugin() throws Exception {
         if (!versionMeetsMinimum(5, 5, 7) || versionMeetsMinimum(5, 7, 5)) {
@@ -3825,7 +3800,6 @@ public class ConnectionRegressionTest extends BaseTestCase {
 
     }
 
-    @Disabled
     @Test
     public void testAuthCleartextPlugin() throws Exception {
         if (!versionMeetsMinimum(5, 5, 7)) {
@@ -4634,7 +4608,6 @@ public class ConnectionRegressionTest extends BaseTestCase {
         }
     }
 
-    @Disabled
     @Test
     public void testIsLocal() throws Exception {
         boolean normalState = ((ConnectionImpl) this.conn).isServerLocal();
@@ -4827,7 +4800,6 @@ public class ConnectionRegressionTest extends BaseTestCase {
         }
     }
 
-    @Disabled
     @Test
     public void testExpiredPassword() throws Exception {
         if (!versionMeetsMinimum(5, 6, 10)) {
@@ -4988,7 +4960,6 @@ public class ConnectionRegressionTest extends BaseTestCase {
      *
      * @throws Exception
      */
-    @Disabled
     @Test
     public void testConnectionAttributes() throws Exception {
         if (versionMeetsMinimum(5, 6)) {
@@ -4999,7 +4970,6 @@ public class ConnectionRegressionTest extends BaseTestCase {
         }
     }
 
-    @Disabled
     @Test
     private void testConnectionAttributes(String url) throws Exception {
         if (!versionMeetsMinimum(5, 6)) {
@@ -5803,7 +5773,6 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
-    @Disabled
     @Test
     public void testLongAuthResponsePayload() throws Exception {
         NativeSession sha256Sess;
@@ -6141,7 +6110,6 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
-    @Disabled
     @Test
     public void testReplicationConnectionNoReplicasRemainOnSource() throws Exception {
         Properties props = getPropertiesFromTestsuiteUrl();
@@ -6165,7 +6133,6 @@ public class ConnectionRegressionTest extends BaseTestCase {
         s.close();
     }
 
-    @Disabled
     @Test
     public void testReplicationConnectionNoReplicasBasics() throws Exception {
         // create a replication connection with only a source, get the
@@ -8045,7 +8012,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
-    @Disabled
+    @Disabled // Don't Enable
     @Test
     public void testBug21947042() throws Exception {
         System.setProperty("javax.net.ssl.trustStore", "");
@@ -8333,7 +8300,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
-    @Disabled
+    @Disabled // Don't Enable
     @Test
     public void testTLSVersion() throws Exception {
         // Find out which TLS protocol versions are supported by this JVM.
@@ -8407,7 +8374,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      *
      * @throws Exception
      */
-    @Disabled
+    @Disabled // Don't Enable
     @Test
     public void testEnableTLSVersion() throws Exception {
         // Find out which TLS protocol versions are supported by this JVM.
@@ -11823,7 +11790,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      *
      * @throws Exception
      */
-    @Disabled
+    @Disabled // Don't Enable
     @Test
     public void testBug99767() throws Exception {
         try {
