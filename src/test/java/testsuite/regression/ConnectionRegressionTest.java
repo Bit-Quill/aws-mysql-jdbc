@@ -4450,7 +4450,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         }
     }
 
-    @Disabled
+
     @Test
     public void testBug64205() throws Exception {
         Properties props = getPropertiesFromTestsuiteUrl();
@@ -4618,7 +4618,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      *
      * @throws Exception
      */
-    @Disabled
+
     @Test
     public void testBug57662() throws Exception {
         createTable("testBug57662", "(x VARCHAR(10) NOT NULL DEFAULT '')");
@@ -4656,7 +4656,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         }
     }
 
-    @Disabled
+
     @Test
     public void testBug14563127() throws Exception {
         Properties props = new Properties();
@@ -5149,7 +5149,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * @throws Exception
      *             if the test fails.
      */
-    @Disabled
+
     @Test
     public void testBug68763() throws Exception {
         ReplicationConnection replConn = null;
@@ -5560,7 +5560,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      *
      * @throws Exception
      */
-    @Disabled
+
     @Test
     public void testBug17251955() throws Exception {
         Connection c1 = null;
@@ -5612,7 +5612,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      *
      * @throws Exception
      */
-    @Disabled
+
     @Test
     public void testBug69506() throws Exception {
         MysqlXADataSource dataSource = new MysqlXADataSource();
@@ -5640,7 +5640,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      *
      * @throws Exception
      */
-    @Disabled
+
     @Test
     public void testBug69746() throws Exception {
         Connection testConnection;
@@ -5846,7 +5846,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      *
      * @throws Exception
      */
-    @Disabled
+
     @Test
     public void testBug69452() throws Exception {
         String[][] testMemUnits = new String[][] { { "k", "kb", "kB", "K", "Kb", "KB" }, { "m", "mb", "mB", "M", "Mb", "MB" },
@@ -5888,7 +5888,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      *
      * @throws Exception
      */
-    @Disabled
+
     @Test
     public void testBug69777() throws Exception {
         final int maxPacketSizeThreshold = 8203; // ServerPreparedStatement.BLOB_STREAM_READ_BUF_SIZE + 11
@@ -6034,7 +6034,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      *
      * @throws Exception
      */
-    @Disabled
+
     @Test
     public void testBug71038() throws Exception {
         Properties p = new Properties();
@@ -6203,7 +6203,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      *
      * @throws Exception
      */
-    @Disabled
+
     @Test
     public void testBug71850() throws Exception {
         assertThrows(Exception.class, "ExceptionInterceptor.init\\(\\) called 1 time\\(s\\)", new Callable<Void>() {
