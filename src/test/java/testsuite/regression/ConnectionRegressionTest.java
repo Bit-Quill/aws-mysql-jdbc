@@ -101,6 +101,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
  * Regression tests for Connections
  */
 public class ConnectionRegressionTest extends BaseTestCase {
+    @Disabled
     @Test
     public void testBug1914() throws Exception {
         System.out.println(this.conn.nativeSQL("{fn convert(foo(a,b,c), BIGINT)}"));
@@ -126,6 +127,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug3554() throws Exception {
         try {
@@ -135,6 +137,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         }
     }
 
+    @Disabled
     @Test
     public void testBug3790() throws Exception {
         String field2OldValue = "foo";
@@ -199,6 +202,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testCollation41() throws Exception {
         if (isAdminConnectionConfigured()) {
@@ -356,6 +360,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug4334() throws Exception {
         if (isAdminConnectionConfigured()) {
@@ -510,6 +515,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * @throws Exception
      *             Note, test is timing-dependent, but should work in most cases.
      */
+    @Disabled
     @Test
     public void testBug6966() throws Exception {
         Properties props = getPropertiesFromTestsuiteUrl();
@@ -638,6 +644,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug7607() throws Exception {
         Connection ms932Conn = null, cp943Conn = null, shiftJisConn = null, windows31JConn = null;
@@ -754,6 +761,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug9206() throws Exception {
         Properties props = new Properties();
@@ -766,6 +774,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testNewCharsetsConfiguration() throws Exception {
         Properties props = new Properties();
@@ -782,6 +791,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug10144() throws Exception {
         Properties props = new Properties();
@@ -807,6 +817,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug10496() throws Exception {
         Properties props = new Properties();
@@ -825,6 +836,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug11259() throws Exception {
         Connection dsConn = null;
@@ -844,6 +856,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug11879() throws Exception {
         if (runMultiHostTests()) {
@@ -866,6 +879,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug11976() throws Exception {
         Properties props = new Properties();
@@ -880,6 +894,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug12218() throws Exception {
         if (runMultiHostTests()) {
@@ -911,6 +926,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug12229() throws Exception {
         createTable("testBug12229", "(`int_field` integer )");
@@ -943,6 +959,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug12752() throws Exception {
         Properties props = new Properties();
@@ -955,6 +972,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug12753() throws Exception {
         Properties props = new Properties();
@@ -980,6 +998,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug13048() throws Exception {
         Connection profileConn = null;
@@ -1037,6 +1056,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug13453() throws Exception {
         StringBuilder urlBuf = new StringBuilder(dbUrl);
@@ -1074,6 +1094,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug15065() throws Exception {
         createTable("testBug15065", "(field1 int)");
@@ -1177,6 +1198,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug15544() throws Exception {
         Properties props = new Properties();
@@ -1192,6 +1214,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         }
     }
 
+    @Disabled
     @Test
     public void testCSC5765() throws Exception {
         Properties props = new Properties();
@@ -1227,6 +1250,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug15570() throws Exception {
         Connection replConn = null;
@@ -1290,6 +1314,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * @throws Exception
      *             Note, test is timing-dependent, but should work in most cases.
      */
+    @Disabled
     @Test
     public void testBug23281() throws Exception {
         Properties props = getHostFreePropertiesFromTestsuiteUrl();
@@ -1337,6 +1362,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug24706() throws Exception {
         // 'elideSetAutoCommits' feature was turned off due to Server Bug#66884. See also ConnectionPropertiesImpl#getElideSetAutoCommits().
@@ -1391,6 +1417,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug25514() throws Exception {
         for (int i = 0; i < 10; i++) {
@@ -1444,6 +1471,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug23626() throws Exception {
         List<String> propertyNames = new ArrayList<>();
@@ -1546,6 +1574,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug25545() throws Exception {
         createProcedure("testBug25545", "() BEGIN SELECT 1; END");
@@ -1580,6 +1609,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug36948() throws Exception {
         Connection _conn = null;
@@ -1612,6 +1642,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug27655() throws Exception {
         Properties props = new Properties();
@@ -1641,6 +1672,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testFailoverReadOnly() throws Exception {
         Properties props = getHostFreePropertiesFromTestsuiteUrl();
@@ -1707,6 +1739,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         }
     }
 
+    @Disabled
     @Test
     public void testPropertiesDescriptionsKeys() throws Exception {
         DriverPropertyInfo[] dpi = new NonRegisteringDriver().getPropertyInfo(dbUrl, null);
@@ -1725,6 +1758,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         }
     }
 
+    @Disabled
     @Test
     public void testBug29852() throws Exception {
         Connection lbConn = getLoadBalancedConnection();
@@ -1739,6 +1773,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug22643() throws Exception {
         checkPingQuery(this.conn);
@@ -1764,6 +1799,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         }
     }
 
+    @Disabled
     @Test
     private void checkPingQuery(Connection c) throws SQLException {
         // Yes, I know we're sending 2, and looking for 1 that's part of the test, since we don't _really_ send the query to the server!
@@ -1793,6 +1829,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
 
     }
 
+    @Disabled
     @Test
     public void testBug31053() throws Exception {
         Properties props = new Properties();
@@ -1808,6 +1845,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         }
     }
 
+    @Disabled
     @Test
     public void testBug32877() throws Exception {
         Properties props = new Properties();
@@ -1833,6 +1871,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug33734() throws Exception {
         Connection testConn = getConnectionWithProps("cachePrepStmts=true,useServerPrepStmts=false");
@@ -1858,6 +1897,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         assertTrue(((Boolean) isValid.invoke(newConn, new Object[] { new Integer(0) })).booleanValue());
     }
 
+    @Disabled
     @Test
     public void testBug34937() throws Exception {
         com.mysql.cj.jdbc.MysqlConnectionPoolDataSource ds = new com.mysql.cj.jdbc.MysqlConnectionPoolDataSource();
@@ -1894,6 +1934,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         }
     }
 
+    @Disabled
     @Test
     public void testBug35660() throws Exception {
         Connection lbConn = getLoadBalancedConnection(null);
@@ -1910,6 +1951,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         }
     }
 
+    @Disabled
     @Test
     public void testBug37570() throws Exception {
         Properties props = new Properties();
@@ -2028,6 +2070,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         }
     }
 
+    @Disabled
     @Test
     public void testReplicationConnectionHostManagement() throws Exception {
         Properties props = new Properties();
@@ -2119,6 +2162,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         }
     }
 
+    @Disabled
     @Test
     public void testReplicationConnectWithNoSource() throws Exception {
         Properties props = new Properties();
@@ -2151,6 +2195,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         }
     }
 
+    @Disabled
     @Test
     public void testReplicationConnectWithMultipleSources() throws Exception {
         Properties props = new Properties();
@@ -2173,6 +2218,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         assertTrue(conn2.isHostSource(third.getHostPortPair()));
     }
 
+    @Disabled
     @Test
     public void testReplicationConnectionMemory() throws Exception {
         Properties props = new Properties();
@@ -2217,6 +2263,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         assertTrue(conn3.isHostReplica(third.getHostPortPair()));
     }
 
+    @Disabled
     @Test
     public void testReplicationJMXInterfaces() throws Exception {
         Properties props = new Properties();
@@ -2283,6 +2330,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         assertTrue(bean.getRegisteredConnectionGroups().contains(replicationGroup));
     }
 
+    @Disabled
     @Test
     private ReplicationGroupManagerMBean getReplicationMBean() throws Exception {
         MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
@@ -2291,6 +2339,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         return MBeanServerInvocationHandler.newProxyInstance(mbs, mbeanName, ReplicationGroupManagerMBean.class, false);
     }
 
+    @Disabled
     @Test
     public void testBug43421() throws Exception {
         Properties props = new Properties();
@@ -2329,6 +2378,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         }
     }
 
+    @Disabled
     @Test
     public void testBug48442() throws Exception {
         Properties props = new Properties();
@@ -2355,6 +2405,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         assertTrue(hc == conn2.hashCode());
     }
 
+    @Disabled
     @Test
     public void testBug45171() throws Exception {
         List<Statement> statementsToTest = new LinkedList<>();
@@ -2379,6 +2430,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug44587() throws Exception {
         Exception e = null;
@@ -2407,6 +2459,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug45419() throws Exception {
         Exception e = null;
@@ -2444,6 +2497,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         return true;
     }
 
+    @Disabled
     @Test
     public void testBug46637() throws Exception {
         String hostname = getPortFreeHostname(null);
@@ -2460,6 +2514,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         }
     }
 
+    @Disabled
     @Test
     public void testBug32216() throws Exception {
         checkBug32216("www.mysql.com", "12345", "my_database");
@@ -2490,6 +2545,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         assertEquals(dbname, connectionHost.getDatabase(), "dbname not equal");
     }
 
+    @Disabled
     @Test
     public void testBug44324() throws Exception {
         createTable("bug44324", "(Id INT NOT NULL AUTO_INCREMENT PRIMARY KEY, SomeVChar VARCHAR(10)) ENGINE=MyISAM;");
@@ -2501,6 +2557,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         }
     }
 
+    @Disabled
     @Test
     public void testBug46925() throws Exception {
         MysqlXADataSource xads1 = new MysqlXADataSource();
@@ -2527,6 +2584,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         c2.getXAResource().commit(txid, false);
     }
 
+    @Disabled
     @Test
     public void testBug47494() throws Exception {
         try {
@@ -2564,6 +2622,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         }
     }
 
+    @Disabled
     @Test
     public void testBug48486() throws Exception {
         String hostSpec = getEncodedHostPortPairFromTestsuiteUrl();
@@ -2590,6 +2649,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         this.rs = c.prepareStatement("SELECT 1").executeQuery();
     }
 
+    @Disabled
     @Test
     public void testBug48605() throws Exception {
         Properties props = new Properties();
@@ -2629,6 +2689,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         });
     }
 
+    @Disabled
     @Test
     public void testBug49700() throws Exception {
         Connection c = getConnectionWithProps("sessionVariables=@foo='bar'");
@@ -2637,6 +2698,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         assertEquals("bar", getSingleIndexedValueWithQuery(c, 1, "SELECT @foo"));
     }
 
+    @Disabled
     @Test
     public void testBug51266() throws Exception {
         Properties props = new Properties();
@@ -2655,6 +2717,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug51643() throws Exception {
         Properties props = new Properties();
@@ -2700,6 +2763,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         }
     }
 
+    @Disabled
     @Test
     public void testBug51783() throws Exception {
         Properties props = new Properties();
@@ -2776,6 +2840,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         }
     }
 
+    @Disabled
     @Test
     public void testAutoCommitLB() throws Exception {
         Properties props = new Properties();
@@ -2851,6 +2916,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         }
     }
 
+    @Disabled
     @Test
     public void testBug56429() throws Exception {
         Properties props = getPropertiesFromTestsuiteUrl();
@@ -2917,6 +2983,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         }
     }
 
+    @Disabled
     @Test
     public void testBug56955() throws Exception {
         assertEquals("JKS", ((MysqlConnection) this.conn).getPropertySet().getStringProperty(PropertyKey.trustCertificateKeyStoreType).getStringValue());
@@ -2982,6 +3049,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         }
     }
 
+    @Disabled
     @Test
     public void testStatementComment() throws Exception {
         Connection c = getConnectionWithProps("autoGenerateTestcaseScript=true,logger=StandardLogger");
@@ -3012,6 +3080,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         }
     }
 
+    @Disabled
     @Test
     public void testReconnectWithCachedConfig() throws Exception {
         Connection rConn = getConnectionWithProps("autoReconnect=true,initialTimeout=2,maxReconnects=3,cacheServerConfiguration=true,elideSetAutoCommits=true");
@@ -3036,6 +3105,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         rConn2.prepareStatement("SELECT 1").execute();
     }
 
+    @Disabled
     @Test
     public void testBug61201() throws Exception {
         Properties props = new Properties();
@@ -3048,6 +3118,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
     }
 
     @SuppressWarnings("resource")
+    @Disabled
     @Test
     public void testChangeUser() throws Exception {
         Properties props = getPropertiesFromTestsuiteUrl();
@@ -3075,6 +3146,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         testConn.close();
     }
 
+    @Disabled
     @Test
     public void testChangeUserNoDb() throws Exception {
         String databaseName = "testchangeusernodb";
@@ -3106,6 +3178,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         con.close();
     }
 
+    @Disabled
     @Test
     public void testChangeUserClosedConn() throws Exception {
         Properties props = getPropertiesFromTestsuiteUrl();
@@ -3126,6 +3199,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         }
     }
 
+    @Disabled
     @Test
     public void testBug63284() throws Exception {
         Properties props = getPropertiesFromTestsuiteUrl();
@@ -3182,6 +3256,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         }
     }
 
+    @Disabled
     @Test
     public void testDefaultPlugin() throws Exception {
         if (!versionMeetsMinimum(5, 5, 7)) {
@@ -3240,6 +3315,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         }
     }
 
+    @Disabled
     @Test
     public void testDisabledPlugins() throws Exception {
         if (!versionMeetsMinimum(5, 5, 7)) {
@@ -3301,6 +3377,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         }
     }
 
+    @Disabled
     @Test
     public void testAuthTestPlugin() throws Exception {
         if (!versionMeetsMinimum(5, 5, 7)) {
@@ -3376,6 +3453,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         }
     }
 
+    @Disabled
     @Test
     public void testTwoQuestionsPlugin() throws Exception {
         if (!versionMeetsMinimum(5, 5, 7)) {
@@ -3446,6 +3524,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         }
     }
 
+    @Disabled
     @Test
     public void testThreeAttemptsPlugin() throws Exception {
         if (!versionMeetsMinimum(5, 5, 7)) {
@@ -3634,6 +3713,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         }
     }
 
+    @Disabled
     @Test
     public void testOldPasswordPlugin() throws Exception {
         if (!versionMeetsMinimum(5, 5, 7) || versionMeetsMinimum(5, 7, 5)) {
@@ -3745,6 +3825,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
 
     }
 
+    @Disabled
     @Test
     public void testAuthCleartextPlugin() throws Exception {
         if (!versionMeetsMinimum(5, 5, 7)) {
@@ -3856,6 +3937,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testSha256PasswordPlugin() throws Exception {
         String trustStorePath = "src/test/config/ssl-test-certs/ca-truststore";
@@ -4344,6 +4426,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         return allowsRSA;
     }
 
+    @Disabled
     @Test
     public void testBug36662() throws Exception {
         try {
@@ -4363,6 +4446,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         }
     }
 
+    @Disabled
     @Test
     public void testBug37931() throws Exception {
         Connection _conn = null;
@@ -4402,6 +4486,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         }
     }
 
+    @Disabled
     @Test
     public void testBug64205() throws Exception {
         Properties props = getPropertiesFromTestsuiteUrl();
@@ -4549,6 +4634,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         }
     }
 
+    @Disabled
     @Test
     public void testIsLocal() throws Exception {
         boolean normalState = ((ConnectionImpl) this.conn).isServerLocal();
@@ -4569,6 +4655,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug57662() throws Exception {
         createTable("testBug57662", "(x VARCHAR(10) NOT NULL DEFAULT '')");
@@ -4606,6 +4693,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         }
     }
 
+    @Disabled
     @Test
     public void testBug14563127() throws Exception {
         Properties props = new Properties();
@@ -4727,6 +4815,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         assertTrue(updateCount == loops);
     }
 
+    @Disabled
     @Test
     public void testStackOverflowOnMissingInterceptor() throws Exception {
         try {
@@ -4738,6 +4827,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         }
     }
 
+    @Disabled
     @Test
     public void testExpiredPassword() throws Exception {
         if (!versionMeetsMinimum(5, 6, 10)) {
@@ -4898,6 +4988,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      *
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testConnectionAttributes() throws Exception {
         if (versionMeetsMinimum(5, 6)) {
@@ -4908,6 +4999,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         }
     }
 
+    @Disabled
     @Test
     private void testConnectionAttributes(String url) throws Exception {
         if (!versionMeetsMinimum(5, 6)) {
@@ -5098,6 +5190,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * @throws Exception
      *             if the test fails.
      */
+        @Disabled
     @Test
     public void testBug68763() throws Exception {
         ReplicationConnection replConn = null;
@@ -5508,6 +5601,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug17251955() throws Exception {
         Connection c1 = null;
@@ -5559,6 +5653,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug69506() throws Exception {
         MysqlXADataSource dataSource = new MysqlXADataSource();
@@ -5586,6 +5681,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug69746() throws Exception {
         Connection testConnection;
@@ -5707,6 +5803,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testLongAuthResponsePayload() throws Exception {
         NativeSession sha256Sess;
@@ -5791,6 +5888,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug69452() throws Exception {
         String[][] testMemUnits = new String[][] { { "k", "kb", "kB", "K", "Kb", "KB" }, { "m", "mb", "mB", "M", "Mb", "MB" },
@@ -5832,6 +5930,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug69777() throws Exception {
         final int maxPacketSizeThreshold = 8203; // ServerPreparedStatement.BLOB_STREAM_READ_BUF_SIZE + 11
@@ -5978,6 +6077,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug71038() throws Exception {
         Properties p = new Properties();
@@ -6042,6 +6142,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testReplicationConnectionNoReplicasRemainOnSource() throws Exception {
         Properties props = getPropertiesFromTestsuiteUrl();
@@ -6147,6 +6248,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug71850() throws Exception {
         assertThrows(Exception.class, "ExceptionInterceptor.init\\(\\) called 1 time\\(s\\)", new Callable<Void>() {
@@ -6180,6 +6282,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug67803() throws Exception {
         MysqlXADataSource dataSource = new MysqlXADataSource();
@@ -6225,6 +6328,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug72712() throws Exception {
         // this test is only run when character_set_server=latin1
@@ -6260,6 +6364,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug62577() throws Exception {
         Properties props = getHostFreePropertiesFromTestsuiteUrl();
@@ -6290,6 +6395,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         testBug62577TestUrl(String.format("jdbc:mysql://%s,%s/%s?%s", hostSpec, hostSpec, database, cfg2));
     }
 
+    @Disabled
     @Test
     private void testBug62577TestUrl(String url) throws Exception {
         MysqlXADataSource dataSource = new MysqlXADataSource();
@@ -6310,6 +6416,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug18869381() throws Exception {
         if (this.sha256Conn != null && ((JdbcConnection) this.sha256Conn).getSession().versionMeetsMinimum(5, 6, 6)) {
@@ -6383,6 +6490,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         }
     }
 
+    @Disabled
     @Test
     private void testBug18869381WithProperties(Properties props) throws Exception {
         Connection testConn = null;
@@ -6427,6 +6535,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug73053() throws Exception {
         /*
@@ -6850,6 +6959,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug19354014() throws Exception {
         if (!versionMeetsMinimum(5, 5, 7)) {
@@ -6882,6 +6992,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug75168() throws Exception {
         final Properties props = new Properties();
@@ -6986,6 +7097,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug71084() throws Exception {
         createTable("testBug71084", "(id INT, dt DATE)");
@@ -7080,6 +7192,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug20685022() throws Exception {
         if (!isCommunityEdition()) {
@@ -7133,6 +7246,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug75592() throws Exception {
         if (versionMeetsMinimum(5, 0, 3)) {
@@ -7213,6 +7327,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug62452() throws Exception {
         PooledConnection con = null;
@@ -7580,6 +7695,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug75670() throws Exception {
         if (this.sha256Conn != null && ((JdbcConnection) this.sha256Conn).getSession().versionMeetsMinimum(5, 6, 6)) {
@@ -7797,7 +7913,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
-    @Disabled
+        @Disabled
     @Test
     public void testBug21934573() throws Exception {
         Properties props = new Properties();
@@ -7930,6 +8046,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug21947042() throws Exception {
         System.setProperty("javax.net.ssl.trustStore", "");
@@ -8105,6 +8222,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug56100() throws Exception {
         final String port = getPort(null);
@@ -8369,6 +8487,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+        @Disabled
     @Test
     public void testBug56122() throws Exception {
         for (final Connection testConn : new Connection[] { this.conn, getFailoverConnection(), getLoadBalancedConnection(),
@@ -8729,6 +8848,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+        @Disabled
     @Test
     public void testBug77171() throws Exception {
         String sqlMode = getMysqlVariable("sql_mode");
@@ -8779,6 +8899,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+        @Disabled
     @Test
     public void testBug22730682() throws Exception {
         final String currentHost = mainConnectionUrl.getMainHost().getHostPortPair();
@@ -8817,6 +8938,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+        @Disabled
     @Test
     public void testBug22848249() throws Exception {
         /*
@@ -9406,6 +9528,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+        @Disabled
     @Test
     public void testBug22678872() throws Exception {
         final Properties connProps = getPropertiesFromTestsuiteUrl();
@@ -9745,6 +9868,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+        @Disabled
     @Test
     public void testBug77649() throws Exception {
         String host = getHostFromTestsuiteUrl();
@@ -9772,6 +9896,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+        @Disabled
     @Test
     public void testBug74711() throws Exception {
         if (!((MysqlConnection) this.conn).getSession().getServerSession().isQueryCacheEnabled()) {
@@ -9809,6 +9934,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+        @Disabled
     @Test
     public void testBug75209() throws Exception {
         createTable("testBug75209", "(id INT PRIMARY KEY)", "InnoDB");
@@ -9856,6 +9982,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+        @Disabled
     @Test
     public void testBug75615() throws Exception {
         // Main use case: although this could cause an exception due to a race condition in MysqlIO.mysqlConnection it is silently swallowed within the running
@@ -9901,6 +10028,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+        @Disabled
     @Test
     public void testBug70785() throws Exception {
         // Make sure that both client and server have autocommit turned on.
@@ -9978,6 +10106,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+        @Disabled
     @Test
     public void testCachingSha2PasswordPlugin() throws Exception {
         String trustStorePath = "src/test/config/ssl-test-certs/ca-truststore";
@@ -10604,6 +10733,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      *
      * @throws Exception
      */
+        @Disabled
     @Test
     public void testBug79612() throws Exception {
         // The case with database present in URL is covered by testConnectionAttributes() test case.
@@ -10621,6 +10751,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+        @Disabled
     @Test
     public void testBug88227() throws Exception {
         java.sql.Connection testConn = getConnectionWithProps("statementInterceptors=" + Bug88227QueryInterceptor.class.getName());
@@ -10653,6 +10784,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+        @Disabled
     @Test
     public void testBug26819691() throws Exception {
         assertThrows(SQLException.class, "The connection property 'packetDebugBufferSize' only accepts integer values in the range of 1 - 2147483647, "
@@ -10671,6 +10803,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug86741() throws Exception {
         this.rs = this.stmt.executeQuery("SELECT @@global.autocommit");
@@ -10763,6 +10896,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug26089880() throws Exception {
         assertThrows(SQLException.class, "No suitable driver found for mysqlx://localhost:33060/test\\?user=usr&password=pwd", new Callable<Void>() {
@@ -10778,6 +10912,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug87600() throws Exception {
         assertThrows(SQLException.class, "No suitable driver found for jdbc:oracle:thin:@127.0.0.1:1521:xe", new Callable<Void>() {
@@ -10793,6 +10928,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug91421() throws Exception {
         Properties props = new Properties();
@@ -10822,6 +10958,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug28150662() throws Exception {
         HostInfo hostInfo = mainConnectionUrl.getMainHost();
@@ -10854,6 +10991,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug27102307() throws Exception {
         // Basic SSL properties translation is tested in testBug21947042(). Testing only missing variants here.
@@ -11001,6 +11139,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug89948() throws Exception {
         createTable("testBug89948", "(id INT PRIMARY KEY)");
@@ -11091,6 +11230,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug91317() throws Exception {
         Map<String, String> defaultCollations = new HashMap<>();
@@ -11153,6 +11293,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+        @Disabled
     @Test
     public void testBug25642226() throws Exception {
         testBug25642226Task(dbUrl, "\u4F5C\u4F5C\u4F5C");
@@ -11251,6 +11392,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug92625() throws Exception {
         Properties props = new Properties();
@@ -11271,6 +11413,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug25642021() throws Exception {
         Properties props = getPropertiesFromTestsuiteUrl();
@@ -11304,6 +11447,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug93007() throws Exception {
         Properties props = new Properties();
@@ -11361,6 +11505,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug29329326() throws Exception {
         Properties p = new Properties();
@@ -11402,6 +11547,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug41172() throws Exception {
         byte eventType = ProfilerEvent.TYPE_FETCH;
@@ -11437,6 +11583,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug74690() throws Exception {
         byte eventType = ProfilerEvent.TYPE_FETCH;
@@ -11475,6 +11622,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+        @Disabled
     @Test
     public void testBug70677() throws Exception {
         Properties props = new Properties();
@@ -11505,6 +11653,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug98445() throws Exception {
         createProcedure("setCiTestBug98445", "(IN k VARCHAR(100), IN v VARCHAR(100)) BEGIN SET @testBug98445=v; END");
@@ -11627,6 +11776,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug97714() throws Exception {
         boolean useSPS = false;
@@ -11674,6 +11824,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      *
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug99767() throws Exception {
         try {
@@ -11740,6 +11891,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      *
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug99076() throws Exception {
         if (!versionMeetsMinimum(8, 0, 16)) {
@@ -11767,6 +11919,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      *
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug98667() throws Exception {
         this.rs = this.stmt.executeQuery("SHOW VARIABLES LIKE 'named_pipe'");
@@ -11823,6 +11976,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      *
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug21789378() throws Exception {
         Field f = NativeServerSession.class.getDeclaredField("sessionTimeZone");
