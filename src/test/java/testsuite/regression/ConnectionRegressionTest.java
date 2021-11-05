@@ -11869,9 +11869,9 @@ public class ConnectionRegressionTest extends BaseTestCase {
      *
      * @throws Exception
      */
-    @Disabled
     @Test
     public void testBug98667() throws Exception {
+        final int oldLoginTimeout = DriverManager.getLoginTimeout();
         this.rs = this.stmt.executeQuery("SHOW VARIABLES LIKE 'named_pipe'");
         if (!this.rs.next() || !this.rs.getString(2).equalsIgnoreCase("on")) {
             return; // Only runs on Windows with named pipes enabled.
@@ -11919,6 +11919,8 @@ public class ConnectionRegressionTest extends BaseTestCase {
         executor.awaitTermination(3, TimeUnit.SECONDS);
 
         assertNull(oneFail, "At least one connection failed.");
+
+        DriverManager.setLoginTimeout(oldLoginTimeout);
     }
 
     /**
