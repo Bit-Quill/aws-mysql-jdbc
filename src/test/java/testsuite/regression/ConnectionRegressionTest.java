@@ -1939,7 +1939,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         }
     }
 
-    @Disabled
+
     @Test
     public void testBug37570() throws Exception {
         Properties props = new Properties();
@@ -2357,7 +2357,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         }
     }
 
-    @Disabled
+
     @Test
     public void testBug48442() throws Exception {
         Properties props = new Properties();
@@ -2384,7 +2384,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         assertTrue(hc == conn2.hashCode());
     }
 
-    @Disabled
+
     @Test
     public void testBug45171() throws Exception {
         List<Statement> statementsToTest = new LinkedList<>();
@@ -2409,7 +2409,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
-    @Disabled
+
     @Test
     public void testBug44587() throws Exception {
         Exception e = null;
@@ -2438,7 +2438,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
-    @Disabled
+
     @Test
     public void testBug45419() throws Exception {
         Exception e = null;
@@ -2476,7 +2476,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         return true;
     }
 
-    @Disabled
+
     @Test
     public void testBug46637() throws Exception {
         String hostname = getPortFreeHostname(null);
@@ -2493,7 +2493,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         }
     }
 
-    @Disabled
+
     @Test
     public void testBug32216() throws Exception {
         checkBug32216("www.mysql.com", "12345", "my_database");
@@ -2524,7 +2524,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         assertEquals(dbname, connectionHost.getDatabase(), "dbname not equal");
     }
 
-    @Disabled
+
     @Test
     public void testBug44324() throws Exception {
         createTable("bug44324", "(Id INT NOT NULL AUTO_INCREMENT PRIMARY KEY, SomeVChar VARCHAR(10)) ENGINE=MyISAM;");
@@ -2536,7 +2536,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         }
     }
 
-    @Disabled
+
     @Test
     public void testBug46925() throws Exception {
         MysqlXADataSource xads1 = new MysqlXADataSource();
@@ -2563,7 +2563,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         c2.getXAResource().commit(txid, false);
     }
 
-    @Disabled
+
     @Test
     public void testBug47494() throws Exception {
         try {
@@ -2601,7 +2601,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         }
     }
 
-    @Disabled
+
     @Test
     public void testBug48486() throws Exception {
         String hostSpec = getEncodedHostPortPairFromTestsuiteUrl();
@@ -2628,7 +2628,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         this.rs = c.prepareStatement("SELECT 1").executeQuery();
     }
 
-    @Disabled
+
     @Test
     public void testBug48605() throws Exception {
         Properties props = new Properties();
@@ -2668,7 +2668,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         });
     }
 
-    @Disabled
+
     @Test
     public void testBug49700() throws Exception {
         Connection c = getConnectionWithProps("sessionVariables=@foo='bar'");
@@ -2677,7 +2677,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         assertEquals("bar", getSingleIndexedValueWithQuery(c, 1, "SELECT @foo"));
     }
 
-    @Disabled
+
     @Test
     public void testBug51266() throws Exception {
         Properties props = new Properties();
@@ -2696,7 +2696,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
-    @Disabled
+
     @Test
     public void testBug51643() throws Exception {
         Properties props = new Properties();
@@ -2742,7 +2742,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         }
     }
 
-    @Disabled
+
     @Test
     public void testBug51783() throws Exception {
         Properties props = new Properties();
@@ -2894,7 +2894,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         }
     }
 
-    @Disabled
+
     @Test
     public void testBug56429() throws Exception {
         Properties props = getPropertiesFromTestsuiteUrl();
@@ -2961,7 +2961,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         }
     }
 
-    @Disabled
+
     @Test
     public void testBug56955() throws Exception {
         assertEquals("JKS", ((MysqlConnection) this.conn).getPropertySet().getStringProperty(PropertyKey.trustCertificateKeyStoreType).getStringValue());
@@ -3081,7 +3081,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         rConn2.prepareStatement("SELECT 1").execute();
     }
 
-    @Disabled
+
     @Test
     public void testBug61201() throws Exception {
         Properties props = new Properties();
@@ -3172,7 +3172,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         }
     }
 
-    @Disabled
+
     @Test
     public void testBug63284() throws Exception {
         Properties props = getPropertiesFromTestsuiteUrl();
