@@ -101,7 +101,6 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
  * Regression tests for Connections
  */
 public class ConnectionRegressionTest extends BaseTestCase {
-    @Disabled
     @Test
     public void testBug1914() throws Exception {
         System.out.println(this.conn.nativeSQL("{fn convert(foo(a,b,c), BIGINT)}"));
@@ -760,7 +759,6 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
-    @Disabled
     @Test
     public void testBug9206() throws Exception {
         Properties props = new Properties();
@@ -815,7 +813,6 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
-    @Disabled
     @Test
     public void testBug10496() throws Exception {
         Properties props = new Properties();
@@ -957,7 +954,6 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
-    @Disabled
     @Test
     public void testBug12752() throws Exception {
         Properties props = new Properties();
@@ -1414,7 +1410,6 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
-    @Disabled
     @Test
     public void testBug25514() throws Exception {
         for (int i = 0; i < 10; i++) {
@@ -1468,7 +1463,6 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
-    @Disabled
     @Test
     public void testBug23626() throws Exception {
         List<String> propertyNames = new ArrayList<>();
@@ -3034,7 +3028,6 @@ public class ConnectionRegressionTest extends BaseTestCase {
         }
     }
 
-    @Disabled
     @Test
     public void testStatementComment() throws Exception {
         Connection c = getConnectionWithProps("autoGenerateTestcaseScript=true,logger=StandardLogger");
@@ -3911,7 +3904,6 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
-    @Disabled
     @Test
     public void testSha256PasswordPlugin() throws Exception {
         String trustStorePath = "src/test/config/ssl-test-certs/ca-truststore";
@@ -4400,7 +4392,6 @@ public class ConnectionRegressionTest extends BaseTestCase {
         return allowsRSA;
     }
 
-    @Disabled
     @Test
     public void testBug36662() throws Exception {
         try {
@@ -4788,7 +4779,6 @@ public class ConnectionRegressionTest extends BaseTestCase {
         assertTrue(updateCount == loops);
     }
 
-    @Disabled
     @Test
     public void testStackOverflowOnMissingInterceptor() throws Exception {
         try {
@@ -6382,7 +6372,6 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
-    @Disabled
     @Test
     public void testBug18869381() throws Exception {
         if (this.sha256Conn != null && ((JdbcConnection) this.sha256Conn).getSession().versionMeetsMinimum(5, 6, 6)) {
@@ -6456,7 +6445,6 @@ public class ConnectionRegressionTest extends BaseTestCase {
         }
     }
 
-    @Disabled
     @Test
     private void testBug18869381WithProperties(Properties props) throws Exception {
         Connection testConn = null;
@@ -7661,7 +7649,6 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
-    @Disabled
     @Test
     public void testBug75670() throws Exception {
         if (this.sha256Conn != null && ((JdbcConnection) this.sha256Conn).getSession().versionMeetsMinimum(5, 6, 6)) {
@@ -10699,7 +10686,6 @@ public class ConnectionRegressionTest extends BaseTestCase {
      *
      * @throws Exception
      */
-        @Disabled
     @Test
     public void testBug79612() throws Exception {
         // The case with database present in URL is covered by testConnectionAttributes() test case.
@@ -11513,7 +11499,6 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
-    @Disabled
     @Test
     public void testBug41172() throws Exception {
         byte eventType = ProfilerEvent.TYPE_FETCH;
@@ -11549,7 +11534,6 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
-    @Disabled
     @Test
     public void testBug74690() throws Exception {
         byte eventType = ProfilerEvent.TYPE_FETCH;
