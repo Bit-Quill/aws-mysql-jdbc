@@ -263,6 +263,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testSetReadOnly() throws Exception {
         Properties props = new Properties();
@@ -1937,6 +1938,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         }
     }
 
+    @Disabled
     @Test
     public void testUnreliableSocketFactory() throws Exception {
         Properties props = new Properties();
@@ -1957,6 +1959,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         }
     }
 
+    @Disabled
     @Test
     public void testReplicationConnectionGroupHostManagement() throws Exception {
         String replicationGroup1 = "rg1";
@@ -5111,7 +5114,6 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
-    @Disabled
     @Test
     public void testBug68733() throws Exception {
         Properties props = new Properties();
@@ -6063,6 +6065,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         s.close();
     }
 
+    @Disabled
     @Test
     public void testReplicationConnectionNoReplicasBasics() throws Exception {
         // create a replication connection with only a source, get the
