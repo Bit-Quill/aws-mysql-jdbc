@@ -4410,7 +4410,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         }
     }
 
-    @Disabled
+
     @Test
     public void testBug37931() throws Exception {
         Connection _conn = null;
