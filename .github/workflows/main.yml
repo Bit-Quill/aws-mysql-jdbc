@@ -14,9 +14,10 @@ jobs:
     runs-on: macos-latest
     steps:
       - name: Setup timezone
-        uses: zcong1993/setup-timezone@master
+        uses: szenius/set-timezone@v1.0
         with:
-          timezone: Africa/Lagos
+          timezoneLinux: "Africa/Lagos"
+          timezoneMacos: "Africa/Lagos"
       - name: Clone Repository
         uses: actions/checkout@v2
         with:
