@@ -83,6 +83,7 @@ import java.nio.channels.SocketChannel;
 import java.nio.charset.Charset;
 import java.security.cert.CertificateException;
 import java.sql.*;
+import java.sql.Driver;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.*;
@@ -101,6 +102,15 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
  * Regression tests for Connections
  */
 public class ConnectionRegressionTest extends BaseTestCase {
+    @BeforeAll
+    static void beforeAll() throws SQLException {
+        // Deregister Driver
+        Driver registeredDriver = DriverManager.getDriver("jdbc:mysql://localhost");
+        if (registeredDriver instanceof software.aws.rds.jdbc.mysql.Driver) {
+            DriverManager.deregisterDriver(registeredDriver);
+        }
+    }
+
     @Test
     public void testBug1914() throws Exception {
         System.out.println(this.conn.nativeSQL("{fn convert(foo(a,b,c), BIGINT)}"));
@@ -6421,6 +6431,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug73053() throws Exception {
         /*
@@ -11757,6 +11768,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      */
     @Test
     public void testBug98667() throws Exception {
+        final int oldLoginTimeout = DriverManager.getLoginTimeout();
         this.rs = this.stmt.executeQuery("SHOW VARIABLES LIKE 'named_pipe'");
         if (!this.rs.next() || !this.rs.getString(2).equalsIgnoreCase("on")) {
             return; // Only runs on Windows with named pipes enabled.
@@ -11804,6 +11816,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         executor.awaitTermination(3, TimeUnit.SECONDS);
 
         assertNull(oneFail, "At least one connection failed.");
+        DriverManager.setLoginTimeout(oldLoginTimeout);
     }
 
     /**
