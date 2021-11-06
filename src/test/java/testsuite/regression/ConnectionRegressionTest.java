@@ -81,6 +81,7 @@ import java.lang.reflect.*;
 import java.net.*;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.Charset;
+import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
 import java.sql.*;
 import java.sql.Driver;
@@ -6818,6 +6819,13 @@ public class ConnectionRegressionTest extends BaseTestCase {
             // In some older Linux kernels the underlying system call may return 1 when actually no bytes are available in a CLOSE_WAIT state socket, even if EOF
             // has been reached.
             int available = this.underlyingInputStream.available();
+            try {
+                if (Arrays.asList(SSLContext.getDefault().createSSLEngine().getEnabledProtocols()).contains("TLSv1.3")) {
+                    return available;
+                }
+            } catch (NoSuchAlgorithmException e) {
+                fail("SSLContext used by the environment cannot be retrieved.");
+            }
             return available == 0 ? 1 : available;
         }
 
