@@ -11,7 +11,7 @@ on:
 jobs:
   ubuntu-latest-aurora-build-and-run-tests:
     name: 'Build Driver And Run Tests'
-    runs-on: windows-latest
+    runs-on: macos-latest
     steps:
       - name: Setup timezone
         uses: szenius/set-timezone@v1.0
@@ -27,6 +27,9 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: 8
+      - name: Set up Docker
+        run: |
+          brew install docker docker-machine docker-compose
       - name: 'Start Docker MySQL'
         working-directory: docker
         run: docker-compose up -d && docker-compose logs
