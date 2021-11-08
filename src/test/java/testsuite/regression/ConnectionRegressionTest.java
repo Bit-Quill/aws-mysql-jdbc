@@ -6439,7 +6439,6 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
-    @Disabled
     @Test
     public void testBug73053() throws Exception {
         /*
@@ -6610,7 +6609,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
 
         @Override
         public InputStream getInputStream() throws IOException {
-            return new ConnectionRegressionTest.TestBug73053InputStreamWrapper(this.underlyingSocket.getInputStream());
+            return new TestBug73053InputStreamWrapper(this.underlyingSocket.getInputStream());
         }
 
         @Override
@@ -6775,11 +6774,17 @@ public class ConnectionRegressionTest extends BaseTestCase {
     }
 
     private static class TestBug73053InputStreamWrapper extends InputStream {
+        boolean tlsv13Enabled = false;
         final InputStream underlyingInputStream;
         int loopCount = 0;
 
         public TestBug73053InputStreamWrapper(InputStream underlyingInputStream) {
             this.underlyingInputStream = underlyingInputStream;
+            try {
+                this.tlsv13Enabled = Arrays.asList(SSLContext.getDefault().createSSLEngine().getEnabledProtocols()).contains("TLSv1.3");
+            } catch (NoSuchAlgorithmException e) {
+                fail("SSLContext used by the environment cannot be retrieved.");
+            }
         }
 
         @Override
@@ -6819,12 +6824,9 @@ public class ConnectionRegressionTest extends BaseTestCase {
             // In some older Linux kernels the underlying system call may return 1 when actually no bytes are available in a CLOSE_WAIT state socket, even if EOF
             // has been reached.
             int available = this.underlyingInputStream.available();
-            try {
-                if (Arrays.asList(SSLContext.getDefault().createSSLEngine().getEnabledProtocols()).contains("TLSv1.3")) {
-                    return available;
-                }
-            } catch (NoSuchAlgorithmException e) {
-                fail("SSLContext used by the environment cannot be retrieved.");
+
+            if (tlsv13Enabled) {
+                return available;
             }
             return available == 0 ? 1 : available;
         }
