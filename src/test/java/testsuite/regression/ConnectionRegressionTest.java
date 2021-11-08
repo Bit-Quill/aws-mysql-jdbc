@@ -6438,14 +6438,13 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
-    @Disabled
     @Test
     public void testBug73053() throws Exception {
         /*
          * Test reported issue using a Socket implementation that simulates the buggy behavior.
          */
         try {
-            Connection testConn = getConnectionWithProps("socketFactory=testsuite.regression.ConnectionRegressionTest$TestBug73053SocketFactory");
+            Connection testConn = getConnectionWithProps("enabledTLSProtocols=TLSv1.2,socketFactory=testsuite.regression.ConnectionRegressionTest$TestBug73053SocketFactory");
             Statement testStmt = testConn.createStatement();
             this.rs = testStmt.executeQuery("SELECT 1");
             testStmt.close();
@@ -6456,7 +6455,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         }
 
         /*
-         * Test the re-implementation of the method that was reported to fail - MysqlIO.clearInputStream() in a normal situation were there actually are bytes
+         * Test the re-implementation of the method thtestBug73053at was reported to fail - MysqlIO.clearInputStream() in a normal situation were there actually are bytes
          * to clear out. When running multi-queries with streaming results, if not all results are consumed then the socket has to be cleared out when closing
          * the statement, thus calling MysqlIO.clearInputStream() and effectively discard unread data.
          */
