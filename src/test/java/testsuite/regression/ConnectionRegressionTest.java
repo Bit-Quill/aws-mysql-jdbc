@@ -102,13 +102,22 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
  * Regression tests for Connections
  */
 public class ConnectionRegressionTest extends BaseTestCase {
-    @BeforeAll
-    static void beforeAll() throws SQLException {
+    private int oldLoginTimeout;
+
+    @BeforeEach
+    void beforeEach() throws SQLException {
+        oldLoginTimeout = DriverManager.getLoginTimeout();
+
         // Deregister Driver
         Driver registeredDriver = DriverManager.getDriver("jdbc:mysql://localhost");
         if (registeredDriver instanceof software.aws.rds.jdbc.mysql.Driver) {
             DriverManager.deregisterDriver(registeredDriver);
         }
+    }
+
+    @AfterEach
+    void afterEach() {
+        DriverManager.setLoginTimeout(oldLoginTimeout);
     }
 
     @Test
@@ -5932,7 +5941,6 @@ public class ConnectionRegressionTest extends BaseTestCase {
         }
         final String testURL = "jdbc:mysql://localhost:" + serverPort;
         Connection testConn = null;
-        final int oldLoginTimeout = DriverManager.getLoginTimeout();
         final int loginTimeout = 3;
         final int testTimeout = loginTimeout * 2;
         long timestamp = System.currentTimeMillis();
@@ -5972,7 +5980,6 @@ public class ConnectionRegressionTest extends BaseTestCase {
             fail("Time expired for connection attempt.");
 
         } finally {
-            DriverManager.setLoginTimeout(oldLoginTimeout);
             mockServer.releaseResources();
             executor.shutdownNow();
         }
@@ -11768,7 +11775,6 @@ public class ConnectionRegressionTest extends BaseTestCase {
      */
     @Test
     public void testBug98667() throws Exception {
-        final int oldLoginTimeout = DriverManager.getLoginTimeout();
         this.rs = this.stmt.executeQuery("SHOW VARIABLES LIKE 'named_pipe'");
         if (!this.rs.next() || !this.rs.getString(2).equalsIgnoreCase("on")) {
             return; // Only runs on Windows with named pipes enabled.
@@ -11816,7 +11822,6 @@ public class ConnectionRegressionTest extends BaseTestCase {
         executor.awaitTermination(3, TimeUnit.SECONDS);
 
         assertNull(oneFail, "At least one connection failed.");
-        DriverManager.setLoginTimeout(oldLoginTimeout);
     }
 
     /**
