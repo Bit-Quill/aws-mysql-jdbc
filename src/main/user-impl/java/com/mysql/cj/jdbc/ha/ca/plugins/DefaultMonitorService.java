@@ -106,7 +106,6 @@ public class DefaultMonitorService implements IMonitorService {
     final String node = this.threadContainer.getNode(context.getNodeKeys());
 
     if (node == null) {
-      log.logWarn(Messages.getString("DefaultMonitorService.InvalidContext"));
       return;
     }
 
