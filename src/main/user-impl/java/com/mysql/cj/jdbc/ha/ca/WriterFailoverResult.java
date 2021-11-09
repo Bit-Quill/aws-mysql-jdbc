@@ -91,7 +91,7 @@ public class WriterFailoverResult {
   /**
    * Get the new connection established by the failover procedure if successful.
    *
-   * @return {@link JdbcConnection} New connection to a host. Returns null if the failover pocedure
+   * @return {@link JdbcConnection} New connection to a host. Returns null if the failover procedure
    *     was unsuccessful.
    */
   public JdbcConnection getNewConnection() {
