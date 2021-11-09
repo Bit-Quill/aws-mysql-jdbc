@@ -705,6 +705,7 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
   protected synchronized void pickNewConnection() throws SQLException {
     if (this.isClosed && this.closedExplicitly) {
       this.log.logDebug(Messages.getString("ClusterAwareConnectionProxy.14"));
+      releasePluginManager();
       return;
     }
 
@@ -924,6 +925,7 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
     }
 
     this.log.logError(message);
+    releasePluginManager();
     throw new SQLException(message, MysqlErrorNumbers.SQL_STATE_UNABLE_TO_CONNECT_TO_DATASOURCE);
   }
 
@@ -1145,6 +1147,8 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
       if (this.closedReason != null) {
         reason += (" " + this.closedReason);
       }
+
+      releasePluginManager();
       throw SQLError.createSQLException(reason, MysqlErrorNumbers.SQL_STATE_CONNECTION_NOT_OPEN, null /* no access to a interceptor here... */);
     }
   }
@@ -1280,11 +1284,7 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
   @Override
   protected synchronized void doClose() throws SQLException {
     this.currentConnection.close();
-
-    if(this.pluginManager != null) {
-      this.pluginManager.releaseResources();
-      this.pluginManager = null;
-    }
+    releasePluginManager();
   }
 
   /**
@@ -1295,11 +1295,6 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
   @Override
   protected synchronized void doAbort(Executor executor) throws SQLException {
     this.currentConnection.abort(executor);
-
-    if(this.pluginManager != null) {
-      this.pluginManager.releaseResources();
-      this.pluginManager = null;
-    }
   }
 
   /**
@@ -1369,5 +1364,12 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
     }
     this.log.logTrace(
         Messages.getString("ClusterAwareConnectionProxy.11", new Object[] {msg.toString()}));
+  }
+
+  private void releasePluginManager() {
+    if (this.pluginManager != null) {
+      this.pluginManager.releaseResources();
+      this.pluginManager = null;
+    }
   }
 }
