@@ -114,6 +114,10 @@ public class FailoverPluginManager {
   public void releaseResources() {
     this.logger.logTrace("[FailoverPluginManager.releaseResources]");
     this.headPlugin.releaseResources();
-    Runtime.getRuntime().removeShutdownHook(shutdownHook);
+    try {
+      Runtime.getRuntime().removeShutdownHook(shutdownHook);
+    } catch (Exception e) {
+      // Ignore as JVM is already closing
+    }
   }
 }
