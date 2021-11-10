@@ -26,11 +26,12 @@
 
 package com.mysql.cj.jdbc.ha.ca.plugins;
 
-import java.util.concurrent.Callable;
+import com.mysql.cj.conf.HostInfo;
 
-//TODO: rename interface name to more generic one. The plugin has nothing to do with failover so the current
-// interface name is confusing and misleading. Rename interface implementations either.
-public interface IFailoverPlugin {
-  Object execute(String methodName, Callable executeSqlFunc) throws Exception;
-  void releaseResources();
+import java.sql.Connection;
+
+public interface ICurrentConnectionProvider {
+  Connection getCurrentConnection();
+
+  HostInfo getCurrentHostInfo();
 }

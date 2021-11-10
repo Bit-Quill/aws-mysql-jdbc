@@ -106,11 +106,11 @@ public class MonitorThreadContainer {
         final String node = getNode(nodeKeys, nodeKeys.iterator().next());
         final IMonitor monitor = monitorMap.computeIfAbsent(node, k -> {
             if (!availableMonitors.isEmpty()) {
-                final IMonitor failoverMonitor = availableMonitors.remove();
-                if (!failoverMonitor.isStopped()) {
-                    return failoverMonitor;
+                final IMonitor availableMonitor = availableMonitors.remove();
+                if (!availableMonitor.isStopped()) {
+                    return availableMonitor;
                 }
-                tasksMap.computeIfPresent(failoverMonitor, (key, v) -> {
+                tasksMap.computeIfPresent(availableMonitor, (key, v) -> {
                     v.cancel(true);
                     return null;
                 });

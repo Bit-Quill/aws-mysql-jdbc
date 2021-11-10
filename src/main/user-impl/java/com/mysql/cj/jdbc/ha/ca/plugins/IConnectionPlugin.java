@@ -26,12 +26,9 @@
 
 package com.mysql.cj.jdbc.ha.ca.plugins;
 
-import com.mysql.cj.conf.HostInfo;
+import java.util.concurrent.Callable;
 
-import java.sql.Connection;
-
-public interface IConnectionProvider {
-  Connection getCurrentConnection();
-
-  HostInfo getCurrentHostInfo();
+public interface IConnectionPlugin {
+  Object execute(String methodName, Callable executeSqlFunc) throws Exception;
+  void releaseResources();
 }

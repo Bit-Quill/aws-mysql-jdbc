@@ -55,12 +55,12 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-class NodeMonitoringFailoverPluginTest extends NodeMonitoringFailoverPluginBaseTest {
+class NodeMonitoringConnectionPluginTest extends NodeMonitoringConnectionPluginBaseTest {
   private static final ExecutionException EXECUTION_EXCEPTION = new ExecutionException(
       "exception",
       new InvocationException("exception", new Throwable()));
 
-  private NodeMonitoringFailoverPlugin plugin;
+  private NodeMonitoringConnectionPlugin plugin;
   private AutoCloseable closeable;
 
   @BeforeEach
@@ -80,11 +80,11 @@ class NodeMonitoringFailoverPluginTest extends NodeMonitoringFailoverPluginBaseT
   void test_1_initWithNullArguments(
       final ClusterAwareConnectionProxy proxy,
       final PropertySet set,
-      final IFailoverPlugin failoverPlugin,
+      final IConnectionPlugin connectionPlugin,
       final Log log) {
     assertThrows(
         NullArgumentException.class,
-        () -> new NodeMonitoringFailoverPlugin(proxy, set, failoverPlugin, log));
+        () -> new NodeMonitoringConnectionPlugin(proxy, set, connectionPlugin, log));
   }
 
   @Test
@@ -178,7 +178,7 @@ class NodeMonitoringFailoverPluginTest extends NodeMonitoringFailoverPluginBaseT
 
   /**
    * Generate different sets of method arguments where one argument is null to ensure
-   * {@link NodeMonitoringFailoverPlugin#NodeMonitoringFailoverPlugin(ClusterAwareConnectionProxy, PropertySet, IFailoverPlugin, Log)}
+   * {@link NodeMonitoringConnectionPlugin#NodeMonitoringConnectionPlugin(ClusterAwareConnectionProxy, PropertySet, IConnectionPlugin, Log)}
    * can handle null arguments correctly.
    *
    * @return different sets of arguments.
@@ -186,18 +186,18 @@ class NodeMonitoringFailoverPluginTest extends NodeMonitoringFailoverPluginBaseT
   private static Stream<Arguments> generateNullArguments() {
     final ClusterAwareConnectionProxy proxy = mock(ClusterAwareConnectionProxy.class);
     final PropertySet set = new DefaultPropertySet();
-    final Log log = new NullLogger("NodeMonitoringFailoverPluginTest");
-    final IFailoverPlugin failoverPlugin = new DefaultFailoverPlugin(log);
+    final Log log = new NullLogger("NodeMonitoringConnectionPluginTest");
+    final IConnectionPlugin connectionPlugin = new DefaultConnectionPlugin(log);
 
     return Stream.of(
-        Arguments.of(null, set, failoverPlugin, log),
-        Arguments.of(proxy, null, failoverPlugin, log),
+        Arguments.of(null, set, connectionPlugin, log),
+        Arguments.of(proxy, null, connectionPlugin, log),
         Arguments.of(proxy, set, null, log),
-        Arguments.of(proxy, set, failoverPlugin, null)
+        Arguments.of(proxy, set, connectionPlugin, null)
     );
   }
 
   private void initializePlugin() {
-    plugin = new NodeMonitoringFailoverPlugin(proxy, propertySet, mockPlugin, logger, initializer);
+    plugin = new NodeMonitoringConnectionPlugin(proxy, propertySet, mockPlugin, logger, initializer);
   }
 }

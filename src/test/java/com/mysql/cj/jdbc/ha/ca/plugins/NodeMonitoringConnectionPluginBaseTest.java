@@ -47,18 +47,18 @@ import java.sql.Statement;
 import java.util.concurrent.Callable;
 
 /**
- * Initialize constants and mock variables common to tests for {@link NodeMonitoringFailoverPlugin}.
+ * Initialize constants and mock variables common to tests for {@link NodeMonitoringConnectionPlugin}.
  */
-public class NodeMonitoringFailoverPluginBaseTest {
+public class NodeMonitoringConnectionPluginBaseTest {
   @Mock ClusterAwareConnectionProxy proxy;
   @Mock Connection connection;
   @Mock Statement statement;
   @Mock ResultSet resultSet;
   @Mock PropertySet propertySet;
   @Mock HostInfo hostInfo;
-  @Mock IFailoverPlugin mockPlugin;
+  @Mock IConnectionPlugin mockPlugin;
   @Mock Log logger;
-  @Mock NodeMonitoringFailoverPlugin.IMonitorServiceInitializer initializer;
+  @Mock NodeMonitoringConnectionPlugin.IMonitorServiceInitializer initializer;
   @Mock MonitorConnectionContext context;
   @Mock IMonitorService monitorService;
   @Mock Callable sqlFunction;
