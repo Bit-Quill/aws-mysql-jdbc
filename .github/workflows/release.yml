@@ -61,7 +61,7 @@ jobs:
       - name: 'Sign Jars'
         run: |
           export GPG_TTY=$(tty)
-          for jar in build/libs/*.jar; gpg --detach-sign --armor $jar; done
+          for jar in build/libs/*.jar; do gpg --detach-sign --armor $jar; done
       - name: 'Upload to Release'
         uses: ncipollo/release-action@v1.8.10
         with:
