@@ -49,7 +49,6 @@ public interface IMonitorService {
 
   /**
    * Stop monitoring the node for all connections represented by the given set of node keys.
-   * Usually used during the failover process.
    *
    * @param nodeKeys All known references to an Aurora node.
    */

@@ -141,7 +141,7 @@ public class MonitorConnectionContext {
     }
 
     this.log.logTrace(
-        String.format("[NodeMonitoringFailoverPlugin::Monitor] node '%s' is *alive*.",
+        String.format("[MonitorConnectionContext] node '%s' is *alive*.",
             nodeKeys));
 
     this.nodeUnhealthy = false;

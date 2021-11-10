@@ -63,9 +63,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Multi-threaded tests for {@link NodeMonitoringFailoverPlugin#execute(String, Callable)}.
+ * Multi-threaded tests for {@link NodeMonitoringConnectionPlugin#execute(String, Callable)}.
  */
-public class MultithreadedNodeMonitoringFailoverPluginTest extends NodeMonitoringFailoverPluginBaseTest {
+public class MultithreadedNodeMonitoringConnectionPluginTest extends NodeMonitoringConnectionPluginBaseTest {
   private final AtomicInteger counter = new AtomicInteger(0);
   private final AtomicInteger concurrentCounter = new AtomicInteger(0);
   private static final int NUM_PLUGINS_PER_SERVICE = 2;
@@ -114,7 +114,7 @@ public class MultithreadedNodeMonitoringFailoverPluginTest extends NodeMonitorin
     when(context.isNodeUnhealthy()).thenReturn(false);
     final int numConnections = 10;
     final int wantedNumberOfInvocations = NUM_PLUGINS_PER_SERVICE * numConnections;
-    final List<NodeMonitoringFailoverPlugin> plugins = initPlugins(numConnections);
+    final List<NodeMonitoringConnectionPlugin> plugins = initPlugins(numConnections);
     List<CompletableFuture<Object>> threads = runExecuteAsync(numConnections, plugins);
 
     for (final CompletableFuture<Object> thread : threads) {
@@ -147,7 +147,7 @@ public class MultithreadedNodeMonitoringFailoverPluginTest extends NodeMonitorin
     final int numConnections = 10;
     final int wantedNumberOfInvocations = NUM_PLUGINS_PER_SERVICE * numConnections;
 
-    final List<NodeMonitoringFailoverPlugin> plugins = initPlugins(numConnections);
+    final List<NodeMonitoringConnectionPlugin> plugins = initPlugins(numConnections);
 
     List<CompletableFuture<Object>> threads = runExecuteAsync(numConnections, plugins);
 
@@ -174,7 +174,7 @@ public class MultithreadedNodeMonitoringFailoverPluginTest extends NodeMonitorin
     when(nativeFailureDetectionEnabledProperty.getValue()).thenReturn(false);
     final int numConnections = 10;
 
-    final List<NodeMonitoringFailoverPlugin> plugins = initPlugins(numConnections);
+    final List<NodeMonitoringConnectionPlugin> plugins = initPlugins(numConnections);
     List<CompletableFuture<Object>> threads = runExecuteAsync(numConnections, plugins);
 
     for (final CompletableFuture<Object> thread : threads) {
@@ -193,12 +193,12 @@ public class MultithreadedNodeMonitoringFailoverPluginTest extends NodeMonitorin
     verify(monitorService, never()).stopMonitoring(eq(context));
   }
 
-  private List<NodeMonitoringFailoverPlugin> initPlugins(final int numPlugins) {
-    final List<NodeMonitoringFailoverPlugin> plugins = new ArrayList<>();
+  private List<NodeMonitoringConnectionPlugin> initPlugins(final int numPlugins) {
+    final List<NodeMonitoringConnectionPlugin> plugins = new ArrayList<>();
 
     for (int i = 0; i < numPlugins; i++) {
-      final NodeMonitoringFailoverPlugin nextPlugin = new NodeMonitoringFailoverPlugin(proxy, propertySet, mockPlugin, logger, initializer);
-      final NodeMonitoringFailoverPlugin plugin = new NodeMonitoringFailoverPlugin(proxy, propertySet, nextPlugin, logger, initializer);
+      final NodeMonitoringConnectionPlugin nextPlugin = new NodeMonitoringConnectionPlugin(proxy, propertySet, mockPlugin, logger, initializer);
+      final NodeMonitoringConnectionPlugin plugin = new NodeMonitoringConnectionPlugin(proxy, propertySet, nextPlugin, logger, initializer);
       plugins.add(plugin);
     }
 
@@ -207,14 +207,14 @@ public class MultithreadedNodeMonitoringFailoverPluginTest extends NodeMonitorin
 
   private List<CompletableFuture<Object>> runExecuteAsync(
       int numConnections,
-      List<NodeMonitoringFailoverPlugin> plugins
+      List<NodeMonitoringConnectionPlugin> plugins
   ) {
     final String exceptionMessage = "Test thread interrupted due to an unexpected exception.";
     final List<CompletableFuture<Object>> threads = new ArrayList<>();
     final CountDownLatch latch = new CountDownLatch(1);
 
     for (int i = 0; i < numConnections; i++) {
-      final NodeMonitoringFailoverPlugin plugin = plugins.get(i);
+      final NodeMonitoringConnectionPlugin plugin = plugins.get(i);
       threads.add(CompletableFuture.supplyAsync(() -> {
         try {
           try {
@@ -229,7 +229,7 @@ public class MultithreadedNodeMonitoringFailoverPluginTest extends NodeMonitorin
             concurrentCounter.getAndIncrement();
           }
 
-          final Object result = plugin.execute(NodeMonitoringFailoverPluginBaseTest.MONITOR_METHOD_NAME, sqlFunction);
+          final Object result = plugin.execute(NodeMonitoringConnectionPluginBaseTest.MONITOR_METHOD_NAME, sqlFunction);
           counter.getAndDecrement();
           return result;
         } catch (Exception e) {

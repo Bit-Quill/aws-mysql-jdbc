@@ -4,13 +4,13 @@ import com.mysql.cj.conf.PropertySet;
 import com.mysql.cj.jdbc.ha.ca.ClusterAwareConnectionProxy;
 import com.mysql.cj.log.Log;
 
-public class DefaultFailoverPluginFactory implements IFailoverPluginFactory {
+public class NodeMonitoringConnectionPluginFactory implements IConnectionPluginFactory {
   @Override
-  public IFailoverPlugin getInstance(
+  public IConnectionPlugin getInstance(
       ClusterAwareConnectionProxy proxy,
       PropertySet propertySet,
-      IFailoverPlugin next,
+      IConnectionPlugin next,
       Log log) {
-    return new DefaultFailoverPlugin(log);
+    return new NodeMonitoringConnectionPlugin(proxy, propertySet, next, log);
   }
 }

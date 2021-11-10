@@ -46,8 +46,8 @@ import com.mysql.cj.jdbc.exceptions.CommunicationsException;
 import com.mysql.cj.jdbc.exceptions.SQLError;
 import com.mysql.cj.jdbc.exceptions.SQLExceptionsMapping;
 import com.mysql.cj.jdbc.ha.MultiHostConnectionProxy;
-import com.mysql.cj.jdbc.ha.ca.plugins.FailoverPluginManager;
-import com.mysql.cj.jdbc.ha.ca.plugins.IConnectionProvider;
+import com.mysql.cj.jdbc.ha.ca.plugins.ConnectionPluginManager;
+import com.mysql.cj.jdbc.ha.ca.plugins.ICurrentConnectionProvider;
 import com.mysql.cj.jdbc.interceptors.ConnectionLifecycleInterceptor;
 import com.mysql.cj.jdbc.interceptors.ConnectionLifecycleInterceptorProvider;
 import com.mysql.cj.log.Log;
@@ -80,7 +80,7 @@ import javax.net.ssl.SSLException;
  * cluster topology changes.
  */
 public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
-    implements ConnectionLifecycleInterceptorProvider, IConnectionProvider {
+    implements ConnectionLifecycleInterceptorProvider, ICurrentConnectionProvider {
 
   static final String METHOD_SET_READ_ONLY = "setReadOnly";
   static final String METHOD_SET_AUTO_COMMIT = "setAutoCommit";
@@ -125,7 +125,7 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
   protected WriterFailoverHandler writerFailoverHandler;
   protected ReaderFailoverHandler readerFailoverHandler;
   protected ConnectionProvider connectionProvider;
-  protected FailoverPluginManager pluginManager = null;
+  protected ConnectionPluginManager pluginManager = null;
 
   protected ClusterAwareMetrics metrics = new ClusterAwareMetrics();
   private long invokeStartTimeMs;
@@ -283,7 +283,7 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
       TopologyService service,
       WriterFailoverHandler writerFailoverHandler,
       ReaderFailoverHandler readerFailoverHandler,
-      Function<Log, FailoverPluginManager> failoverPluginManagerInitializer)
+      Function<Log, ConnectionPluginManager> connectionPluginManagerInitializer)
       throws SQLException {
     super(connectionUrl);
     this.initialConnectionProps = connectionUrl.getMainHost().getHostProperties();
@@ -301,7 +301,7 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
     this.writerFailoverHandler = writerFailoverHandler;
     this.readerFailoverHandler = readerFailoverHandler;
 
-    initProxy(connectionUrl, failoverPluginManagerInitializer);
+    initProxy(connectionUrl, connectionPluginManagerInitializer);
   }
 
   protected synchronized void initSettings(ConnectionUrl connectionUrl) throws SQLException {
@@ -342,12 +342,12 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
   }
 
   protected synchronized void initProxy(ConnectionUrl connUrl) throws SQLException {
-    this.initProxy(connUrl, FailoverPluginManager::new);
+    this.initProxy(connUrl, ConnectionPluginManager::new);
   }
 
   private synchronized void initProxy(
       ConnectionUrl connUrl,
-      Function<Log, FailoverPluginManager> failoverPluginManagerInitializer)
+      Function<Log, ConnectionPluginManager> connectionPluginManagerInitializer)
       throws SQLException {
     if (!this.enableFailoverSetting) {
       // Use a standard default connection - no further initialization required
@@ -380,7 +380,7 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
     }
 
     if (this.pluginManager == null) {
-      this.pluginManager = failoverPluginManagerInitializer.apply(log);
+      this.pluginManager = connectionPluginManagerInitializer.apply(log);
       this.pluginManager.init(
           this,
           this.currentConnection.getPropertySet());
