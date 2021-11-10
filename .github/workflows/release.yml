@@ -22,7 +22,6 @@ jobs:
         id: install-secret-key
         run: |
           cat <(echo -e "${{ secrets.GPG_SECRET_KEY }}") | gpg --batch --import
-          gpg --list-secret-keys --keyid-format LONG
 #      - name: Setup timezone
 #        uses: zcong1993/setup-timezone@master
 #        with:
@@ -55,7 +54,7 @@ jobs:
       - name: 'Get Release Details'
         run: |
           export RELEASE_DETAILS="$(awk -vN=2 'n<N;/^# /{++n}' CHANGES)"
-          export RELEASE_DETAILS="$(sed '${/^# /d;}' <<< "$RELEASE_DETAILS")"
+          export RELEASE_DETAILS="$(sed '$d' <<< "$RELEASE_DETAILS")"
           touch RELEASE_DETAILS.md
           echo "$RELEASE_DETAILS" > RELEASE_DETAILS.md
       - name: 'Sign Jars'
