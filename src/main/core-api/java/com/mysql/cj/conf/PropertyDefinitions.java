@@ -665,8 +665,8 @@ public class PropertyDefinitions {
                 new BooleanPropertyDefinition(PropertyKey.allowXmlUnsafeExternalEntity, DEFAULT_VALUE_FALSE, RUNTIME_NOT_MODIFIABLE,
                         Messages.getString("ConnectionProperties.allowXmlUnsafeExternalEntity"), "0.2.0", CATEGORY_SECURITY, Integer.MAX_VALUE),
 
-                new StringPropertyDefinition(PropertyKey.connectionPluginsFactories, DEFAULT_VALUE_NULL_STRING, RUNTIME_NOT_MODIFIABLE,
-                        Messages.getString("ConnectionProperties.connectionPluginsFactories"), "0.3.0", CATEGORY_HA, Integer.MIN_VALUE),
+                new StringPropertyDefinition(PropertyKey.connectionPluginFactories, DEFAULT_VALUE_NULL_STRING, RUNTIME_NOT_MODIFIABLE,
+                        Messages.getString("ConnectionProperties.connectionPluginFactories"), "0.3.0", CATEGORY_HA, Integer.MIN_VALUE),
 
                 new BooleanPropertyDefinition(PropertyKey.nativeFailureDetectionEnabled, DEFAULT_VALUE_TRUE, RUNTIME_MODIFIABLE,
                         Messages.getString("ConnectionProperties.nativeFailureDetectionEnabled"), "0.3.0", CATEGORY_HA, Integer.MIN_VALUE),

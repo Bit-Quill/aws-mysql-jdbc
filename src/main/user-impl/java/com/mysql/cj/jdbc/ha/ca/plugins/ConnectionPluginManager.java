@@ -63,7 +63,7 @@ public class ConnectionPluginManager {
     this.propertySet = propertySet;
 
     String factoryClazzNames = propertySet
-        .getStringProperty(PropertyKey.connectionPluginsFactories)
+        .getStringProperty(PropertyKey.connectionPluginFactories)
         .getValue();
 
     if (StringUtils.isNullOrEmpty(factoryClazzNames)) {
