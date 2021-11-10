@@ -53,7 +53,7 @@ import com.mysql.cj.jdbc.ConnectionImpl;
 import com.mysql.cj.jdbc.JdbcConnection;
 import com.mysql.cj.jdbc.JdbcPropertySet;
 import com.mysql.cj.jdbc.JdbcPropertySetImpl;
-import com.mysql.cj.jdbc.ha.ca.plugins.FailoverPluginManager;
+import com.mysql.cj.jdbc.ha.ca.plugins.ConnectionPluginManager;
 import com.mysql.cj.log.Log;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -78,7 +78,7 @@ public class ClusterAwareConnectionProxyTest {
   @Mock private JdbcPropertySet mockPropertySet;
   @Mock private NativeSession mockSession;
   @Mock private Log mockLogger;
-  @Mock private FailoverPluginManager mockPluginManager;
+  @Mock private ConnectionPluginManager mockPluginManager;
   @Mock private WriterFailoverHandler mockWriterFailoverHandler;
   @Mock private ReaderFailoverHandler mockReaderFailoverHandler;
   @Mock private RuntimeProperty<Boolean> mockLocalSessionState;

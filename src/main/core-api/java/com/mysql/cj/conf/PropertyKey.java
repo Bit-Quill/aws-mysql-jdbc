@@ -282,7 +282,7 @@ public enum PropertyKey {
     acceptAwsProtocolOnly("acceptAwsProtocolOnly", true),
     allowXmlUnsafeExternalEntity("allowXmlUnsafeExternalEntity", true),
     useAwsIam("useAwsIam", true),
-    failoverPluginsFactories("failoverPluginsFactories", true),
+    connectionPluginFactories("connectionPluginFactories", true),
     nativeFailureDetectionEnabled("nativeFailureDetectionEnabled", true),
     failureDetectionTime("failureDetectionTime", true),
     failureDetectionInterval("failureDetectionInterval", true),

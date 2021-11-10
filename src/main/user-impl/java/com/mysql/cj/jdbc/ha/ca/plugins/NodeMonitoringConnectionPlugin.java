@@ -46,17 +46,17 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
-public class NodeMonitoringFailoverPlugin implements IFailoverPlugin {
+public class NodeMonitoringConnectionPlugin implements IConnectionPlugin {
 
   static final int CHECK_INTERVAL_MILLIS = 1000;
   static final String METHODS_TO_MONITOR = "executeQuery,";
   private static final String RETRIEVE_HOST_PORT_SQL = "SELECT CONCAT(@@hostname, ':', @@port)";
 
-  protected IFailoverPlugin nextPlugin;
+  protected IConnectionPlugin nextPlugin;
   protected Log log;
   protected PropertySet propertySet;
   private IMonitorService monitorService;
-  private IMonitorServiceInitializer monitorServiceInitializer;
+  private final IMonitorServiceInitializer monitorServiceInitializer;
   private MonitorConnectionContext monitorContext;
   private final Set<String> nodeKeys = new HashSet<>();
   private final ClusterAwareConnectionProxy proxy;
@@ -67,10 +67,10 @@ public class NodeMonitoringFailoverPlugin implements IFailoverPlugin {
     IMonitorService create(Log log);
   }
 
-  public NodeMonitoringFailoverPlugin(
+  public NodeMonitoringConnectionPlugin(
       ClusterAwareConnectionProxy proxy,
       PropertySet propertySet,
-      IFailoverPlugin nextPlugin,
+      IConnectionPlugin nextPlugin,
       Log log) {
     this(
         proxy,
@@ -80,10 +80,10 @@ public class NodeMonitoringFailoverPlugin implements IFailoverPlugin {
         DefaultMonitorService::new);
   }
 
-  NodeMonitoringFailoverPlugin(
+  NodeMonitoringConnectionPlugin(
       ClusterAwareConnectionProxy proxy,
       PropertySet propertySet,
-      IFailoverPlugin nextPlugin,
+      IConnectionPlugin nextPlugin,
       Log log,
       IMonitorServiceInitializer monitorServiceInitializer) {
     assertArgumentIsNotNull(proxy, "proxy");
@@ -102,7 +102,7 @@ public class NodeMonitoringFailoverPlugin implements IFailoverPlugin {
   }
 
   /**
-   * Executes the given SQL function with {@link Monitor} if failover monitoring is enabled.
+   * Executes the given SQL function with {@link Monitor} if connection monitoring is enabled.
    * Otherwise, executes the SQL function directly.
    *
    * @param methodName     Name of the method to monitor.
@@ -141,10 +141,10 @@ public class NodeMonitoringFailoverPlugin implements IFailoverPlugin {
     ExecutorService executor = null;
     try {
       this.log.logTrace(String.format(
-          "[NodeMonitoringFailoverPlugin.execute]: method=%s, monitoring is activated",
+          "[NodeMonitoringConnectionPlugin.execute]: method=%s, monitoring is activated",
           methodName));
 
-      checkFailover(this.proxy.getCurrentConnection());
+      checkNewConnection(this.proxy.getCurrentConnection());
 
       this.monitorContext = this.monitorService.startMonitoring(
           this.nodeKeys,
@@ -182,7 +182,7 @@ public class NodeMonitoringFailoverPlugin implements IFailoverPlugin {
         executor.shutdownNow();
       }
       this.log.logTrace(String.format(
-          "[NodeMonitoringFailoverPlugin.execute]: method=%s, monitoring is deactivated",
+          "[NodeMonitoringConnectionPlugin.execute]: method=%s, monitoring is deactivated",
           methodName));
     }
 
@@ -197,7 +197,6 @@ public class NodeMonitoringFailoverPlugin implements IFailoverPlugin {
 
   @Override
   public void releaseResources() {
-    // releaseResources may be called multiple times throughout the failover process.
     if (this.monitorService != null) {
       this.monitorService.releaseResources();
     }
@@ -213,13 +212,13 @@ public class NodeMonitoringFailoverPlugin implements IFailoverPlugin {
   }
 
   /**
-   * Check if the connection has changed due to failover.
+   * Check if the connection has changed.
    * If so, remove monitor's references to that node and
    * regenerate the set of node keys referencing the node we need to monitor.
    *
    * @param newConnection The connection used by {@link ClusterAwareConnectionProxy}.
    */
-  private void checkFailover(Connection newConnection) {
+  private void checkNewConnection(Connection newConnection) {
     final boolean isSameConnection = this.connection.equals(newConnection);
     if (!isSameConnection) {
       this.monitorService.stopMonitoringForAllConnections(this.nodeKeys);
@@ -245,7 +244,7 @@ public class NodeMonitoringFailoverPlugin implements IFailoverPlugin {
     } catch (SQLException sqlException) {
       // log and ignore
       this.log.logTrace(
-          "[NodeMonitoringFailoverPlugin.initNodes]: Could not retrieve Host:Port from querying");
+          "[NodeMonitoringConnectionPlugin.initNodes]: Could not retrieve Host:Port from querying");
     }
 
     this.nodeKeys.add(

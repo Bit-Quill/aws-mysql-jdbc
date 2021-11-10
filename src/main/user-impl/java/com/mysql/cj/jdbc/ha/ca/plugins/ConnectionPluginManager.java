@@ -35,22 +35,21 @@ import com.mysql.cj.util.Util;
 
 import java.util.concurrent.Callable;
 
-//TODO: rename class name to more generic one. This plugin manager has nothing to do with failover so the current class name is confusing and misleading.
-public class FailoverPluginManager {
+public class ConnectionPluginManager {
 
   /* THIS CLASS IS NOT MULTI-THREADING SAFE */
   /* IT'S EXPECTED TO HAVE ONE INSTANCE OF THIS MANAGER PER JDBC CONNECTION */
 
   protected static final String DEFAULT_PLUGIN_FACTORIES =
-      NodeMonitoringFailoverPluginFactory.class.getName();
+      NodeMonitoringConnectionPluginFactory.class.getName();
 
   protected Log logger;
   protected PropertySet propertySet = null;
-  protected IFailoverPlugin headPlugin = null;
+  protected IConnectionPlugin headPlugin = null;
   ClusterAwareConnectionProxy proxy;
   private final Thread shutdownHook = new Thread(this::releaseResources);
 
-  public FailoverPluginManager(Log logger) {
+  public ConnectionPluginManager(Log logger) {
     if (logger == null) {
       throw new NullArgumentException("logger");
     }
@@ -64,14 +63,14 @@ public class FailoverPluginManager {
     this.propertySet = propertySet;
 
     String factoryClazzNames = propertySet
-        .getStringProperty(PropertyKey.failoverPluginsFactories)
+        .getStringProperty(PropertyKey.connectionPluginFactories)
         .getValue();
 
     if (StringUtils.isNullOrEmpty(factoryClazzNames)) {
       factoryClazzNames = DEFAULT_PLUGIN_FACTORIES;
     }
 
-    this.headPlugin = new DefaultFailoverPluginFactory()
+    this.headPlugin = new DefaultConnectionPluginFactory()
         .getInstance(
             this.proxy,
             this.propertySet,
@@ -79,12 +78,12 @@ public class FailoverPluginManager {
             this.logger);
 
     if (!StringUtils.isNullOrEmpty(factoryClazzNames)) {
-      IFailoverPluginFactory[] factories =
-          Util.<IFailoverPluginFactory>loadClasses(
+      IConnectionPluginFactory[] factories =
+          Util.<IConnectionPluginFactory>loadClasses(
                   factoryClazzNames,
-                  "MysqlIo.BadFailoverPluginFactory",
+                  "MysqlIo.BadConnectionPluginFactory",
                   null)
-              .toArray(new IFailoverPluginFactory[0]);
+              .toArray(new IConnectionPluginFactory[0]);
 
       // make a chain of analyzers with default one at the tail
 
@@ -112,7 +111,7 @@ public class FailoverPluginManager {
   }
 
   public void releaseResources() {
-    this.logger.logTrace("[FailoverPluginManager.releaseResources]");
+    this.logger.logTrace("[ConnectionPluginManager.releaseResources]");
     this.headPlugin.releaseResources();
     try {
       Runtime.getRuntime().removeShutdownHook(shutdownHook);

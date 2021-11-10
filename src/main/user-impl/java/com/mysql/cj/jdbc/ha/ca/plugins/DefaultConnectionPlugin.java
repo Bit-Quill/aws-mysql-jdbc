@@ -4,11 +4,11 @@ import com.mysql.cj.log.Log;
 
 import java.util.concurrent.Callable;
 
-public class DefaultFailoverPlugin implements IFailoverPlugin {
+public class DefaultConnectionPlugin implements IConnectionPlugin {
 
   protected Log log;
 
-  public DefaultFailoverPlugin(Log log) {
+  public DefaultConnectionPlugin(Log log) {
     if (log == null) {
       throw new NullArgumentException("log");
     }
@@ -19,16 +19,16 @@ public class DefaultFailoverPlugin implements IFailoverPlugin {
   @Override
   public Object execute(String methodName, Callable executeSqlFunc) throws Exception {
     this.log.logTrace(
-        String.format("[DefaultFailoverPlugin.execute]: method=%s >>>>>", methodName));
+        String.format("[DefaultConnectionPlugin.execute]: method=%s >>>>>", methodName));
     try {
       return executeSqlFunc.call();
     } catch (Exception ex) {
       this.log.logTrace(
-          String.format("[DefaultFailoverPlugin.execute]: method=%s, exception: ", methodName), ex);
+          String.format("[DefaultConnectionPlugin.execute]: method=%s, exception: ", methodName), ex);
       throw ex;
     } finally {
       this.log.logTrace(
-          String.format("[DefaultFailoverPlugin.execute]: method=%s <<<<<", methodName));
+          String.format("[DefaultConnectionPlugin.execute]: method=%s <<<<<", methodName));
     }
   }
 
