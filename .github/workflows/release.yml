@@ -30,6 +30,7 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: 8
+          gpg-private-key: ${{ secrets.GPG_SECRET_KEY }}
       - name: 'Start Docker MySQL'
         working-directory: docker
         run: docker-compose up -d && docker-compose logs
@@ -51,9 +52,8 @@ jobs:
           export RELEASE_DETAILS="$(sed '$d' <<< "$RELEASE_DETAILS")"
           touch RELEASE_DETAILS.md
           echo "$RELEASE_DETAILS" > RELEASE_DETAILS.md
-      - name: 'Import GPG Keys and Sign Jars'
+      - name: 'Sign Jars'
         run: |
-          cat <(echo -e "${{ secrets.GPG_SECRET_KEY }}") | gpg --batch --import
           export GPG_TTY=$(tty)
           for jar in build/libs/*.jar; do gpg --detach-sign --armor $jar; done
       - name: 'Upload to Release'
