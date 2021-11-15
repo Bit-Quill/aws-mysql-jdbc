@@ -1,12 +1,12 @@
-name: Introspection CI
+name: Dev Branch CI
 
 on:
   push:
     branches:
-      - introspection
+      - dev
   pull_request:
     branches:
-      - introspection
+      - dev
 
 jobs:
   run-failover-tests-on-ubuntu-latest:
