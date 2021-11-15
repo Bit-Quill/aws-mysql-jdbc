@@ -281,6 +281,12 @@ public enum PropertyKey {
     failoverReaderConnectTimeoutMs("failoverReaderConnectTimeoutMs", true), //
     acceptAwsProtocolOnly("acceptAwsProtocolOnly", true),
     allowXmlUnsafeExternalEntity("allowXmlUnsafeExternalEntity", true),
+    connectionPluginFactories("connectionPluginFactories", true),
+    nativeFailureDetectionEnabled("nativeFailureDetectionEnabled", true),
+    failureDetectionTime("failureDetectionTime", true),
+    failureDetectionInterval("failureDetectionInterval", true),
+    failureDetectionCount("nativeFailureDetectionEnabled", true),
+    monitorDisposalTime("monitorDisposalTime", true),
     useAwsIam("useAwsIam", true);
 
     private String keyName;

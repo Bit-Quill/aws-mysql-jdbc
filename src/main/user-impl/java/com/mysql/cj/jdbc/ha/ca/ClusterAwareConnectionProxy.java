@@ -36,7 +36,6 @@ import com.mysql.cj.conf.ConnectionUrl;
 import com.mysql.cj.conf.ConnectionUrlParser;
 import com.mysql.cj.conf.HostInfo;
 import com.mysql.cj.conf.PropertyKey;
-import com.mysql.cj.conf.RuntimeProperty;
 import com.mysql.cj.exceptions.CJCommunicationsException;
 import com.mysql.cj.exceptions.CJException;
 import com.mysql.cj.exceptions.MysqlErrorNumbers;
@@ -47,6 +46,8 @@ import com.mysql.cj.jdbc.exceptions.CommunicationsException;
 import com.mysql.cj.jdbc.exceptions.SQLError;
 import com.mysql.cj.jdbc.exceptions.SQLExceptionsMapping;
 import com.mysql.cj.jdbc.ha.MultiHostConnectionProxy;
+import com.mysql.cj.jdbc.ha.ca.plugins.ConnectionPluginManager;
+import com.mysql.cj.jdbc.ha.ca.plugins.ICurrentConnectionProvider;
 import com.mysql.cj.jdbc.interceptors.ConnectionLifecycleInterceptor;
 import com.mysql.cj.jdbc.interceptors.ConnectionLifecycleInterceptorProvider;
 import com.mysql.cj.log.Log;
@@ -56,19 +57,22 @@ import com.mysql.cj.util.IpAddressUtils;
 import com.mysql.cj.util.StringUtils;
 import com.mysql.cj.util.Util;
 
-import javax.net.ssl.SSLException;
 import java.io.EOFException;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executor;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import javax.net.ssl.SSLException;
 
 /**
  * A proxy for a dynamic com.mysql.cj.jdbc.JdbcConnection implementation that provides cluster-aware
@@ -76,7 +80,7 @@ import java.util.regex.Pattern;
  * cluster topology changes.
  */
 public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
-    implements ConnectionLifecycleInterceptorProvider {
+    implements ConnectionLifecycleInterceptorProvider, ICurrentConnectionProvider {
 
   static final String METHOD_SET_READ_ONLY = "setReadOnly";
   static final String METHOD_SET_AUTO_COMMIT = "setAutoCommit";
@@ -104,8 +108,6 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
   /** The logger we're going to use. */
   protected transient Log log = NULL_LOGGER;
 
-  protected static final int DEFAULT_SOCKET_TIMEOUT_MS = 10000;
-  protected static final int DEFAULT_CONNECT_TIMEOUT_MS = 30000;
   protected static final int NO_CONNECTION_INDEX = -1;
   protected static final int WRITER_CONNECTION_INDEX = 0; // writer host is always stored at index 0
 
@@ -123,6 +125,7 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
   protected WriterFailoverHandler writerFailoverHandler;
   protected ReaderFailoverHandler readerFailoverHandler;
   protected ConnectionProvider connectionProvider;
+  protected ConnectionPluginManager pluginManager = null;
 
   protected ClusterAwareMetrics metrics = new ClusterAwareMetrics();
   private long invokeStartTimeMs;
@@ -141,6 +144,8 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
   protected int failoverConnectTimeoutMs;
   protected int failoverSocketTimeoutMs;
 
+  private HostInfo mainHost = null;
+
   /**
    * Proxy class to intercept and deal with errors that may occur in any object bound to the current connection.
    */
@@ -157,23 +162,25 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
         return args[0].equals(this);
       }
 
-      synchronized (ClusterAwareConnectionProxy.this) {
-        Object result = null;
+      // TODO: verify if synchronized is needed here
+      //synchronized (ClusterAwareConnectionProxy.this) {
+      Object result = null;
 
-        try {
-          result = method.invoke(this.invokeOn, args);
-          result = proxyIfReturnTypeIsJdbcInterface(method.getReturnType(), result);
-        } catch (InvocationTargetException e) {
-          dealWithInvocationException(e);
-        } catch (IllegalStateException e) {
-          dealWithIllegalStateException(e);
-        }
-
-        return result;
+      try {
+        result = ClusterAwareConnectionProxy.this.pluginManager.execute(method.getName(), () -> method.invoke(this.invokeOn, args));
+        result = proxyIfReturnTypeIsJdbcInterface(method.getReturnType(), result);
+      } catch (InvocationTargetException e) {
+        dealWithInvocationException(e);
+      } catch (IllegalStateException e) {
+        dealWithIllegalStateException(e);
       }
+
+      return result;
+      //}
     }
 
   }
+
   /**
    * Checks if connection is associated with Aurora cluster and instantiates a new
    * AuroraConnectionProxy if needed. Otherwise it returns a single-host connection.
@@ -183,16 +190,16 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
    * @throws SQLException if an error occurs
    */
   public static JdbcConnection autodetectClusterAndCreateProxyInstance(ConnectionUrl connectionUrl)
-          throws SQLException {
+      throws SQLException {
 
     ClusterAwareConnectionProxy connProxy = new ClusterAwareConnectionProxy(connectionUrl);
 
     if (connProxy.isFailoverEnabled()) {
       return (JdbcConnection)
-              java.lang.reflect.Proxy.newProxyInstance(
-                      JdbcConnection.class.getClassLoader(),
-                      new Class<?>[] {JdbcConnection.class},
-                      connProxy);
+          java.lang.reflect.Proxy.newProxyInstance(
+              JdbcConnection.class.getClassLoader(),
+              new Class<?>[] {JdbcConnection.class},
+              connProxy);
     }
     // If failover is disabled, reset proxy settings from the connection.
     connProxy.currentConnection.setProxy(null);
@@ -206,9 +213,10 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
    */
   public synchronized boolean isFailoverEnabled() {
     return this.enableFailoverSetting
-            && !this.isRdsProxy
-            && this.isClusterTopologyAvailable
-            && !this.isMultiWriterCluster;
+        && !this.isRdsProxy
+        && this.isClusterTopologyAvailable
+        && !this.isMultiWriterCluster
+        && (this.hosts == null || this.hosts.size() > 1);
   }
 
   /**
@@ -219,13 +227,13 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
    * @throws SQLException if an error occurs
    */
   public static JdbcConnection createProxyInstance(ConnectionUrl connectionUrl)
-          throws SQLException {
+      throws SQLException {
     ClusterAwareConnectionProxy connProxy = new ClusterAwareConnectionProxy(connectionUrl);
     return (JdbcConnection)
-            java.lang.reflect.Proxy.newProxyInstance(
-                    JdbcConnection.class.getClassLoader(),
-                    new Class<?>[] {JdbcConnection.class},
-                    connProxy);
+        java.lang.reflect.Proxy.newProxyInstance(
+            JdbcConnection.class.getClassLoader(),
+            new Class<?>[] {JdbcConnection.class},
+            connProxy);
   }
 
   /**
@@ -274,7 +282,8 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
       ConnectionProvider connectionProvider,
       TopologyService service,
       WriterFailoverHandler writerFailoverHandler,
-      ReaderFailoverHandler readerFailoverHandler)
+      ReaderFailoverHandler readerFailoverHandler,
+      Function<Log, ConnectionPluginManager> connectionPluginManagerInitializer)
       throws SQLException {
     super(connectionUrl);
     this.initialConnectionProps = connectionUrl.getMainHost().getHostProperties();
@@ -292,7 +301,7 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
     this.writerFailoverHandler = writerFailoverHandler;
     this.readerFailoverHandler = readerFailoverHandler;
 
-    initProxy(connectionUrl);
+    initProxy(connectionUrl, connectionPluginManagerInitializer);
   }
 
   protected synchronized void initSettings(ConnectionUrl connectionUrl) throws SQLException {
@@ -321,11 +330,8 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
     this.clusterInstanceHostPatternSetting =
         connProps.getStringProperty(PropertyKey.clusterInstanceHostPattern).getValue();
 
-    RuntimeProperty<Integer> connectTimeout = connProps.getIntegerProperty(PropertyKey.connectTimeout);
-    this.failoverConnectTimeoutMs = connectTimeout.isExplicitlySet() ? connectTimeout.getValue() : DEFAULT_CONNECT_TIMEOUT_MS;
-
-    RuntimeProperty<Integer> socketTimeout = connProps.getIntegerProperty(PropertyKey.socketTimeout);
-    this.failoverSocketTimeoutMs = socketTimeout.isExplicitlySet() ? socketTimeout.getValue() : DEFAULT_SOCKET_TIMEOUT_MS;
+    this.failoverConnectTimeoutMs = connProps.getIntegerProperty(PropertyKey.connectTimeout).getValue();
+    this.failoverSocketTimeoutMs = connProps.getIntegerProperty(PropertyKey.socketTimeout).getValue();
   }
 
   protected synchronized void initLogger(ConnectionUrl connUrl) {
@@ -336,6 +342,13 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
   }
 
   protected synchronized void initProxy(ConnectionUrl connUrl) throws SQLException {
+    this.initProxy(connUrl, ConnectionPluginManager::new);
+  }
+
+  private synchronized void initProxy(
+      ConnectionUrl connUrl,
+      Function<Log, ConnectionPluginManager> connectionPluginManagerInitializer)
+      throws SQLException {
     if (!this.enableFailoverSetting) {
       // Use a standard default connection - no further initialization required
       this.currentConnection = this.connectionProvider.connect(connUrl.getMainHost());
@@ -344,26 +357,33 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
 
     this.log.logDebug(Messages.getString("ClusterAwareConnectionProxy.8"));
     this.log.logTrace(
-            Messages.getString(
-                    "ClusterAwareConnectionProxy.9", new Object[] {"clusterId", this.clusterIdSetting}));
+        Messages.getString(
+            "ClusterAwareConnectionProxy.9", new Object[] {"clusterId", this.clusterIdSetting}));
     this.log.logTrace(
-            Messages.getString(
-                    "ClusterAwareConnectionProxy.9",
-                    new Object[] {"clusterInstanceHostPattern", this.clusterInstanceHostPatternSetting}));
+        Messages.getString(
+            "ClusterAwareConnectionProxy.9",
+            new Object[] {"clusterInstanceHostPattern", this.clusterInstanceHostPatternSetting}));
 
-    HostInfo mainHost = this.connectionUrl.getMainHost();
+    this.mainHost = this.connectionUrl.getMainHost();
     if (!StringUtils.isNullOrEmpty(this.clusterInstanceHostPatternSetting)) {
-      initFromHostPatternSetting(connUrl, mainHost);
-    } else if (IpAddressUtils.isIPv4(mainHost.getHost())
-            || IpAddressUtils.isIPv6(mainHost.getHost())) {
-      initExpectingNoTopology(connUrl, mainHost);
+      initFromHostPatternSetting(connUrl, this.mainHost);
+    } else if (IpAddressUtils.isIPv4(this.mainHost.getHost())
+        || IpAddressUtils.isIPv6(this.mainHost.getHost())) {
+      initExpectingNoTopology(connUrl, this.mainHost);
     } else {
-      identifyRdsType(mainHost.getHost());
+      identifyRdsType(this.mainHost.getHost());
       if (!this.isRds) {
-        initExpectingNoTopology(connUrl, mainHost);
+        initExpectingNoTopology(connUrl, this.mainHost);
       } else {
-        initFromConnectionString(connUrl, mainHost);
+        initFromConnectionString(connUrl, this.mainHost);
       }
+    }
+
+    if (this.pluginManager == null) {
+      this.pluginManager = connectionPluginManagerInitializer.apply(log);
+      this.pluginManager.init(
+          this,
+          this.currentConnection.getPropertySet());
     }
   }
 
@@ -375,13 +395,13 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
     // Instance host info is similar to original main host except host and port which come from the configuration property
     setClusterId(instanceHostPattern, instanceHostPort);
     this.topologyService.setClusterInstanceTemplate(
-            createClusterInstanceTemplate(mainHost, instanceHostPattern, instanceHostPort));
+        createClusterInstanceTemplate(mainHost, instanceHostPattern, instanceHostPort));
     createConnectionAndInitializeTopology(connUrl);
   }
 
   private ConnectionUrlParser.Pair<String, Integer> getHostPortPairFromHostPatternSetting() throws SQLException {
     ConnectionUrlParser.Pair<String, Integer> pair = ConnectionUrlParser.parseHostPortPair(
-            this.clusterInstanceHostPatternSetting);
+        this.clusterInstanceHostPatternSetting);
     if (pair == null) {
       // "Invalid value for the 'clusterInstanceHostPattern' configuration setting - the value could not be parsed"
       throw new SQLException(Messages.getString("ClusterAwareConnectionProxy.5"));
@@ -400,13 +420,13 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
     }
 
     identifyRdsType(hostPattern);
-    if(this.isRdsProxy) {
+    if (this.isRdsProxy) {
       // "An RDS Proxy url can't be used as the 'clusterInstanceHostPattern' configuration setting."
       this.log.logError(Messages.getString("ClusterAwareConnectionProxy.7"));
       throw new SQLException(Messages.getString("ClusterAwareConnectionProxy.7"));
     }
 
-    if(isRdsCustomClusterDns(hostPattern)) {
+    if (isRdsCustomClusterDns(hostPattern)) {
       // "An RDS Custom Cluster endpoint can't be used as the 'clusterInstanceHostPattern' configuration setting."
       this.log.logError(Messages.getString("ClusterAwareConnectionProxy.18"));
       throw new SQLException(Messages.getString("ClusterAwareConnectionProxy.18"));
@@ -420,18 +440,18 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
   private void identifyRdsType(String host) {
     this.isRds = isRdsDns(host);
     this.log.logTrace(
-            Messages.getString("ClusterAwareConnectionProxy.10", new Object[] {"isRds", this.isRds}));
+        Messages.getString("ClusterAwareConnectionProxy.10", new Object[] {"isRds", this.isRds}));
 
     this.isRdsProxy = isRdsProxyDns(host);
     this.log.logTrace(
-            Messages.getString(
-                    "ClusterAwareConnectionProxy.10", new Object[] {"isRdsProxy", this.isRdsProxy}));
+        Messages.getString(
+            "ClusterAwareConnectionProxy.10", new Object[] {"isRdsProxy", this.isRdsProxy}));
   }
 
   private void initExpectingNoTopology(ConnectionUrl connUrl, HostInfo mainHost) throws SQLException {
     setClusterId(mainHost.getHost(), mainHost.getPort());
     this.topologyService.setClusterInstanceTemplate(
-            createClusterInstanceTemplate(mainHost, mainHost.getHost(), mainHost.getPort()));
+        createClusterInstanceTemplate(mainHost, mainHost.getHost(), mainHost.getPort()));
     createConnectionAndInitializeTopology(connUrl);
 
     if (this.isClusterTopologyAvailable) {
@@ -452,7 +472,7 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
 
     setClusterId(mainHost.getHost(), mainHost.getPort());
     this.topologyService.setClusterInstanceTemplate(
-            createClusterInstanceTemplate(mainHost, rdsInstanceHostPattern, mainHost.getPort()));
+        createClusterInstanceTemplate(mainHost, rdsInstanceHostPattern, mainHost.getPort()));
     createConnectionAndInitializeTopology(connUrl);
   }
 
@@ -477,13 +497,13 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
     properties.put(PropertyKey.socketTimeout.getKeyName(), String.valueOf(this.failoverSocketTimeoutMs));
 
     return new HostInfo(
-            this.connectionUrl,
-            host,
-            port,
-            mainHost.getUser(),
-            mainHost.getPassword(),
-            mainHost.isPasswordless(),
-            properties);
+        this.connectionUrl,
+        host,
+        port,
+        mainHost.getUser(),
+        mainHost.getPassword(),
+        mainHost.isPasswordless(),
+        properties);
   }
 
   protected synchronized void createConnectionAndInitializeTopology(ConnectionUrl connUrl) throws SQLException {
@@ -513,9 +533,9 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
     if (isRdsClusterDns(host)) {
       this.explicitlyReadOnly = isReaderClusterDns(host);
       this.log.logTrace(
-              Messages.getString(
-                      "ClusterAwareConnectionProxy.10",
-                      new Object[] {"explicitlyReadOnly", this.explicitlyReadOnly}));
+          Messages.getString(
+              "ClusterAwareConnectionProxy.10",
+              new Object[] {"explicitlyReadOnly", this.explicitlyReadOnly}));
 
       try {
         attemptConnectionUsingCachedTopology();
@@ -544,8 +564,8 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
     JdbcConnection topmostProxy = getProxy();
     if (topmostProxy != this.thisAsConnection) {
       conn.setProxy(
-              this
-                      .thisAsConnection);
+          this
+              .thisAsConnection);
       // First call sets this connection as underlying connection parent proxy (its creator).
     }
     conn.setProxy(topmostProxy); // Set the topmost proxy in the underlying connection.
@@ -626,9 +646,9 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
 
     this.isClusterTopologyAvailable = !Util.isNullOrEmpty(this.hosts);
     this.log.logTrace(
-            Messages.getString(
-                    "ClusterAwareConnectionProxy.10",
-                    new Object[] {"isClusterTopologyAvailable", this.isClusterTopologyAvailable}));
+        Messages.getString(
+            "ClusterAwareConnectionProxy.10",
+            new Object[] {"isClusterTopologyAvailable", this.isClusterTopologyAvailable}));
     this.isMultiWriterCluster = this.topologyService.isMultiWriterCluster();
 
     if (this.isFailoverEnabled()) {
@@ -685,6 +705,7 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
   protected synchronized void pickNewConnection() throws SQLException {
     if (this.isClosed && this.closedExplicitly) {
       this.log.logDebug(Messages.getString("ClusterAwareConnectionProxy.14"));
+      releasePluginManager();
       return;
     }
 
@@ -708,6 +729,16 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
     }
   }
 
+  @Override
+  public Connection getCurrentConnection() {
+    return this.currentConnection;
+  }
+
+  @Override
+  public HostInfo getCurrentHostInfo() {
+    return this.currentHostIndex != NO_CONNECTION_INDEX ? this.hosts.get(this.currentHostIndex) : mainHost;
+  }
+
   private boolean shouldAttemptReaderConnection() {
     return isExplicitlyReadOnly() && clusterContainsReader();
   }
@@ -723,22 +754,22 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
     try {
       switchCurrentConnectionTo(hostIndex, createConnectionForHostIndex(hostIndex));
       this.log.logDebug(
-              Messages.getString(
-                      "ClusterAwareConnectionProxy.15", new Object[] {this.hosts.get(hostIndex)}));
+          Messages.getString(
+              "ClusterAwareConnectionProxy.15", new Object[] {this.hosts.get(hostIndex)}));
     } catch (SQLException e) {
       if (this.currentConnection != null) {
         HostInfo host = this.hosts.get(hostIndex);
         StringBuilder msg =
-                new StringBuilder("Connection to ")
-                        .append(isWriterHostIndex(hostIndex) ? "writer" : "reader")
-                        .append(" host '")
-                        .append(host == null ? "<null>" : host.getHostPortPair())
-                        .append("' failed");
+            new StringBuilder("Connection to ")
+                .append(isWriterHostIndex(hostIndex) ? "writer" : "reader")
+                .append(" host '")
+                .append(host == null ? "<null>" : host.getHostPortPair())
+                .append("' failed");
         try {
           this.log.logWarn(msg.toString(), e);
         } catch (CJException ex) {
           throw SQLExceptionsMapping.translateException(
-                  e, this.currentConnection.getExceptionInterceptor());
+              e, this.currentConnection.getExceptionInterceptor());
         }
       }
       throw e;
@@ -764,7 +795,7 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
    * @throws SQLException if an error occurs
    */
   private synchronized void switchCurrentConnectionTo(int hostIndex, JdbcConnection connection)
-          throws SQLException {
+      throws SQLException {
     invalidateCurrentConnection();
 
     boolean readOnly;
@@ -791,7 +822,7 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
    * @throws SQLException if an error occurs
    */
   private synchronized ConnectionImpl createConnectionForHostIndex(int hostIndex)
-          throws SQLException {
+      throws SQLException {
     return createConnectionForHost(this.hosts.get(hostIndex));
   }
 
@@ -804,18 +835,17 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
    */
   @Override
   protected synchronized ConnectionImpl createConnectionForHost(HostInfo baseHostInfo)
-          throws SQLException {
-    HostInfo hostInfoWithInitialProps = ClusterAwareUtils.copyWithAdditionalProps(baseHostInfo, this.connectionUrl);
+      throws SQLException {
+    HostInfo hostInfoWithInitialProps = ClusterAwareUtils.copyWithAdditionalProps(baseHostInfo, this.initialConnectionProps);
     ConnectionImpl conn = this.connectionProvider.connect(hostInfoWithInitialProps);
     setConnectionProxy(conn);
     return conn;
   }
 
-
   private boolean validWriterConnection() {
     return this.explicitlyReadOnly == null
-            || this.explicitlyReadOnly
-            || isWriterHostIndex(this.currentHostIndex);
+        || this.explicitlyReadOnly
+        || isWriterHostIndex(this.currentHostIndex);
   }
 
   /**
@@ -838,15 +868,15 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
       // restarting transaction."
       this.log.logError(Messages.getString("ClusterAwareConnectionProxy.1"));
       throw new SQLException(
-              Messages.getString("ClusterAwareConnectionProxy.1"),
-              MysqlErrorNumbers.SQL_STATE_TRANSACTION_RESOLUTION_UNKNOWN);
+          Messages.getString("ClusterAwareConnectionProxy.1"),
+          MysqlErrorNumbers.SQL_STATE_TRANSACTION_RESOLUTION_UNKNOWN);
     } else {
       // "The active SQL connection has changed due to a connection failure. Please re-configure
       // session state if required."
       this.log.logError(Messages.getString("ClusterAwareConnectionProxy.3"));
       throw new SQLException(
-              Messages.getString("ClusterAwareConnectionProxy.3"),
-              MysqlErrorNumbers.SQL_STATE_COMMUNICATION_LINK_CHANGED);
+          Messages.getString("ClusterAwareConnectionProxy.3"),
+          MysqlErrorNumbers.SQL_STATE_COMMUNICATION_LINK_CHANGED);
     }
   }
 
@@ -884,9 +914,9 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
     setConnectionProxy(this.currentConnection);
 
     this.log.logDebug(
-            Messages.getString(
-                    "ClusterAwareConnectionProxy.15",
-                    new Object[] {this.hosts.get(this.currentHostIndex)}));
+        Messages.getString(
+            "ClusterAwareConnectionProxy.15",
+            new Object[] {this.hosts.get(this.currentHostIndex)}));
   }
 
   private synchronized void processFailoverFailure(String message) throws SQLException {
@@ -895,6 +925,7 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
     }
 
     this.log.logError(message);
+    releasePluginManager();
     throw new SQLException(message, MysqlErrorNumbers.SQL_STATE_UNABLE_TO_CONNECT_TO_DATASOURCE);
   }
 
@@ -932,9 +963,9 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
       HostInfo currentHost = this.hosts.get(this.currentHostIndex);
       topologyService.setLastUsedReaderHost(currentHost);
       this.log.logDebug(
-              Messages.getString(
-                      "ClusterAwareConnectionProxy.15",
-                      new Object[] {currentHost}));
+          Messages.getString(
+              "ClusterAwareConnectionProxy.15",
+              new Object[] {currentHost}));
     }
   }
 
@@ -1021,7 +1052,7 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
     Matcher matcher = auroraDnsPattern.matcher(host);
     String clusterKeyword = getClusterKeyword(matcher);
     if ("cluster-".equalsIgnoreCase(clusterKeyword)
-            || "cluster-ro-".equalsIgnoreCase(clusterKeyword)) {
+        || "cluster-ro-".equalsIgnoreCase(clusterKeyword)) {
       return matcher.group(1) + ".cluster-" + matcher.group(3); // always RDS cluster endpoint
     }
     return null;
@@ -1030,7 +1061,7 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
     Matcher matcher = auroraDnsPattern.matcher(host);
     String clusterKeyword = getClusterKeyword(matcher);
     return "cluster-".equalsIgnoreCase(clusterKeyword)
-            || "cluster-ro-".equalsIgnoreCase(clusterKeyword);
+        || "cluster-ro-".equalsIgnoreCase(clusterKeyword);
   }
 
   private boolean isReaderClusterDns(String host) {
@@ -1044,9 +1075,9 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
 
   private String getClusterKeyword(Matcher matcher) {
     if (matcher.find()
-            && matcher.group(2) != null
-            && matcher.group(1) != null
-            && !matcher.group(1).isEmpty()) {
+        && matcher.group(2) != null
+        && matcher.group(1) != null
+        && !matcher.group(1).isEmpty()) {
       return matcher.group(2);
     }
     return null;
@@ -1076,7 +1107,7 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
    */
   @Override
   public synchronized Object invokeMore(Object proxy, Method method, Object[] args)
-          throws Throwable {
+      throws Throwable {
     final String methodName = method.getName();
 
     updateTopologyAndConnectIfNeeded(false);
@@ -1087,7 +1118,7 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
 
     Object result = null;
     try {
-      result = method.invoke(this.thisAsConnection, args);
+      result = this.pluginManager.execute(methodName, () -> method.invoke(this.thisAsConnection, args));
       result = proxyIfReturnTypeIsJdbcInterface(method.getReturnType(), result);
     } catch (InvocationTargetException e) {
       dealWithInvocationException(e);
@@ -1109,13 +1140,15 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
       // "The active SQL connection has changed. Please re-configure session state if required."
       this.log.logError(Messages.getString("ClusterAwareConnectionProxy.19"));
       throw new SQLException(
-              Messages.getString("ClusterAwareConnectionProxy.19"),
-              MysqlErrorNumbers.SQL_STATE_COMMUNICATION_LINK_CHANGED);
+          Messages.getString("ClusterAwareConnectionProxy.19"),
+          MysqlErrorNumbers.SQL_STATE_COMMUNICATION_LINK_CHANGED);
     } else {
       String reason = "No operations allowed after connection closed.";
       if (this.closedReason != null) {
         reason += (" " + this.closedReason);
       }
+
+      releasePluginManager();
       throw SQLError.createSQLException(reason, MysqlErrorNumbers.SQL_STATE_CONNECTION_NOT_OPEN, null /* no access to a interceptor here... */);
     }
   }
@@ -1130,7 +1163,7 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
    */
   @Override
   protected synchronized void dealWithInvocationException(InvocationTargetException e)
-          throws SQLException, Throwable, InvocationTargetException {
+      throws SQLException, Throwable, InvocationTargetException {
     dealWithOriginalException(e.getTargetException(), e);
   }
 
@@ -1205,6 +1238,7 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
         // eat
       }
     }
+
     super.invalidateConnection(this.currentConnection);
   }
 
@@ -1221,9 +1255,9 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
     if (METHOD_SET_READ_ONLY.equals(methodName)) {
       this.explicitlyReadOnly = (Boolean) args[0];
       this.log.logTrace(
-              Messages.getString(
-                      "ClusterAwareConnectionProxy.10",
-                      new Object[] {"explicitlyReadOnly", this.explicitlyReadOnly}));
+          Messages.getString(
+              "ClusterAwareConnectionProxy.10",
+              new Object[] {"explicitlyReadOnly", this.explicitlyReadOnly}));
       connectToWriterIfRequired(this.explicitlyReadOnly);
     }
   }
@@ -1250,6 +1284,7 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
   @Override
   protected synchronized void doClose() throws SQLException {
     this.currentConnection.close();
+    releasePluginManager();
   }
 
   /**
@@ -1323,11 +1358,18 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
     for (int i = 0; i < this.hosts.size(); i++) {
       HostInfo hostInfo = this.hosts.get(i);
       msg.append("\n   [")
-              .append(i)
-              .append("]: ")
-              .append(hostInfo == null ? "<null>" : hostInfo.getHost());
+          .append(i)
+          .append("]: ")
+          .append(hostInfo == null ? "<null>" : hostInfo.getHost());
     }
     this.log.logTrace(
         Messages.getString("ClusterAwareConnectionProxy.11", new Object[] {msg.toString()}));
+  }
+
+  private void releasePluginManager() {
+    if (this.pluginManager != null) {
+      this.pluginManager.releaseResources();
+      this.pluginManager = null;
+    }
   }
 }
