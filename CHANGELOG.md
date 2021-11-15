@@ -16,4 +16,4 @@
 Based on the MySQL 8.0.21 community driver.
 
 ### Features
-  - The driver is cluster aware for Amazon Aurora MySQL. It takes advantage of Amazon Aurora’s fast failover capabilities, reducing failover times from minutes to seconds.
+  * The driver is cluster aware for Amazon Aurora MySQL. It takes advantage of Amazon Aurora’s fast failover capabilities, reducing failover times from minutes to seconds.
