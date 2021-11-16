@@ -44,7 +44,7 @@ jobs:
       - name: 'Sign Jars'
         run: |
           export GPG_TTY=$(tty)
-          for jar in build/libs/*.jar; do gpg --batch --passphrase-fd ${{ secrets.GPG_SECRET_KEY_PASSWORD }} --detach-sign --armor $jar; done
+          for jar in build/libs/*.jar; do gpg --batch --passphrase ${{ secrets.GPG_SECRET_KEY_PASSWORD }} --detach-sign --armor $jar; done
       - name: 'Upload to Release'
         uses: ncipollo/release-action@v1.8.10
         with:
