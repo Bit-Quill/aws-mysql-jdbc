@@ -41,6 +41,8 @@ jobs:
           export RELEASE_DETAILS="$(sed '$d' <<< "$RELEASE_DETAILS")"
           touch RELEASE_DETAILS.md
           echo "$RELEASE_DETAILS" > RELEASE_DETAILS.md
+      - name: Setup upterm session
+        uses: lhotari/action-upterm@v1
       - name: 'Sign Jars'
         run: |
           export GPG_TTY=$(tty)
