@@ -18,10 +18,6 @@ jobs:
     name: 'Build And Release Driver'
     runs-on: ubuntu-latest
     steps:
-      - name: Install gpg secret key
-        id: install-secret-key
-        run: |
-          cat <(echo -e "${{ secrets.GPG_SECRET_KEY }}") | gpg --batch --import --passphrase ${{ secrets.GPG_SECRET_KEY_PASSWORD }}
       - name: 'Clone Repository'
         uses: actions/checkout@v2
         with:
@@ -41,6 +37,14 @@ jobs:
           export RELEASE_DETAILS="$(sed '$d' <<< "$RELEASE_DETAILS")"
           touch RELEASE_DETAILS.md
           echo "$RELEASE_DETAILS" > RELEASE_DETAILS.md
+      - name: 'Install gpg secret key'
+        id: import_gpg
+        uses: crazy-max/ghaction-import-gpg@v4
+        with:
+          gpg_private_key: ${{ secrets.GPG_SECRET_KEY }}
+          passphrase: ${{ secrets.GPG_SECRET_KEY_PASSWORD }}
+#        run: |
+#          cat <(echo -e "${{ secrets.GPG_SECRET_KEY }}") | gpg --batch --import --passphrase ${{ secrets.GPG_SECRET_KEY_PASSWORD }}
       - name: 'Sign Jars'
         run: |
           export GPG_TTY=$(tty)
