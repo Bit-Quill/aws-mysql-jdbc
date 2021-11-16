@@ -41,12 +41,10 @@ jobs:
           export RELEASE_DETAILS="$(sed '$d' <<< "$RELEASE_DETAILS")"
           touch RELEASE_DETAILS.md
           echo "$RELEASE_DETAILS" > RELEASE_DETAILS.md
-      - name: Setup upterm session
-        uses: lhotari/action-upterm@v1
       - name: 'Sign Jars'
         run: |
           export GPG_TTY=$(tty)
-          for jar in build/libs/*.jar; do cat <(echo -e "${{ secrets.GPG_SECRET_KEY_PASSWORD }}") | gpg --passphrase-fd 0 --detach-sign --armor $jar; done
+          for jar in build/libs/*.jar; do gpg --batch --passphrase-fd ${{ secrets.GPG_SECRET_KEY_PASSWORD }} --detach-sign --armor $jar; done
       - name: 'Upload to Release'
         uses: ncipollo/release-action@v1.8.10
         with:
