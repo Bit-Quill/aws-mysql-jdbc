@@ -21,7 +21,7 @@ jobs:
       - name: Install gpg secret key
         id: install-secret-key
         run: |
-          cat <(echo -e "${{ secrets.GPG_SECRET_KEY }}") | gpg --batch --import
+          cat <(echo -e "${{ secrets.GPG_SECRET_KEY }}") | gpg --batch --import --passphrase ${{ secrets.GPG_SECRET_KEY_PASSWORD }}
       - name: 'Clone Repository'
         uses: actions/checkout@v2
         with:
@@ -44,7 +44,7 @@ jobs:
       - name: 'Sign Jars'
         run: |
           export GPG_TTY=$(tty)
-          for jar in build/libs/*.jar; do gpg --batch --passphrase ${{ secrets.GPG_SECRET_KEY_PASSWORD }} --detach-sign --armor $jar; done
+          for jar in build/libs/*.jar; do gpg --detach-sign --armor $jar; done
       - name: 'Upload to Release'
         uses: ncipollo/release-action@v1.8.10
         with:
