@@ -45,15 +45,10 @@ jobs:
           passphrase: ${{ secrets.GPG_PASSPHRASE }}
           git_user_signingkey: true
           git_commit_gpgsign: true
-#      - name: 'Install GPG Secret Key'
-#        id: install-secret-key
-#        run: |
-#          cat <(echo -e "${{ secrets.GPG_SECRET_KEY }}") | gpg --batch --import
       - name: 'Sign Jars'
         run: |
           export GPG_TTY=$(tty)
-          for jar in build/libs/*.jar; do gpg --local-user ${{ secrets.GPG_PRIVATE_KEY }} --armor --output $jar --detach-sign; done
-          for signed in build/libs/*.asc; do gpg --verify $signed; done
+          for jar in build/libs/*.jar; do gpg --detach-sign --armor $jar; done
       - name: 'Upload to Release'
         uses: ncipollo/release-action@v1
         with:
