@@ -1,5 +1,17 @@
 # Changelog
 
+## Version 0.2.2 (Public Preview) - 2021-11-16
+
+### Added
+  * Support for AWS IAM database authentication, please refer to the AWS IAM Database Authentication section in the README.md for more information
+
+### Fixes
+  * Using invalid login parameters after a valid set will no longer be able to establish a connection using cached information.
+  * Old Linux bug causing infinite loops in test fixed.
+
+### Misc
+  * Enforce source & target build using Java 8.
+
 ## [Version 0.2.0 (Public Preview)](https://github.com/awslabs/aws-mysql-jdbc/releases/tag/0.2.0) - 2021-08-30
 
 ### Added
