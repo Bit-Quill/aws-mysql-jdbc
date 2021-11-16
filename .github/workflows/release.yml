@@ -26,31 +26,31 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: 8
-      - name: 'Build Without Tests'
-        run: ./gradlew --no-parallel --no-daemon -x test build
+      - name: 'Build Driver'
+        run: |
+          ./gradlew --no-parallel --no-daemon -x test build
       - name: 'Set Version Env Variable'
         run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
       - name: 'Get Release Details'
         run: |
-          export RELEASE_DETAILS="$(awk -vN=2 'n<N;/^## /{++n}' CHANGES)"
+          export RELEASE_DETAILS="$(awk -vN=2 'n<N;/^## /{++n}' CHANGELOG.md)"
           export RELEASE_DETAILS="$(sed '${/^# /d;}' <<< "$RELEASE_DETAILS")"
           export RELEASE_DETAILS="$(sed '$d' <<< "$RELEASE_DETAILS")"
           touch RELEASE_DETAILS.md
           echo "$RELEASE_DETAILS" > RELEASE_DETAILS.md
-      - name: 'Install gpg secret key'
+      - name: 'Install GPG Secret Key'
         id: import_gpg
         uses: crazy-max/ghaction-import-gpg@v4
         with:
           gpg_private_key: ${{ secrets.GPG_SECRET_KEY }}
           passphrase: ${{ secrets.GPG_SECRET_KEY_PASSWORD }}
-#        run: |
-#          cat <(echo -e "${{ secrets.GPG_SECRET_KEY }}") | gpg --batch --import --passphrase ${{ secrets.GPG_SECRET_KEY_PASSWORD }}
       - name: 'Sign Jars'
         run: |
           export GPG_TTY=$(tty)
           for jar in build/libs/*.jar; do gpg --detach-sign --armor $jar; done
+          for signed in build/libs/*.asc; do gpg --verify $signed; done
       - name: 'Upload to Release'
-        uses: ncipollo/release-action@v1.8.10
+        uses: ncipollo/release-action@v1
         with:
           draft: true
           name: "AWS JDBC Driver for MySQL Public Preview - v${{ env.RELEASE_VERSION }}"
