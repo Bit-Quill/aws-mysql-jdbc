@@ -123,6 +123,7 @@ public class NodeMonitoringConnectionPlugin implements IConnectionPlugin {
       // do direct call
       return this.nextPlugin.execute(methodName, executeSqlFunc);
     }
+    // ... otherwise, use a separate thread to execute method
 
     final int failureDetectionTimeMillis = this.propertySet
         .getIntegerProperty(PropertyKey.failureDetectionTime)
@@ -134,7 +135,6 @@ public class NodeMonitoringConnectionPlugin implements IConnectionPlugin {
         .getIntegerProperty(PropertyKey.failureDetectionCount)
         .getValue();
 
-    // use a separate thread to execute method
     initMonitorService();
 
     Object result;
