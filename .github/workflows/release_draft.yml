@@ -1,4 +1,4 @@
-name: 'Release Driver'
+name: 'Release Draft'
 
 on:
   push:
@@ -15,7 +15,7 @@ permissions:
 
 jobs:
   ubuntu-latest-aurora-build-and-release:
-    name: 'Build And Release Driver'
+    name: 'Build And Release Draft'
     runs-on: ubuntu-latest
     steps:
       - name: 'Clone Repository'
@@ -49,7 +49,7 @@ jobs:
           export GPG_TTY=$(tty)
           for jar in build/libs/*.jar; do gpg --detach-sign --armor $jar; done
           for signed in build/libs/*.asc; do gpg --verify $signed; done
-      - name: 'Upload to Release'
+      - name: 'Upload to Draft Release'
         uses: ncipollo/release-action@v1
         with:
           draft: true
