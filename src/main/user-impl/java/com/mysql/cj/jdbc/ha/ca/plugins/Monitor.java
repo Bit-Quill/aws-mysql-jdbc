@@ -55,7 +55,7 @@ public class Monitor implements IMonitor {
   }
 
   private static final int THREAD_SLEEP_WHEN_INACTIVE_MILLIS = 100;
-  private static final String MONITORING_CONNECTION_PROPERTY_PREFIX = "monitoring-";
+  private static final String MONITORING_PROPERTY_PREFIX = "monitoring-";
 
   private final Queue<MonitorConnectionContext> contexts = new ConcurrentLinkedQueue<>();
   private final ConnectionProvider connectionProvider;
@@ -154,13 +154,15 @@ public class Monitor implements IMonitor {
     try {
       if (this.monitoringConn == null || this.monitoringConn.isClosed()) {
         // open a new connection
-        Map<String, String> properties = new HashMap<>();
-        Properties props = this.propertySet.exposeAsProperties();
-        props.stringPropertyNames().stream()
-          .filter(propName -> propName.startsWith(MONITORING_CONNECTION_PROPERTY_PREFIX))
-          .forEach(propName -> properties.put(propName.substring(MONITORING_CONNECTION_PROPERTY_PREFIX.length()), props.getProperty(propName)));
+        Map<String, String> monitoringConnProperties = new HashMap<>();
+        Properties originalProperties = this.propertySet.exposeAsProperties();
+        if(originalProperties != null) {
+          originalProperties.stringPropertyNames().stream()
+                  .filter(p -> p.startsWith(MONITORING_PROPERTY_PREFIX))
+                  .forEach(p -> monitoringConnProperties.put(p.substring(MONITORING_PROPERTY_PREFIX.length()), originalProperties.getProperty(p)));
+        }
 
-        this.monitoringConn = this.connectionProvider.connect(copy(this.hostInfo, properties));
+        this.monitoringConn = this.connectionProvider.connect(copy(this.hostInfo, monitoringConnProperties));
         return new ConnectionStatus(true, 0);
       }
 
