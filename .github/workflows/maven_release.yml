@@ -28,7 +28,10 @@ jobs:
           java-version: 8
       - name: 'Publish to Maven'
         run: |
-          ./gradlew --no-parallel --no-daemon publishAllPublicationsToOSSRHRepository -Psigning.secretKeyRingFile=${{ secrets.GPG_PRIVATE_KEY }} -Psigning.password=${{ secrets.GPG_PASSPHRASE }} -Psigning.keyId=${{ secrets.GPG_KEY_ID }}
+          ./gradlew --no-parallel --no-daemon publishAllPublicationsToOSSRHRepository \
+            -signing.secretKeyRingFile=${{ secrets.GPG_PRIVATE_KEY }} \
+            -signing.password=${{ secrets.GPG_PASSPHRASE }} \
+            -signing.keyId=${{ secrets.GPG_KEY_ID }}
         env:
           MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
           MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}
