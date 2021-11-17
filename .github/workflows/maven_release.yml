@@ -28,7 +28,7 @@ jobs:
           java-version: 8
       - name: 'Publish to Maven'
         run: |
-          ./gradlew --no-parallel --no-daemon publish
+          ./gradlew --no-parallel --no-daemon publishAllPublicationsToOSSRHRepository
         env:
           MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
           MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}
