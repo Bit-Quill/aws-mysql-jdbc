@@ -335,7 +335,6 @@ publishing {
 }
 
 signing {
-//    useGpgCmd()
     if (project.hasProperty("signing.keyId")
             && project.property("signing.keyId") != ""
             && project.hasProperty("signing.password")
