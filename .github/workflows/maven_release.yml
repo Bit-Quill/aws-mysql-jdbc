@@ -23,6 +23,12 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: 8
+      - name: 'Install GPG Secret Key'
+        id: import_gpg
+        uses: crazy-max/ghaction-import-gpg@v4
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.GPG_PASSPHRASE }}
       - name: 'Publish to Maven'
         run: |
           ./gradlew --no-parallel --no-daemon publishAllPublicationsToOSSRHRepository \
