@@ -27,7 +27,6 @@
 package com.mysql.cj.jdbc.ha.ca.plugins;
 
 import com.mysql.cj.conf.HostInfo;
-import com.mysql.cj.conf.PropertyKey;
 import com.mysql.cj.conf.PropertySet;
 import com.mysql.cj.jdbc.ha.ca.ConnectionProvider;
 import com.mysql.cj.log.Log;
@@ -37,6 +36,7 @@ import java.sql.SQLException;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
@@ -55,6 +55,7 @@ public class Monitor implements IMonitor {
   }
 
   private static final int THREAD_SLEEP_WHEN_INACTIVE_MILLIS = 100;
+  private static final String MONITORING_PROPERTY_PREFIX = "monitoring-";
 
   private final Queue<MonitorConnectionContext> contexts = new ConcurrentLinkedQueue<>();
   private final ConnectionProvider connectionProvider;
@@ -153,14 +154,15 @@ public class Monitor implements IMonitor {
     try {
       if (this.monitoringConn == null || this.monitoringConn.isClosed()) {
         // open a new connection
-        Map<String, String> properties = new HashMap<>();
-        properties.put(PropertyKey.tcpKeepAlive.getKeyName(),
-            this.propertySet.getBooleanProperty(PropertyKey.tcpKeepAlive).getStringValue());
-        properties.put(PropertyKey.connectTimeout.getKeyName(),
-            this.propertySet.getBooleanProperty(PropertyKey.connectTimeout).getStringValue());
-        //TODO: any other properties to pass? like socket factory
+        Map<String, String> monitoringConnProperties = new HashMap<>();
+        Properties originalProperties = this.propertySet.exposeAsProperties();
+        if(originalProperties != null) {
+          originalProperties.stringPropertyNames().stream()
+                  .filter(p -> p.startsWith(MONITORING_PROPERTY_PREFIX))
+                  .forEach(p -> monitoringConnProperties.put(p.substring(MONITORING_PROPERTY_PREFIX.length()), originalProperties.getProperty(p)));
+        }
 
-        this.monitoringConn = this.connectionProvider.connect(copy(this.hostInfo, properties));
+        this.monitoringConn = this.connectionProvider.connect(copy(this.hostInfo, monitoringConnProperties));
         return new ConnectionStatus(true, 0);
       }
 
