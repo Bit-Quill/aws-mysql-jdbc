@@ -330,7 +330,7 @@ publishing {
             }
         }
 
-        mavenLocal()
+//        mavenLocal()
     }
 }
 
