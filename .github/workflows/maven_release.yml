@@ -14,7 +14,7 @@ permissions:
   repository-projects: write
 
 jobs:
-  ubuntu-latest-aurora-build-and-release:
+  ubuntu-latest-aurora-release-to-maven:
     name: 'Build And Release to Maven'
     runs-on: ubuntu-latest
     steps:
