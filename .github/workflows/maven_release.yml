@@ -34,14 +34,14 @@ jobs:
         uses: lhotari/action-upterm@v1
       - name: "Decode Key Ring"
         run: |
-          echo "${{secrets.GPG_SECRET_KEY_FILE}}" > ~/.gradle/secring.gpg.b64
-          base64 -d ~/.gradle/secring.gpg.b64 > ~/.gradle/secring.gpg
-#      - name: 'Publish to Maven'
-#        run: |
-#          ./gradlew --no-parallel --no-daemon publishAllPublicationsToOSSRHRepository \
-#            -Psigning.gnupg.secretKeyRingFile=$(echo ~/.gradle/secring.gpg) \
-#            -Psigning.gnupg.passphrase=${{ secrets.GPG_PASSPHRASE }} \
-#            -Psigning.gnupg.keyName=${{ secrets.GPG_KEY_ID }}
-#        env:
-#          MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
-#          MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}
+          echo "${{secrets.GPG_SECRET_KEY_FILE}}" > ~/secring.gpg.b64
+          base64 -d ~/secring.gpg.b64 > ~/secring.gpg
+      - name: 'Publish to Maven'
+        run: |
+          ./gradlew --no-parallel --no-daemon publishAllPublicationsToOSSRHRepository \
+            -Psigning.gnupg.secretKeyRingFile=$(echo ~/.gradle/secring.gpg) \
+            -Psigning.gnupg.passphrase=${{ secrets.GPG_PASSPHRASE }} \
+            -Psigning.gnupg.keyName=${{ secrets.GPG_KEY_ID }}
+        env:
+          MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
+          MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}
