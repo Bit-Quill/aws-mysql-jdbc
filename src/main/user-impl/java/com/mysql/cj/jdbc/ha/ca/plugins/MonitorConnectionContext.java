@@ -120,10 +120,8 @@ public class MonitorConnectionContext {
 
       final long invalidNodeDurationMillis = currentTime - this.getInvalidNodeStartTime();
       final long maxInvalidNodeDurationMillis = (long) this.getFailureDetectionIntervalMillis() * this.getFailureDetectionCount();
-      final float adjustedFailureCount = (float) this.getFailureDetectionIntervalMillis() / validationIntervalTimeMillis * this.getFailureDetectionCount();
 
-      // TODO: condition with failure counts may be unnecessary
-      if (this.getFailureCount() >= adjustedFailureCount && invalidNodeDurationMillis >= maxInvalidNodeDurationMillis) {
+      if (invalidNodeDurationMillis >= maxInvalidNodeDurationMillis) {
         this.log.logTrace(
             String.format(
                 "[MonitorConnectionContext] node '%s' is *dead*.",
