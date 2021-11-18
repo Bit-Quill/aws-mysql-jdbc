@@ -335,6 +335,7 @@ publishing {
 }
 
 signing {
+    sign(publishing.publications["maven"])
     if (project.hasProperty("signing.keyId")
             && project.property("signing.keyId") != ""
             && project.hasProperty("signing.password")
