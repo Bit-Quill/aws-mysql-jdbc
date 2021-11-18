@@ -30,8 +30,6 @@ jobs:
         with:
           gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
           passphrase: ${{ secrets.GPG_PASSPHRASE }}
-      - name: Setup upterm session
-        uses: lhotari/action-upterm@v1
       - name: "Decode Key Ring"
         run: |
           echo "${{secrets.GPG_SECRET_KEY_FILE}}" > ~/secring.gpg.b64
