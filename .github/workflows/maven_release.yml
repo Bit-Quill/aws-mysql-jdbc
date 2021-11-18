@@ -37,7 +37,7 @@ jobs:
       - name: 'Publish to Maven'
         run: |
           ./gradlew --no-parallel --no-daemon publishAllPublicationsToOSSRHRepository \
-            -Psigning.gnupg.secretKeyRingFile=$(echo ~/.gradle/secring.gpg) \
+            -Psigning.gnupg.secretKeyRingFile=$(echo ~/secring.gpg) \
             -Psigning.gnupg.passphrase=${{ secrets.GPG_PASSPHRASE }} \
             -Psigning.gnupg.keyName=${{ secrets.GPG_KEY_ID }}
         env:
