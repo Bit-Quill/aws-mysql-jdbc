@@ -30,12 +30,10 @@ jobs:
         with:
           gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
           passphrase: ${{ secrets.GPG_PASSPHRASE }}
-      - name: "Decode Key Ring"
+      - name: 'Publish to Maven'
         run: |
           echo "${{secrets.GPG_SECRET_KEY_FILE}}" > ~/secring.gpg.b64
           base64 -d ~/secring.gpg.b64 > ~/secring.gpg
-      - name: 'Publish to Maven'
-        run: |
           ./gradlew --no-parallel --no-daemon publishAllPublicationsToOSSRHRepository \
             -Psigning.gnupg.secretKeyRingFile=$(echo ~/secring.gpg) \
             -Psigning.gnupg.passphrase=${{ secrets.GPG_PASSPHRASE }} \
