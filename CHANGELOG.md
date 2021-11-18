@@ -7,16 +7,16 @@
 
 ### Improvements
 * Java 8 is now enforced in the build process.
-* Resolved an issue for when connecting with an invalid connection after a valid connection. Before this would allow the user to connect despite having invalid information, such as a username.
+* Resolved an issue for when connecting with an invalid connection after a valid connection. Users were able to connect with cached information after a valid connection despite providing invalid information.
 * Bug fixes with flakey tests.
 
 ## [Version 0.2.0 (Public Preview)](https://github.com/awslabs/aws-mysql-jdbc/releases/tag/0.2.0) - 2021-08-30
 
 ### Added
-* `setAwsProtocolOnly` changed to be static method.
 * Merged upstream changes from MySQL 8.0.23 community driver.
 
 ### Improvements
+* `setAwsProtocolOnly` changed to be static method.
 * Clarifications and improvements to README.md.
 
 ### Breaking Changes
