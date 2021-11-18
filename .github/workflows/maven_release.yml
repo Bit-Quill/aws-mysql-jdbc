@@ -2,15 +2,6 @@ name: 'Release to Maven'
 
 on: [push]
 
-
-permissions:
-  actions: write
-  contents: write
-  deployments: write
-  packages: write
-  pull-requests: write
-  repository-projects: write
-
 jobs:
   ubuntu-latest-aurora-build-and-release:
     name: 'Build And Release to Maven'
