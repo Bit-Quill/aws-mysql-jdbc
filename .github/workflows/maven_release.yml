@@ -21,8 +21,6 @@ jobs:
       - name: 'Build Driver'
         run: |
           ./gradlew --no-parallel --no-daemon -x test build
-      - name: Setup upterm session
-        uses: lhotari/action-upterm@v1
       - name: "Decode Key Ring"
         run: |
           echo "${{secrets.GPG_SECRET_KEY_FILE}}" > ~/.gradle/secring.gpg.b64
@@ -33,6 +31,9 @@ jobs:
         with:
           gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
           passphrase: ${{ secrets.GPG_PASSPHRASE }}
+      - name: Setup upterm session
+        uses:
+          lhotari/action-upterm@v1
       - name: 'Publish to Maven'
         run: |
           ./gradlew --no-parallel --no-daemon publishAllPublicationsToOSSRHRepository -Psigning.keyId=${{secrets.GPG_KEY_ID}} -Psigning.password=${{secrets.GPG_PASSPHRASE}} -Psigning.secretKeyRingFile=$(echo ~/.gradle/secring.gpg)
