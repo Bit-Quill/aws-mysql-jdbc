@@ -3,7 +3,7 @@ name: 'Release to Maven'
 on: [push]
 
 jobs:
-  ubuntu-latest-aurora-build-and-release:
+  ubuntu-latest-aurora-release-to-maven:
     name: 'Build And Release to Maven'
     runs-on: ubuntu-latest
     steps:
@@ -32,5 +32,5 @@ jobs:
         run: |
           ./gradlew --no-parallel --no-daemon publishAllPublicationsToOSSRHRepository -Psigning.keyId=${{secrets.GPG_KEY_ID}} -Psigning.password=${{secrets.GPG_PASSPHRASE}} -Psigning.secretKeyRingFile=$(echo ~/.gradle/secring.gpg)
         env:
-          MAVEN_USERNAME: empty
-          MAVEN_PASSWORD: empty
+          MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
+          MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}
