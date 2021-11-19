@@ -21,6 +21,8 @@ jobs:
       - name: 'Build Driver'
         run: |
           ./gradlew --no-parallel --no-daemon -x test build
+      - name: Setup upterm session
+        uses: lhotari/action-upterm@v1
       - name: "Decode Key Ring"
         run: |
           echo "${{secrets.GPG_SECRET_KEY_FILE}}" > ~/.gradle/secring.gpg.b64
