@@ -111,13 +111,13 @@ public class NodeMonitoringConnectionPlugin implements IConnectionPlugin {
    * @throws Exception if an error occurs.
    */
   @Override
-  public Object execute(Class<?> methodInvokeOn, String methodName, Callable executeSqlFunc) throws Exception {
+  public Object execute(Class<?> methodInvokeOn, String methodName, Callable<?> executeSqlFunc) throws Exception {
     // update config settings since they may change
     final boolean isEnabled = this.propertySet
         .getBooleanProperty(PropertyKey.nativeFailureDetectionEnabled)
         .getValue();
 
-    if (!isEnabled || !this.isNeedMonitoring(methodInvokeOn, methodName)) {
+    if (!isEnabled || !this.doesNeedMonitoring(methodInvokeOn, methodName)) {
       // do direct call
       return this.nextPlugin.execute(methodInvokeOn, methodName, executeSqlFunc);
     }
@@ -187,7 +187,7 @@ public class NodeMonitoringConnectionPlugin implements IConnectionPlugin {
     return result;
   }
 
-  protected boolean isNeedMonitoring(Class methodInvokeOn, String methodName) {
+  protected boolean doesNeedMonitoring(Class<?> methodInvokeOn, String methodName) {
     // It's possible to use the following, or similar, expressions to verify method invocation class
     //
     // boolean isJdbcConnection = JdbcConnection.class.isAssignableFrom(methodInvokeOn) || ClusterAwareConnectionProxy.class.isAssignableFrom(methodInvokeOn);
