@@ -111,7 +111,7 @@ public class NodeMonitoringConnectionPlugin implements IConnectionPlugin {
    * @throws Exception if an error occurs.
    */
   @Override
-  public Object execute(Class methodInvokeOn, String methodName, Callable executeSqlFunc) throws Exception {
+  public Object execute(Class<?> methodInvokeOn, String methodName, Callable executeSqlFunc) throws Exception {
     // update config settings since they may change
     final boolean isEnabled = this.propertySet
         .getBooleanProperty(PropertyKey.nativeFailureDetectionEnabled)
