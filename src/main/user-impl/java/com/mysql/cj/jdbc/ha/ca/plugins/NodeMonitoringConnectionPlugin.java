@@ -194,7 +194,7 @@ public class NodeMonitoringConnectionPlugin implements IConnectionPlugin {
     // boolean isJdbcStatement = Statement.class.isAssignableFrom(methodInvokeOn);
     // boolean isJdbcResultSet = ResultSet.class.isAssignableFrom(methodInvokeOn);
 
-    if (methodName == "close" || methodName.startsWith("get")) {
+    if ("close".equals(methodName) || methodName.startsWith("get") || methodName.startsWith("abort")) {
       return false;
     }
 
