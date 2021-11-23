@@ -93,10 +93,10 @@ class NodeMonitoringConnectionPluginTest extends NodeMonitoringConnectionPluginB
         .thenReturn(Boolean.FALSE);
 
     initializePlugin();
-    plugin.execute(MONITOR_METHOD_NAME, sqlFunction);
+    plugin.execute(MONITOR_METHOD_INVOKE_ON, MONITOR_METHOD_NAME, sqlFunction);
 
     verify(initializer, never()).create(any());
-    verify(mockPlugin).execute(eq(MONITOR_METHOD_NAME), eq(sqlFunction));
+    verify(mockPlugin).execute(any(Class.class), eq(MONITOR_METHOD_NAME), eq(sqlFunction));
   }
 
   @Test
@@ -105,10 +105,10 @@ class NodeMonitoringConnectionPluginTest extends NodeMonitoringConnectionPluginB
         .thenReturn(Boolean.TRUE);
 
     initializePlugin();
-    plugin.execute(NO_MONITOR_METHOD_NAME, sqlFunction);
+    plugin.execute(MONITOR_METHOD_INVOKE_ON, NO_MONITOR_METHOD_NAME, sqlFunction);
 
     verify(initializer, atMostOnce()).create(logger);
-    verify(mockPlugin).execute(eq(NO_MONITOR_METHOD_NAME), eq(sqlFunction));
+    verify(mockPlugin).execute(any(Class.class), eq(NO_MONITOR_METHOD_NAME), eq(sqlFunction));
   }
 
   @Test
@@ -119,10 +119,10 @@ class NodeMonitoringConnectionPluginTest extends NodeMonitoringConnectionPluginB
     initializePlugin();
 
     assertThrows(Exception.class, () -> {
-      when(mockPlugin.execute(any(), any()))
+      when(mockPlugin.execute(any(Class.class), any(), any()))
           .thenThrow(EXECUTION_EXCEPTION);
 
-      plugin.execute(MONITOR_METHOD_NAME, sqlFunction);
+      plugin.execute(MONITOR_METHOD_INVOKE_ON, MONITOR_METHOD_NAME, sqlFunction);
     });
 
     verify(monitorService).stopMonitoring(eq(context));
@@ -139,14 +139,14 @@ class NodeMonitoringConnectionPluginTest extends NodeMonitoringConnectionPluginB
       when(context.isNodeUnhealthy())
           .thenReturn(Boolean.TRUE);
 
-      when(mockPlugin.execute(any(), any()))
+      when(mockPlugin.execute(any(Class.class), any(), any()))
           .thenAnswer(invocation -> {
             // Imitate running a long query;
             Thread.sleep(60 * 1000);
             return "done";
           });
 
-      plugin.execute(MONITOR_METHOD_NAME, sqlFunction);
+      plugin.execute(MONITOR_METHOD_INVOKE_ON, MONITOR_METHOD_NAME, sqlFunction);
     });
 
     verify(context).isNodeUnhealthy();
@@ -161,7 +161,7 @@ class NodeMonitoringConnectionPluginTest extends NodeMonitoringConnectionPluginB
         .thenReturn(Boolean.TRUE);
     when(context.isNodeUnhealthy())
         .thenReturn(Boolean.FALSE);
-    when(mockPlugin.execute(any(), any()))
+    when(mockPlugin.execute(any(Class.class), any(), any()))
         .thenAnswer(invocation -> {
           // Imitate running a query for 10 seconds.
           Thread.sleep(10 * 1000);
@@ -169,7 +169,7 @@ class NodeMonitoringConnectionPluginTest extends NodeMonitoringConnectionPluginB
         });
 
     initializePlugin();
-    final Object result = plugin.execute(MONITOR_METHOD_NAME, sqlFunction);
+    final Object result = plugin.execute(MONITOR_METHOD_INVOKE_ON, MONITOR_METHOD_NAME, sqlFunction);
 
     assertEquals(expected, result);
     verify(context, atLeastOnce()).isNodeUnhealthy();

@@ -17,7 +17,7 @@ public class DefaultConnectionPlugin implements IConnectionPlugin {
   }
 
   @Override
-  public Object execute(String methodName, Callable executeSqlFunc) throws Exception {
+  public Object execute(Class methodInvokeOn, String methodName, Callable executeSqlFunc) throws Exception {
     this.log.logTrace(
         String.format("[DefaultConnectionPlugin.execute]: method=%s >>>>>", methodName));
     try {

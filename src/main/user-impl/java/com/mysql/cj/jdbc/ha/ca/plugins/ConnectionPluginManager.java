@@ -106,8 +106,8 @@ public class ConnectionPluginManager {
 
   //TODO: Should method target to be passed along with method name? Like:
   // Object execute(Object methodTarget, String methodName, Callable executeSqlFunc)
-  public Object execute(String methodName, Callable executeSqlFunc) throws Exception {
-    return this.headPlugin.execute(methodName, executeSqlFunc);
+  public Object execute(Class methodInvokeOn, String methodName, Callable executeSqlFunc) throws Exception {
+    return this.headPlugin.execute(methodInvokeOn, methodName, executeSqlFunc);
   }
 
   public void releaseResources() {

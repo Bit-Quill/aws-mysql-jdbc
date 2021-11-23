@@ -49,7 +49,6 @@ import java.util.concurrent.TimeUnit;
 public class NodeMonitoringConnectionPlugin implements IConnectionPlugin {
 
   static final int CHECK_INTERVAL_MILLIS = 1000;
-  static final String METHODS_TO_MONITOR = "executeQuery,";
   private static final String RETRIEVE_HOST_PORT_SQL = "SELECT CONCAT(@@hostname, ':', @@port)";
 
   protected IConnectionPlugin nextPlugin;
@@ -105,23 +104,22 @@ public class NodeMonitoringConnectionPlugin implements IConnectionPlugin {
    * Executes the given SQL function with {@link Monitor} if connection monitoring is enabled.
    * Otherwise, executes the SQL function directly.
    *
+   * @param methodInvokeOn Class of an object that method to monitor to be invoked on.
    * @param methodName     Name of the method to monitor.
    * @param executeSqlFunc {@link Callable} SQL function.
    * @return Results of the {@link Callable} SQL function.
    * @throws Exception if an error occurs.
    */
   @Override
-  public Object execute(String methodName, Callable executeSqlFunc) throws Exception {
-    final boolean needsMonitoring = METHODS_TO_MONITOR.contains(methodName + ",");
-
+  public Object execute(Class methodInvokeOn, String methodName, Callable executeSqlFunc) throws Exception {
     // update config settings since they may change
     final boolean isEnabled = this.propertySet
         .getBooleanProperty(PropertyKey.nativeFailureDetectionEnabled)
         .getValue();
 
-    if (!isEnabled || !needsMonitoring) {
+    if (!isEnabled || !this.isNeedMonitoring(methodInvokeOn, methodName)) {
       // do direct call
-      return this.nextPlugin.execute(methodName, executeSqlFunc);
+      return this.nextPlugin.execute(methodInvokeOn, methodName, executeSqlFunc);
     }
     // ... otherwise, use a separate thread to execute method
 
@@ -155,7 +153,7 @@ public class NodeMonitoringConnectionPlugin implements IConnectionPlugin {
           failureDetectionCount);
 
       executor = Executors.newSingleThreadExecutor();
-      final Future<Object> executeFuncFuture = executor.submit(() -> this.nextPlugin.execute(methodName, executeSqlFunc));
+      final Future<Object> executeFuncFuture = executor.submit(() -> this.nextPlugin.execute(methodInvokeOn, methodName, executeSqlFunc));
       executor.shutdown(); // stop executor to accept new tasks
 
       boolean isDone = executeFuncFuture.isDone();
@@ -187,6 +185,21 @@ public class NodeMonitoringConnectionPlugin implements IConnectionPlugin {
     }
 
     return result;
+  }
+
+  protected boolean isNeedMonitoring(Class methodInvokeOn, String methodName) {
+    // It's possible to use the following, or similar, expressions to verify method invocation class
+    //
+    // boolean isJdbcConnection = JdbcConnection.class.isAssignableFrom(methodInvokeOn) || ClusterAwareConnectionProxy.class.isAssignableFrom(methodInvokeOn);
+    // boolean isJdbcStatement = Statement.class.isAssignableFrom(methodInvokeOn);
+    // boolean isJdbcResultSet = ResultSet.class.isAssignableFrom(methodInvokeOn);
+
+    if (methodName == "close" || methodName.startsWith("get")) {
+      return false;
+    }
+
+    // Monitor all other methods
+    return true;
   }
 
   private void initMonitorService() {

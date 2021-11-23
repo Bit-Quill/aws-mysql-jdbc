@@ -63,7 +63,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Multi-threaded tests for {@link NodeMonitoringConnectionPlugin#execute(String, Callable)}.
+ * Multi-threaded tests for {@link NodeMonitoringConnectionPlugin#execute(Class, String, Callable)}.
  */
 public class MultithreadedNodeMonitoringConnectionPluginTest extends NodeMonitoringConnectionPluginBaseTest {
   private final AtomicInteger counter = new AtomicInteger(0);
@@ -138,7 +138,7 @@ public class MultithreadedNodeMonitoringConnectionPluginTest extends NodeMonitor
   @RepeatedTest(value = 100, name = "execute with exception")
   void test_2_executeWithException() throws Exception {
     when(context.isNodeUnhealthy()).thenReturn(true);
-    when(mockPlugin.execute(anyString(), eq(sqlFunction))).thenAnswer(invocation -> {
+    when(mockPlugin.execute(any(Class.class), anyString(), eq(sqlFunction))).thenAnswer(invocation -> {
       // Sleep for a while to imitate a long query
       // and allow the monitoring thread time to check node status.
       Thread.sleep(60 * 1000);
@@ -229,7 +229,7 @@ public class MultithreadedNodeMonitoringConnectionPluginTest extends NodeMonitor
             concurrentCounter.getAndIncrement();
           }
 
-          final Object result = plugin.execute(NodeMonitoringConnectionPluginBaseTest.MONITOR_METHOD_NAME, sqlFunction);
+          final Object result = plugin.execute(MONITOR_METHOD_INVOKE_ON, NodeMonitoringConnectionPluginBaseTest.MONITOR_METHOD_NAME, sqlFunction);
           counter.getAndDecrement();
           return result;
         } catch (Exception e) {
