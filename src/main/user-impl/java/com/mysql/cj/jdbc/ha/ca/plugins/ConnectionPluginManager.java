@@ -99,14 +99,7 @@ public class ConnectionPluginManager {
 
   }
 
-  //TODO: Should methodName contain not just method name but also an interface name? Like:
-  // "execute" -> "JdbcConnection.execute"
-  // For example method close() exists for Connection, Statement, ResultSet and Closeable interfaces. Thus it might be challenging for a plugin to identify what
-  // exact method is actually been called.
-
-  //TODO: Should method target to be passed along with method name? Like:
-  // Object execute(Object methodTarget, String methodName, Callable executeSqlFunc)
-  public Object execute(Class methodInvokeOn, String methodName, Callable executeSqlFunc) throws Exception {
+  public Object execute(Class<?> methodInvokeOn, String methodName, Callable<?> executeSqlFunc) throws Exception {
     return this.headPlugin.execute(methodInvokeOn, methodName, executeSqlFunc);
   }
 
