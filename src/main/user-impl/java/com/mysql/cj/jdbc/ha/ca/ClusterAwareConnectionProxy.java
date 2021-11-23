@@ -1298,11 +1298,9 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
           this.currentConnection.close();
           return null;
         });
-      }
-      catch(SQLException sqlEx) {
+      } catch(SQLException sqlEx) {
         throw sqlEx;
-      }
-      catch(Exception ex) {
+      } catch(Exception ex) {
         throw new SQLException(ex.getMessage(), ex);
       }
       releasePluginManager();
@@ -1322,11 +1320,9 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
           this.currentConnection.abort(executor);
           return null;
         });
-      }
-      catch(SQLException sqlEx) {
+      } catch(SQLException sqlEx) {
         throw sqlEx;
-      }
-      catch(Exception ex) {
+      } catch(Exception ex) {
         throw new SQLException(ex.getMessage(), ex);
       }
       releasePluginManager();
@@ -1346,11 +1342,9 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
           this.currentConnection.abortInternal();
           return null;
         });
-      }
-      catch(SQLException sqlEx) {
+      } catch(SQLException sqlEx) {
         throw sqlEx;
-      }
-      catch(Exception ex) {
+      } catch(Exception ex) {
         throw new SQLException(ex.getMessage(), ex);
       }
       releasePluginManager();
