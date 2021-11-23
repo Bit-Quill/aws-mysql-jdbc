@@ -139,8 +139,8 @@ public class NodeMonitoringConnectionPlugin implements IConnectionPlugin {
     ExecutorService executor = null;
     try {
       this.log.logTrace(String.format(
-          "[NodeMonitoringConnectionPlugin.execute]: method=%s, monitoring is activated",
-          methodName));
+          "[NodeMonitoringConnectionPlugin.execute]: method=%s.%s, monitoring is activated",
+              methodInvokeOn.getName(), methodName));
 
       checkNewConnection(this.proxy.getCurrentConnection());
 
@@ -180,8 +180,8 @@ public class NodeMonitoringConnectionPlugin implements IConnectionPlugin {
         executor.shutdownNow();
       }
       this.log.logTrace(String.format(
-          "[NodeMonitoringConnectionPlugin.execute]: method=%s, monitoring is deactivated",
-          methodName));
+          "[NodeMonitoringConnectionPlugin.execute]: method=%s.%s, monitoring is deactivated",
+              methodInvokeOn.getName(), methodName));
     }
 
     return result;
