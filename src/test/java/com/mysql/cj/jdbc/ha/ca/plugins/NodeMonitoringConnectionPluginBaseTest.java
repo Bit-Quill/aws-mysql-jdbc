@@ -36,6 +36,7 @@ import com.mysql.cj.conf.HostInfo;
 import com.mysql.cj.conf.PropertyKey;
 import com.mysql.cj.conf.PropertySet;
 import com.mysql.cj.conf.RuntimeProperty;
+import com.mysql.cj.jdbc.JdbcConnection;
 import com.mysql.cj.jdbc.ha.ca.ClusterAwareConnectionProxy;
 import com.mysql.cj.log.Log;
 import org.mockito.Mock;
@@ -68,6 +69,7 @@ public class NodeMonitoringConnectionPluginBaseTest {
   @Mock RuntimeProperty<Integer> failureDetectionCountProperty;
 
   static final String NODE = "node";
+  static final Class MONITOR_METHOD_INVOKE_ON = JdbcConnection.class;
   static final String MONITOR_METHOD_NAME = "executeQuery";
   static final String NO_MONITOR_METHOD_NAME = "foo";
   static final int FAILURE_DETECTION_TIME = 10;
@@ -88,7 +90,7 @@ public class NodeMonitoringConnectionPluginBaseTest {
         anyInt()))
         .thenReturn(context);
 
-    when(mockPlugin.execute(anyString(), Mockito.any(Callable.class))).thenReturn("done");
+    when(mockPlugin.execute(any(Class.class), anyString(), Mockito.any(Callable.class))).thenReturn("done");
 
     when(proxy.getCurrentConnection()).thenReturn(connection);
     when(proxy.getCurrentHostInfo()).thenReturn(hostInfo);
