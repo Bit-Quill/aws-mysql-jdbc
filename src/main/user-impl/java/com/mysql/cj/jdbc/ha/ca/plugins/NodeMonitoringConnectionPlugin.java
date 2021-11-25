@@ -37,7 +37,10 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -194,8 +197,18 @@ public class NodeMonitoringConnectionPlugin implements IConnectionPlugin {
     // boolean isJdbcStatement = Statement.class.isAssignableFrom(methodInvokeOn);
     // boolean isJdbcResultSet = ResultSet.class.isAssignableFrom(methodInvokeOn);
 
-    if ("close".equals(methodName) || methodName.startsWith("get") || methodName.startsWith("abort")) {
-      return false;
+    final List<String> methodsStartingWith = Arrays.asList("get", "abort");
+    for (final String method : methodsStartingWith) {
+      if (methodName.startsWith(method)) {
+        return false;
+      }
+    }
+
+    final List<String> methodsEqualTo = Arrays.asList("close", "next");
+    for (final String method : methodsEqualTo) {
+      if (method.equals(methodName)) {
+        return false;
+      }
     }
 
     // Monitor all other methods
