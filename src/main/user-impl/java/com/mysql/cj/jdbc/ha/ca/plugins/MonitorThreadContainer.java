@@ -46,6 +46,7 @@ public class MonitorThreadContainer {
     private final Map<IMonitor, Future<?>> tasksMap = new ConcurrentHashMap<>();
     private final Queue<IMonitor> availableMonitors = new ConcurrentLinkedDeque<>();
     private final ExecutorService threadPool;
+    private static final Object lockObject = new Object();
 
     public static MonitorThreadContainer getInstance() {
         return getInstance(Executors::newCachedThreadPool);
@@ -53,7 +54,7 @@ public class MonitorThreadContainer {
 
     static MonitorThreadContainer getInstance(IExecutorServiceInitializer executorServiceInitializer) {
         if (singleton == null) {
-            synchronized (singleton) {
+            synchronized (lockObject) {
                 singleton = new MonitorThreadContainer(executorServiceInitializer);
             }
             CLASS_USAGE_COUNT.set(0);
@@ -68,7 +69,7 @@ public class MonitorThreadContainer {
         }
 
         if (CLASS_USAGE_COUNT.decrementAndGet() <= 0) {
-            synchronized (singleton) {
+            synchronized (lockObject) {
                 singleton.releaseResources();
                 singleton = null;
             }
