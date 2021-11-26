@@ -95,7 +95,7 @@ class NodeMonitoringConnectionPluginTest extends NodeMonitoringConnectionPluginB
     initializePlugin();
     plugin.execute(MONITOR_METHOD_INVOKE_ON, MONITOR_METHOD_NAME, sqlFunction);
 
-    verify(initializer, never()).create(any());
+    verify(supplier, never()).get();
     verify(mockPlugin).execute(any(Class.class), eq(MONITOR_METHOD_NAME), eq(sqlFunction));
   }
 
@@ -107,7 +107,7 @@ class NodeMonitoringConnectionPluginTest extends NodeMonitoringConnectionPluginB
     initializePlugin();
     plugin.execute(MONITOR_METHOD_INVOKE_ON, NO_MONITOR_METHOD_NAME, sqlFunction);
 
-    verify(initializer, atMostOnce()).create(logger);
+    verify(supplier, atMostOnce()).get();
     verify(mockPlugin).execute(any(Class.class), eq(NO_MONITOR_METHOD_NAME), eq(sqlFunction));
   }
 
@@ -150,6 +150,6 @@ class NodeMonitoringConnectionPluginTest extends NodeMonitoringConnectionPluginB
   }
 
   private void initializePlugin() {
-    plugin = new NodeMonitoringConnectionPlugin(proxy, propertySet, mockPlugin, logger, initializer);
+    plugin = new NodeMonitoringConnectionPlugin(proxy, propertySet, mockPlugin, logger, supplier);
   }
 }

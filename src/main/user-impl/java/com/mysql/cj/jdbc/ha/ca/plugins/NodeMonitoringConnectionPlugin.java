@@ -30,8 +30,6 @@ import com.mysql.cj.conf.HostInfo;
 import com.mysql.cj.conf.PropertyKey;
 import com.mysql.cj.conf.PropertySet;
 import com.mysql.cj.exceptions.CJCommunicationsException;
-import com.mysql.cj.exceptions.CJException;
-import com.mysql.cj.jdbc.JdbcConnection;
 import com.mysql.cj.jdbc.ha.ca.ClusterAwareConnectionProxy;
 import com.mysql.cj.log.Log;
 
@@ -39,11 +37,14 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.Arrays;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 public class NodeMonitoringConnectionPlugin implements IConnectionPlugin {
 
@@ -55,15 +56,10 @@ public class NodeMonitoringConnectionPlugin implements IConnectionPlugin {
   protected Log log;
   protected PropertySet propertySet;
   private IMonitorService monitorService;
-  private final IMonitorServiceInitializer monitorServiceInitializer;
+  private final Supplier<IMonitorService> monitorServiceSupplier;
   private final Set<String> nodeKeys = new HashSet<>();
   private final ICurrentConnectionProvider currentConnectionProvider;
   private JdbcConnection connection;
-
-  @FunctionalInterface
-  interface IMonitorServiceInitializer {
-    IMonitorService create(Log log);
-  }
 
   public NodeMonitoringConnectionPlugin(
       ICurrentConnectionProvider currentConnectionProvider,
@@ -75,7 +71,7 @@ public class NodeMonitoringConnectionPlugin implements IConnectionPlugin {
         propertySet,
         nextPlugin,
         log,
-        DefaultMonitorService::new);
+        () -> new DefaultMonitorService(log));
   }
 
   NodeMonitoringConnectionPlugin(
@@ -83,7 +79,7 @@ public class NodeMonitoringConnectionPlugin implements IConnectionPlugin {
       PropertySet propertySet,
       IConnectionPlugin nextPlugin,
       Log log,
-      IMonitorServiceInitializer monitorServiceInitializer) {
+      Supplier<IMonitorService> monitorServiceSupplier) {
     assertArgumentIsNotNull(currentConnectionProvider, "currentConnectionProvider");
     assertArgumentIsNotNull(propertySet, "propertySet");
     assertArgumentIsNotNull(nextPlugin, "next");
@@ -94,7 +90,7 @@ public class NodeMonitoringConnectionPlugin implements IConnectionPlugin {
     this.propertySet = propertySet;
     this.log = log;
     this.nextPlugin = nextPlugin;
-    this.monitorServiceInitializer =  monitorServiceInitializer;
+    this.monitorServiceSupplier = monitorServiceSupplier;
 
     generateNodeKeys(this.currentConnectionProvider.getCurrentConnection());
   }
@@ -206,7 +202,7 @@ public class NodeMonitoringConnectionPlugin implements IConnectionPlugin {
 
   private void initMonitorService() {
     if (this.monitorService == null) {
-      this.monitorService = this.monitorServiceInitializer.create(this.log);
+      this.monitorService = this.monitorServiceSupplier.get();
     }
   }
 
