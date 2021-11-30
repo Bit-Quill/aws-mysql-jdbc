@@ -2,6 +2,7 @@ package com.mysql.cj.jdbc.ha.ca.plugins;
 
 import com.mysql.cj.log.Log;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.concurrent.Callable;
 
 public class DefaultConnectionPlugin implements IConnectionPlugin {
@@ -22,6 +23,14 @@ public class DefaultConnectionPlugin implements IConnectionPlugin {
         String.format("[DefaultConnectionPlugin.execute]: method=%s.%s >>>>>", methodInvokeOn.getName(), methodName));
     try {
       return executeSqlFunc.call();
+    } catch (InvocationTargetException invocationTargetException) {
+      this.log.logTrace(
+              String.format("[DefaultConnectionPlugin.execute]: method=%s.%s, exception: ", methodInvokeOn.getName(), methodName), invocationTargetException);
+      Throwable targetException = invocationTargetException.getTargetException();
+      if (targetException instanceof Error) {
+        throw (Error) targetException;
+      }
+      throw (Exception) targetException;
     } catch (Exception ex) {
       this.log.logTrace(
           String.format("[DefaultConnectionPlugin.execute]: method=%s.%s, exception: ", methodInvokeOn.getName(), methodName), ex);

@@ -28,11 +28,13 @@ package com.mysql.cj.jdbc.ha.ca.plugins;
 
 import com.mysql.cj.conf.HostInfo;
 import com.mysql.cj.conf.PropertySet;
+import com.mysql.cj.jdbc.JdbcConnection;
 
 import java.util.Set;
 
 public interface IMonitorService {
   MonitorConnectionContext startMonitoring(
+      JdbcConnection connectionToAbort,
       Set<String> nodeKeys,
       HostInfo hostInfo,
       PropertySet propertySet,

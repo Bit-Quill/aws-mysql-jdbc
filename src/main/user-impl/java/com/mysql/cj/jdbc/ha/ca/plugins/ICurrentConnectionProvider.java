@@ -27,11 +27,12 @@
 package com.mysql.cj.jdbc.ha.ca.plugins;
 
 import com.mysql.cj.conf.HostInfo;
+import com.mysql.cj.jdbc.JdbcConnection;
 
 import java.sql.Connection;
 
 public interface ICurrentConnectionProvider {
-  Connection getCurrentConnection();
+  JdbcConnection getCurrentConnection();
 
   HostInfo getCurrentHostInfo();
 }

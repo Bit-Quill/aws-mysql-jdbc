@@ -43,6 +43,7 @@ import static org.mockito.Mockito.when;
 import com.mysql.cj.conf.HostInfo;
 import com.mysql.cj.conf.PropertySet;
 import com.mysql.cj.exceptions.CJCommunicationsException;
+import com.mysql.cj.jdbc.JdbcConnection;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -122,6 +123,7 @@ public class MultithreadedNodeMonitoringConnectionPluginTest extends NodeMonitor
     }
 
     verify(monitorService, times(wantedNumberOfInvocations)).startMonitoring(
+        any(JdbcConnection.class),
         anySet(),
         any(HostInfo.class),
         any(PropertySet.class),
@@ -156,6 +158,7 @@ public class MultithreadedNodeMonitoringConnectionPluginTest extends NodeMonitor
         () -> {
           CompletableFuture.allOf(threads.toArray(new CompletableFuture[0])).join();
           verify(monitorService, times(wantedNumberOfInvocations)).startMonitoring(
+              any(JdbcConnection.class),
               anySet(),
               any(HostInfo.class),
               any(PropertySet.class),
@@ -182,6 +185,7 @@ public class MultithreadedNodeMonitoringConnectionPluginTest extends NodeMonitor
     }
 
     verify(monitorService, never()).startMonitoring(
+        any(JdbcConnection.class),
         anySet(),
         any(HostInfo.class),
         any(PropertySet.class),

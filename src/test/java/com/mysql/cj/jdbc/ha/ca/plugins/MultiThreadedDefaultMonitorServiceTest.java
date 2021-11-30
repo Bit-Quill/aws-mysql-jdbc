@@ -61,7 +61,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.times;
@@ -272,8 +271,8 @@ class MultiThreadedDefaultMonitorServiceTest {
           concurrentCounter.getAndIncrement();
         }
 
-        final MonitorConnectionContext context = service
-            .startMonitoring(
+        final MonitorConnectionContext context = service.startMonitoring(
+                null,
                 nodeKeys,
                 info,
                 propertySet,
@@ -384,6 +383,7 @@ class MultiThreadedDefaultMonitorServiceTest {
     nodeKeysList.forEach(nodeKeys -> {
       monitorThreadContainer.getOrCreateMonitor(nodeKeys, () -> monitor);
       contexts.add(new MonitorConnectionContext(
+          null,
           nodeKeys,
           logger,
           FAILURE_DETECTION_TIME,

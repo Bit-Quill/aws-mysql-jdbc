@@ -26,9 +26,12 @@
 
 package com.mysql.cj.jdbc.ha.ca.plugins;
 
+import com.mysql.cj.jdbc.JdbcConnection;
 import com.mysql.cj.log.Log;
 
+import java.sql.SQLException;
 import java.util.Set;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class MonitorConnectionContext {
   private final int failureDetectionIntervalMillis;
@@ -37,18 +40,22 @@ public class MonitorConnectionContext {
 
   private final Set<String> nodeKeys;
   private final Log log;
+  private final JdbcConnection connectionToAbort;
 
   private long startMonitorTime;
   private long invalidNodeStartTime;
   private int failureCount;
   private boolean nodeUnhealthy;
+  private final ReentrantLock lock = new ReentrantLock();
 
   public MonitorConnectionContext(
+      JdbcConnection connectionToAbort,
       Set<String> nodeKeys,
       Log log,
       int failureDetectionTimeMillis,
       int failureDetectionIntervalMillis,
       int failureDetectionCount) {
+    this.connectionToAbort = connectionToAbort;
     this.nodeKeys = nodeKeys;
     this.log = log;
     this.failureDetectionTimeMillis = failureDetectionTimeMillis;
@@ -98,8 +105,27 @@ public class MonitorConnectionContext {
     return this.nodeUnhealthy;
   }
 
-  void setNodeUnhealthy(boolean nodeUnhealthy) {
-    this.nodeUnhealthy = nodeUnhealthy;
+  public ReentrantLock getLock() { return this.lock; }
+
+  void setNodeUnhealthy(boolean nodeUnhealthy) { this.nodeUnhealthy = nodeUnhealthy; }
+
+  void abortConnection() {
+    if (this.connectionToAbort == null) {
+      return;
+    }
+
+    if (this.lock.isLocked()) {
+      // main method execution thread holds a lock because it's actively executing a method to interrupt
+      // it's not too late to abort main connection
+      try {
+        this.connectionToAbort.abortInternal();
+      } catch (SQLException sqlEx) {
+        // ignore
+        this.log.logTrace(String.format("Exception during aborting connection: %s", sqlEx.getMessage()));
+      }
+    }
+    // ... otherwise, method execution thread has no lock acquired, and it means that it's completed with a method,
+    // main connection shouldn't be aborted because it's too late
   }
 
   void updateConnectionStatus(long currentTime, boolean isValid, long validationIntervalTimeMillis) {
@@ -126,22 +152,24 @@ public class MonitorConnectionContext {
             String.format(
                 "[MonitorConnectionContext] node '%s' is *dead*.",
                 nodeKeys));
-        this.nodeUnhealthy = true;
+        this.setNodeUnhealthy(true);
+        this.abortConnection();
         return;
       }
+
       this.log.logTrace(String.format(
           "[MonitorConnectionContext] node '%s' is not *responding* (%d).",
           nodeKeys,
           this.getFailureCount()));
-    } else {
-      this.setFailureCount(0);
-      this.resetInvalidNodeStartTime();
+      return;
     }
+
+    this.setFailureCount(0);
+    this.resetInvalidNodeStartTime();
+    this.setNodeUnhealthy(false);
 
     this.log.logTrace(
         String.format("[MonitorConnectionContext] node '%s' is *alive*.",
             nodeKeys));
-
-    this.nodeUnhealthy = false;
   }
 }

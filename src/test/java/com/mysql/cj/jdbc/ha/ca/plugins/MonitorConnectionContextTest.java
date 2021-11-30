@@ -52,6 +52,7 @@ class MonitorConnectionContextTest {
   void init() {
     closeable = MockitoAnnotations.openMocks(this);
     context = new MonitorConnectionContext(
+        null,
         NODE_KEYS,
         new NullLogger(MonitorConnectionContextTest.class.getName()),
         FAILURE_DETECTION_TIME_MILLIS,
