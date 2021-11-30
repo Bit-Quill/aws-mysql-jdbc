@@ -51,7 +51,7 @@ public class ConnectionPluginManager {
 
   public ConnectionPluginManager(Log logger) {
     if (logger == null) {
-      throw new NullArgumentException("logger");
+      throw new RuntimeException(NullArgumentException.getMessage("logger"));
     }
 
     this.logger = logger;

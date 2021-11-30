@@ -103,7 +103,7 @@ public class DefaultMonitorService implements IMonitorService {
   @Override
   public void stopMonitoring(MonitorConnectionContext context) {
     if (context == null) {
-      log.logWarn(NullArgumentException.constructNullArgumentMessage("context"));
+      log.logWarn(NullArgumentException.getMessage("context"));
       return;
     }
 
@@ -112,6 +112,7 @@ public class DefaultMonitorService implements IMonitorService {
     final String node = this.threadContainer.getNode(context.getNodeKeys());
 
     if (node == null) {
+      log.logWarn(Messages.getString("DefaultMonitorService.InvalidContext"));
       return;
     }
 
@@ -122,7 +123,7 @@ public class DefaultMonitorService implements IMonitorService {
   public void stopMonitoringForAllConnections(Set<String> nodeKeys) {
     final String node = this.threadContainer.getNode(nodeKeys);
     if (node == null) {
-      this.log.logDebug("No existing monitor for the given set of node keys.");
+      this.log.logDebug(Messages.getString("DefaultMonitorService.InvalidNodeKey"));
       return;
     }
     final IMonitor monitor = this.threadContainer.getMonitor(node);
@@ -139,7 +140,7 @@ public class DefaultMonitorService implements IMonitorService {
   @Override
   public synchronized void notifyUnused(IMonitor monitor) {
     if (monitor == null) {
-      log.logWarn(NullArgumentException.constructNullArgumentMessage("monitor"));
+      log.logWarn(NullArgumentException.getMessage("monitor"));
       return;
     }
 

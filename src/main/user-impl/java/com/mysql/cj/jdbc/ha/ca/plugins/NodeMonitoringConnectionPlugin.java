@@ -81,7 +81,7 @@ public class NodeMonitoringConnectionPlugin implements IConnectionPlugin {
       Supplier<IMonitorService> monitorServiceSupplier) {
     assertArgumentIsNotNull(currentConnectionProvider, "currentConnectionProvider");
     assertArgumentIsNotNull(propertySet, "propertySet");
-    assertArgumentIsNotNull(nextPlugin, "next");
+    assertArgumentIsNotNull(nextPlugin, "nextPlugin");
     assertArgumentIsNotNull(log, "log");
 
     this.currentConnectionProvider = currentConnectionProvider;
@@ -217,7 +217,7 @@ public class NodeMonitoringConnectionPlugin implements IConnectionPlugin {
 
   private void assertArgumentIsNotNull(Object param, String paramName) {
     if (param == null) {
-      throw new NullArgumentException(paramName);
+      throw new RuntimeException(NullArgumentException.getMessage(paramName));
     }
   }
 

@@ -11,7 +11,7 @@ public class DefaultConnectionPlugin implements IConnectionPlugin {
 
   public DefaultConnectionPlugin(Log log) {
     if (log == null) {
-      throw new NullArgumentException("log");
+      throw new RuntimeException(NullArgumentException.getMessage("log"));
     }
 
     this.log = log;

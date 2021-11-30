@@ -98,7 +98,7 @@ public class Monitor implements IMonitor {
   @Override
   public synchronized void stopMonitoring(MonitorConnectionContext context) {
     if (context == null) {
-      log.logWarn(NullArgumentException.constructNullArgumentMessage("context"));
+      log.logWarn(NullArgumentException.getMessage("context"));
       return;
     }
     synchronized (context) {
