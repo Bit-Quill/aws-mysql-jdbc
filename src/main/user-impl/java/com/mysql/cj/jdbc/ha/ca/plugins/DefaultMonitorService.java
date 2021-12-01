@@ -145,7 +145,6 @@ public class DefaultMonitorService implements IMonitorService {
   }
 
   protected IMonitor getMonitor(Set<String> nodeKeys, HostInfo hostInfo, PropertySet propertySet) {
-    final Supplier<IMonitor> monitorCreate = () -> monitorInitializer.createMonitor(hostInfo, propertySet, this);
-    return this.threadContainer.getOrCreateMonitor(nodeKeys, monitorCreate);
+    return this.threadContainer.getOrCreateMonitor(nodeKeys, () -> monitorInitializer.createMonitor(hostInfo, propertySet, this));
   }
 }
