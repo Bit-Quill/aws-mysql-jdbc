@@ -101,7 +101,10 @@ public class Monitor implements IMonitor {
       log.logWarn(NullArgumentException.constructNullArgumentMessage("context"));
       return;
     }
-    this.contexts.remove(context);
+    synchronized (context) {
+      this.contexts.remove(context);
+      context.invalidate();
+    }
     this.connectionCheckIntervalMillis = findShortestIntervalMillis();
   }
 

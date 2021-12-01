@@ -139,7 +139,7 @@ public class NodeMonitoringConnectionPlugin implements IConnectionPlugin {
           "[NodeMonitoringConnectionPlugin.execute]: method=%s.%s, monitoring is activated",
               methodInvokeOn.getName(), methodName));
 
-      this.checkNewConnection(this.currentConnectionProvider.getCurrentConnection());
+      this.checkIfChanged(this.currentConnectionProvider.getCurrentConnection());
 
       monitorContext = this.monitorService.startMonitoring(
           this.connection, //abort current connection if needed
@@ -164,6 +164,12 @@ public class NodeMonitoringConnectionPlugin implements IConnectionPlugin {
     } finally {
       if (monitorContext != null) {
         this.monitorService.stopMonitoring(monitorContext);
+        synchronized (monitorContext) {
+          if (monitorContext.isNodeUnhealthy() && !this.connection.isClosed()) {
+            abortConnection();
+            throw new CJCommunicationsException("Node is unavailable.");
+          }
+        }
       }
       this.log.logTrace(String.format(
           "[NodeMonitoringConnectionPlugin.execute]: method=%s.%s, monitoring is deactivated",
@@ -171,6 +177,14 @@ public class NodeMonitoringConnectionPlugin implements IConnectionPlugin {
     }
 
     return result;
+  }
+
+  void abortConnection() {
+    try {
+      this.connection.abortInternal();
+    } catch (SQLException sqlEx) {
+      // ignore
+    }
   }
 
   protected boolean doesNeedMonitoring(Class<?> methodInvokeOn, String methodName) {
@@ -217,7 +231,7 @@ public class NodeMonitoringConnectionPlugin implements IConnectionPlugin {
    *
    * @param newConnection The connection used by {@link ClusterAwareConnectionProxy}.
    */
-  private void checkNewConnection(JdbcConnection newConnection) {
+  private void checkIfChanged(JdbcConnection newConnection) {
     final boolean isSameConnection = this.connection.equals(newConnection);
     if (!isSameConnection) {
       this.monitorService.stopMonitoringForAllConnections(this.nodeKeys);
