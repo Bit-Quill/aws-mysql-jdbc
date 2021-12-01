@@ -49,7 +49,7 @@ public class ConnectionPluginManager {
   protected PropertySet propertySet = null;
   protected IConnectionPlugin headPlugin = null;
   ClusterAwareConnectionProxy proxy;
-  protected static List<ConnectionPluginManager> instances;
+  protected static final List<ConnectionPluginManager> instances = new CopyOnWriteArrayList<>();
 
   public ConnectionPluginManager(Log logger) {
     if (logger == null) {
@@ -57,9 +57,6 @@ public class ConnectionPluginManager {
     }
 
     this.logger = logger;
-    if (instances == null) {
-      instances = new CopyOnWriteArrayList<>();
-    }
   }
 
   public void init(ClusterAwareConnectionProxy proxy, PropertySet propertySet) {
@@ -115,12 +112,8 @@ public class ConnectionPluginManager {
   }
 
   public static void releaseAllResources() {
-    if (instances == null) {
-      return;
-    }
     for (ConnectionPluginManager instance : instances) {
       instance.releaseResources();
     }
-    instances = null;
   }
 }

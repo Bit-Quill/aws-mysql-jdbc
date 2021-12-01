@@ -4,6 +4,7 @@ import com.mysql.cj.conf.PropertySet;
 import com.mysql.cj.jdbc.ha.ca.ClusterAwareConnectionProxy;
 import com.mysql.cj.log.Log;
 import com.mysql.cj.log.NullLogger;
+import org.junit.Assert;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Test;
@@ -11,9 +12,6 @@ import org.junit.jupiter.api.TestMethodOrder;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
-
-import java.lang.reflect.Field;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 import software.aws.rds.jdbc.mysql.Driver;
 import static org.mockito.Mockito.doAnswer;
@@ -28,6 +26,8 @@ public class ConnectionPluginManagerTest {
     private AutoCloseable openMocks;
     private Log logger = new NullLogger(this.getClass().getName());
 
+    private static final int NUM_OF_MANAGERS = 5;
+
     @BeforeEach
     void setUp() {
         openMocks = MockitoAnnotations.openMocks(this);
@@ -36,31 +36,37 @@ public class ConnectionPluginManagerTest {
     }
 
     @Test
-    void testReleasingAllWithEmptyList() {
+    void test_1_ReleasingAllWithEmptyList() {
         ConnectionPluginManager.releaseAllResources();
+        Assert.assertEquals(0, ConnectionPluginManager.instances.size());
     }
 
     @Test
-    void testReleasingAllWithEmptyListUsingDriver() {
+    void test_2_ReleasingAllWithEmptyListUsingDriver() {
         Driver.releasePluginManager();
+        Assert.assertEquals(0, ConnectionPluginManager.instances.size());
     }
 
     @Test
-    void testReleasingAllWithInstanceInList() {
-        for (int i = 0; i < 5; i++) {
+    void test_3_ReleasingAllWithInstanceInList() {
+        for (int i = 0; i < NUM_OF_MANAGERS; i++) {
             createPluginManager();
         }
 
+        Assert.assertEquals(NUM_OF_MANAGERS, ConnectionPluginManager.instances.size());
         ConnectionPluginManager.releaseAllResources();
+        Assert.assertEquals(0, ConnectionPluginManager.instances.size());
     }
 
     @Test
-    void testReleasingAllWithInstanceInListUsingDriver() {
-        for (int i = 0; i < 5; i++) {
+    void test_4_ReleasingAllWithInstanceInListUsingDriver() {
+        for (int i = 0; i < NUM_OF_MANAGERS; i++) {
             createPluginManager();
         }
 
+        Assert.assertEquals(NUM_OF_MANAGERS, ConnectionPluginManager.instances.size());
         Driver.releasePluginManager();
+        Assert.assertEquals(0, ConnectionPluginManager.instances.size());
     }
 
     private void createPluginManager() {
