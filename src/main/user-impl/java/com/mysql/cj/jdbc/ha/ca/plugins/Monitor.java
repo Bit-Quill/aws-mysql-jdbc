@@ -59,7 +59,7 @@ public class Monitor implements IMonitor {
 
   private final Queue<MonitorConnectionContext> contexts = new ConcurrentLinkedQueue<>();
   private final ConnectionProvider connectionProvider;
-  private final Log log;
+  private final Log logger;
   private final PropertySet propertySet;
   private final HostInfo hostInfo;
   private Connection monitoringConn = null;
@@ -75,11 +75,11 @@ public class Monitor implements IMonitor {
       PropertySet propertySet,
       long monitorDisposalTime,
       IMonitorService monitorService,
-      Log log) {
+      Log logger) {
     this.connectionProvider = connectionProvider;
     this.hostInfo = hostInfo;
     this.propertySet = propertySet;
-    this.log = log;
+    this.logger = logger;
     this.monitorDisposalTime = monitorDisposalTime;
     this.monitorService = monitorService;
   }
@@ -98,7 +98,7 @@ public class Monitor implements IMonitor {
   @Override
   public synchronized void stopMonitoring(MonitorConnectionContext context) {
     if (context == null) {
-      log.logWarn(NullArgumentException.getMessage("context"));
+      logger.logWarn(NullArgumentMessage.getMessage("context"));
       return;
     }
     synchronized (context) {
@@ -176,7 +176,7 @@ public class Monitor implements IMonitor {
       boolean isValid = this.monitoringConn.isValid(shortestFailureDetectionIntervalMillis / 1000);
       return new ConnectionStatus(isValid, this.getCurrentTimeMillis() - start);
     } catch (SQLException sqlEx) {
-      //this.log.logTrace(String.format("[Monitor] Error checking connection status: %s", sqlEx.getMessage()));
+      //this.logger.logTrace(String.format("[Monitor] Error checking connection status: %s", sqlEx.getMessage()));
       return new ConnectionStatus(false, this.getCurrentTimeMillis() - start);
     }
   }

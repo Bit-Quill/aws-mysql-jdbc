@@ -28,10 +28,10 @@ package com.mysql.cj.jdbc.ha.ca.plugins;
 
 import com.mysql.cj.Messages;
 
-public class NullArgumentException {
+public class NullArgumentMessage {
   private static final String ERROR_MESSAGE_KEY = "IllegalArgumentException.NullParameter";
 
   public static String getMessage(String param) {
-    return Messages.getString(ERROR_MESSAGE_KEY, new String[]{param});
+    return Messages.getString(ERROR_MESSAGE_KEY, new String[] { param });
   }
 }

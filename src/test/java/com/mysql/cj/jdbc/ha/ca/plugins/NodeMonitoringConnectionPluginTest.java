@@ -80,7 +80,7 @@ class NodeMonitoringConnectionPluginTest extends NodeMonitoringConnectionPluginB
       final IConnectionPlugin connectionPlugin,
       final Log log) {
     assertThrows(
-        Exception.class,
+        IllegalArgumentException.class,
         () -> new NodeMonitoringConnectionPlugin(proxy, set, connectionPlugin, log));
   }
 

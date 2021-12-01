@@ -7,14 +7,14 @@ import java.util.concurrent.Callable;
 
 public class DefaultConnectionPlugin implements IConnectionPlugin {
 
-  protected Log log;
+  protected Log logger;
 
-  public DefaultConnectionPlugin(Log log) {
-    if (log == null) {
-      throw new RuntimeException(NullArgumentException.getMessage("log"));
+  public DefaultConnectionPlugin(Log logger) {
+    if (logger == null) {
+      throw new IllegalArgumentException(NullArgumentMessage.getMessage("logger"));
     }
 
-    this.log = log;
+    this.logger = logger;
   }
 
   @Override
