@@ -29,6 +29,7 @@ package com.mysql.cj.jdbc.ha.ca.plugins;
 import com.mysql.cj.conf.HostInfo;
 import com.mysql.cj.conf.IntegerProperty;
 import com.mysql.cj.conf.PropertySet;
+import com.mysql.cj.jdbc.JdbcConnection;
 import com.mysql.cj.log.Log;
 import com.mysql.cj.log.NullLogger;
 import org.junit.jupiter.api.AfterAll;
@@ -81,6 +82,7 @@ class MultiThreadedDefaultMonitorServiceTest {
   @Mock IMonitor monitor;
   @Mock PropertySet propertySet;
   @Mock IntegerProperty integerProperty;
+  @Mock JdbcConnection connection;
 
   private final Log logger = new NullLogger("MultiThreadedDefaultMonitorServiceTest");
   private final AtomicInteger counter = new AtomicInteger(0);
@@ -272,7 +274,7 @@ class MultiThreadedDefaultMonitorServiceTest {
         }
 
         final MonitorConnectionContext context = service.startMonitoring(
-                null,
+                connection,
                 nodeKeys,
                 info,
                 propertySet,

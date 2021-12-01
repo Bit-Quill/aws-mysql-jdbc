@@ -150,14 +150,10 @@ public class NodeMonitoringConnectionPlugin implements IConnectionPlugin {
           failureDetectionIntervalMillis,
           failureDetectionCount);
 
-      monitorContext.getLock().lock();
-
       result = this.nextPlugin.execute(methodInvokeOn, methodName, executeSqlFunc);
 
-    } catch (SQLException sqlEx) {
-      throw sqlEx;
-    } catch (CJException cjEx) {
-      throw cjEx;
+    } catch (SQLException | CJException exception) {
+      throw exception;
     } catch (Exception ex) {
       if (monitorContext != null && monitorContext.isNodeUnhealthy()) {
         // method execution has been interrupted by monitoring thread
@@ -167,7 +163,6 @@ public class NodeMonitoringConnectionPlugin implements IConnectionPlugin {
       }
     } finally {
       if (monitorContext != null) {
-        monitorContext.getLock().lock();
         this.monitorService.stopMonitoring(monitorContext);
       }
       this.log.logTrace(String.format(

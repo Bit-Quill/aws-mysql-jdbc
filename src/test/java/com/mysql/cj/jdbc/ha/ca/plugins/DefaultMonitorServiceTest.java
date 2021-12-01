@@ -29,6 +29,7 @@ package com.mysql.cj.jdbc.ha.ca.plugins;
 import com.mysql.cj.conf.DefaultPropertySet;
 import com.mysql.cj.conf.HostInfo;
 import com.mysql.cj.conf.PropertySet;
+import com.mysql.cj.jdbc.JdbcConnection;
 import com.mysql.cj.log.Log;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -77,6 +78,8 @@ class DefaultMonitorServiceTest {
   private Future<?> task;
   @Mock
   private HostInfo info;
+  @Mock
+  private JdbcConnection connection;
 
   private PropertySet propertySet;
   private AutoCloseable closeable;
@@ -119,7 +122,7 @@ class DefaultMonitorServiceTest {
     doNothing().when(monitorA).startMonitoring(contextCaptor.capture());
 
     monitorService.startMonitoring(
-      null,
+      connection,
       NODE_KEYS,
       info,
       propertySet,
@@ -139,7 +142,7 @@ class DefaultMonitorServiceTest {
 
     for (int i = 0; i < runs; i++) {
       monitorService.startMonitoring(
-          null,
+          connection,
           NODE_KEYS,
           info,
           propertySet,
@@ -159,7 +162,7 @@ class DefaultMonitorServiceTest {
     doNothing().when(monitorA).stopMonitoring(contextCaptor.capture());
 
     final MonitorConnectionContext context = monitorService.startMonitoring(
-        null,
+        connection,
         NODE_KEYS,
         info,
         propertySet,
@@ -178,7 +181,7 @@ class DefaultMonitorServiceTest {
     doNothing().when(monitorA).stopMonitoring(contextCaptor.capture());
 
     final MonitorConnectionContext context = monitorService.startMonitoring(
-        null,
+        connection,
         NODE_KEYS,
         info,
         propertySet,
@@ -267,7 +270,7 @@ class DefaultMonitorServiceTest {
     final Set<String> nodeKeysEmpty = new HashSet<>();
 
     assertThrows(IllegalArgumentException.class, () -> monitorService.startMonitoring(
-        null,
+        connection,
         nodeKeysEmpty,
         info,
         propertySet,

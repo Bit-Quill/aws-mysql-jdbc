@@ -46,7 +46,6 @@ public class MonitorConnectionContext {
   private long invalidNodeStartTime;
   private int failureCount;
   private boolean nodeUnhealthy;
-  private final ReentrantLock lock = new ReentrantLock();
 
   public MonitorConnectionContext(
       JdbcConnection connectionToAbort,
@@ -105,8 +104,6 @@ public class MonitorConnectionContext {
     return this.nodeUnhealthy;
   }
 
-  public ReentrantLock getLock() { return this.lock; }
-
   void setNodeUnhealthy(boolean nodeUnhealthy) { this.nodeUnhealthy = nodeUnhealthy; }
 
   void abortConnection() {
@@ -114,18 +111,12 @@ public class MonitorConnectionContext {
       return;
     }
 
-    if (this.lock.isLocked()) {
-      // main method execution thread holds a lock because it's actively executing a method to interrupt
-      // it's not too late to abort main connection
-      try {
-        this.connectionToAbort.abortInternal();
-      } catch (SQLException sqlEx) {
-        // ignore
-        this.log.logTrace(String.format("Exception during aborting connection: %s", sqlEx.getMessage()));
-      }
+    try {
+      this.connectionToAbort.abortInternal();
+    } catch (SQLException sqlEx) {
+      // ignore
+      this.log.logTrace(String.format("Exception during aborting connection: %s", sqlEx.getMessage()));
     }
-    // ... otherwise, method execution thread has no lock acquired, and it means that it's completed with a method,
-    // main connection shouldn't be aborted because it's too late
   }
 
   void updateConnectionStatus(long currentTime, boolean isValid, long validationIntervalTimeMillis) {
