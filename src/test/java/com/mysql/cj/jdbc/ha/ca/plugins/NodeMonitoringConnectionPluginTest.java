@@ -128,54 +128,6 @@ class NodeMonitoringConnectionPluginTest extends NodeMonitoringConnectionPluginB
     verify(monitorService).stopMonitoring(eq(context));
   }
 
-  @Test
-  void test_5_executeWithUnhealthyNode() {
-    when(nativeFailureDetectionEnabledProperty.getValue())
-        .thenReturn(Boolean.TRUE);
-
-    initializePlugin();
-
-    assertThrows(CJCommunicationsException.class, () -> {
-      when(context.isNodeUnhealthy())
-          .thenReturn(Boolean.TRUE);
-
-      when(mockPlugin.execute(any(Class.class), any(), any()))
-          .thenAnswer(invocation -> {
-            // Imitate running a long query;
-            Thread.sleep(60 * 1000);
-            return "done";
-          });
-
-      plugin.execute(MONITOR_METHOD_INVOKE_ON, MONITOR_METHOD_NAME, sqlFunction);
-    });
-
-    verify(context).isNodeUnhealthy();
-    verify(monitorService).stopMonitoring(eq(context));
-  }
-
-  @Test
-  void test_6_executeSuccessfulWithLongQuery() throws Exception {
-    final String expected = "foo";
-
-    when(nativeFailureDetectionEnabledProperty.getValue())
-        .thenReturn(Boolean.TRUE);
-    when(context.isNodeUnhealthy())
-        .thenReturn(Boolean.FALSE);
-    when(mockPlugin.execute(any(Class.class), any(), any()))
-        .thenAnswer(invocation -> {
-          // Imitate running a query for 10 seconds.
-          Thread.sleep(10 * 1000);
-          return expected;
-        });
-
-    initializePlugin();
-    final Object result = plugin.execute(MONITOR_METHOD_INVOKE_ON, MONITOR_METHOD_NAME, sqlFunction);
-
-    assertEquals(expected, result);
-    verify(context, atLeastOnce()).isNodeUnhealthy();
-    verify(monitorService).stopMonitoring(eq(context));
-  }
-
   /**
    * Generate different sets of method arguments where one argument is null to ensure
    * {@link NodeMonitoringConnectionPlugin#NodeMonitoringConnectionPlugin(ClusterAwareConnectionProxy, PropertySet, IConnectionPlugin, Log)}

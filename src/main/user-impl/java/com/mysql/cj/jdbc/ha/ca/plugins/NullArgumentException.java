@@ -32,10 +32,10 @@ public class NullArgumentException extends IllegalArgumentException {
   private static final String ERROR_MESSAGE_KEY = "IllegalArgumentException.NullParameter";
 
   public NullArgumentException(String param) {
-    super(Messages.getString(ERROR_MESSAGE_KEY, new String[]{param}));
+    super(Messages.getString(ERROR_MESSAGE_KEY, new String[] { param }));
   }
 
   public static String constructNullArgumentMessage(String param) {
-    return Messages.getString(ERROR_MESSAGE_KEY, new String[]{param});
+    return Messages.getString(ERROR_MESSAGE_KEY, new String[] { param });
   }
 }

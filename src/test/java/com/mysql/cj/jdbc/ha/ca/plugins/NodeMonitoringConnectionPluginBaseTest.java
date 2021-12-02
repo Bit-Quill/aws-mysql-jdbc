@@ -52,7 +52,7 @@ import java.util.concurrent.Callable;
  */
 public class NodeMonitoringConnectionPluginBaseTest {
   @Mock ClusterAwareConnectionProxy proxy;
-  @Mock Connection connection;
+  @Mock JdbcConnection connection;
   @Mock Statement statement;
   @Mock ResultSet resultSet;
   @Mock PropertySet propertySet;
@@ -82,6 +82,7 @@ public class NodeMonitoringConnectionPluginBaseTest {
     when(initializer.create(Mockito.any()))
         .thenReturn(monitorService);
     when(monitorService.startMonitoring(
+        any(JdbcConnection.class),
         anySet(),
         any(HostInfo.class),
         any(PropertySet.class),

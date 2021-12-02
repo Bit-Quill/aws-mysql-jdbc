@@ -29,6 +29,7 @@ package com.mysql.cj.jdbc.ha.ca.plugins;
 import com.mysql.cj.conf.HostInfo;
 import com.mysql.cj.conf.IntegerProperty;
 import com.mysql.cj.conf.PropertySet;
+import com.mysql.cj.jdbc.JdbcConnection;
 import com.mysql.cj.log.Log;
 import com.mysql.cj.log.NullLogger;
 import org.junit.jupiter.api.AfterAll;
@@ -61,7 +62,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.times;
@@ -82,6 +82,7 @@ class MultiThreadedDefaultMonitorServiceTest {
   @Mock IMonitor monitor;
   @Mock PropertySet propertySet;
   @Mock IntegerProperty integerProperty;
+  @Mock JdbcConnection connection;
 
   private final Log logger = new NullLogger("MultiThreadedDefaultMonitorServiceTest");
   private final AtomicInteger counter = new AtomicInteger(0);
@@ -272,8 +273,8 @@ class MultiThreadedDefaultMonitorServiceTest {
           concurrentCounter.getAndIncrement();
         }
 
-        final MonitorConnectionContext context = service
-            .startMonitoring(
+        final MonitorConnectionContext context = service.startMonitoring(
+                connection,
                 nodeKeys,
                 info,
                 propertySet,
@@ -384,6 +385,7 @@ class MultiThreadedDefaultMonitorServiceTest {
     nodeKeysList.forEach(nodeKeys -> {
       monitorThreadContainer.getOrCreateMonitor(nodeKeys, () -> monitor);
       contexts.add(new MonitorConnectionContext(
+          null,
           nodeKeys,
           logger,
           FAILURE_DETECTION_TIME,

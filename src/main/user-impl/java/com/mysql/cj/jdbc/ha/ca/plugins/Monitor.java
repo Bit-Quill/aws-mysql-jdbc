@@ -101,7 +101,10 @@ public class Monitor implements IMonitor {
       log.logWarn(NullArgumentException.constructNullArgumentMessage("context"));
       return;
     }
-    this.contexts.remove(context);
+    synchronized (context) {
+      this.contexts.remove(context);
+      context.invalidate();
+    }
     this.connectionCheckIntervalMillis = findShortestIntervalMillis();
   }
 
@@ -116,9 +119,10 @@ public class Monitor implements IMonitor {
       this.stopped.set(false);
       while (true) {
         if (!this.contexts.isEmpty()) {
-          final ConnectionStatus status = checkConnectionStatus(this.getConnectionCheckIntervalMillis());
           final long currentTime = this.getCurrentTimeMillis();
           this.lastContextUsedTimestamp.set(currentTime);
+
+          final ConnectionStatus status = checkConnectionStatus(this.getConnectionCheckIntervalMillis());
 
           for (MonitorConnectionContext monitorContext : this.contexts) {
             monitorContext.updateConnectionStatus(
@@ -142,15 +146,16 @@ public class Monitor implements IMonitor {
       if (this.monitoringConn != null) {
         try {
           this.monitoringConn.close();
-          this.stopped.set(true);
         } catch (SQLException ex) {
           // ignore
         }
       }
+      this.stopped.set(true);
     }
   }
 
   ConnectionStatus checkConnectionStatus(final int shortestFailureDetectionIntervalMillis) {
+    long start = this.getCurrentTimeMillis();
     try {
       if (this.monitoringConn == null || this.monitoringConn.isClosed()) {
         // open a new connection
@@ -162,17 +167,17 @@ public class Monitor implements IMonitor {
                   .forEach(p -> monitoringConnProperties.put(p.substring(MONITORING_PROPERTY_PREFIX.length()), originalProperties.getProperty(p)));
         }
 
+        start = this.getCurrentTimeMillis();
         this.monitoringConn = this.connectionProvider.connect(copy(this.hostInfo, monitoringConnProperties));
-        return new ConnectionStatus(true, 0);
+        return new ConnectionStatus(true, this.getCurrentTimeMillis() - start);
       }
 
-      final long start = this.getCurrentTimeMillis();
-      return new ConnectionStatus(
-          this.monitoringConn.isValid(shortestFailureDetectionIntervalMillis / 1000),
-          this.getCurrentTimeMillis() - start);
+      start = this.getCurrentTimeMillis();
+      boolean isValid = this.monitoringConn.isValid(shortestFailureDetectionIntervalMillis / 1000);
+      return new ConnectionStatus(isValid, this.getCurrentTimeMillis() - start);
     } catch (SQLException sqlEx) {
-      this.log.logTrace("[Monitor]", sqlEx);
-      return new ConnectionStatus(false, 0);
+      //this.log.logTrace(String.format("[Monitor] Error checking connection status: %s", sqlEx.getMessage()));
+      return new ConnectionStatus(false, this.getCurrentTimeMillis() - start);
     }
   }
 

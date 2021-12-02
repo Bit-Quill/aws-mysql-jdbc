@@ -30,6 +30,7 @@ import com.mysql.cj.Messages;
 import com.mysql.cj.conf.HostInfo;
 import com.mysql.cj.conf.PropertyKey;
 import com.mysql.cj.conf.PropertySet;
+import com.mysql.cj.jdbc.JdbcConnection;
 import com.mysql.cj.jdbc.ha.ca.BasicConnectionProvider;
 import com.mysql.cj.log.Log;
 
@@ -69,6 +70,7 @@ public class DefaultMonitorService implements IMonitorService {
 
   @Override
   public MonitorConnectionContext startMonitoring(
+      JdbcConnection connectionToAbort,
       Set<String> nodeKeys,
       HostInfo hostInfo,
       PropertySet propertySet,
@@ -85,6 +87,7 @@ public class DefaultMonitorService implements IMonitorService {
     final IMonitor monitor = getMonitor(nodeKeys, hostInfo, propertySet);
 
     final MonitorConnectionContext context = new MonitorConnectionContext(
+        connectionToAbort,
         nodeKeys,
         log,
         failureDetectionTimeMillis,
