@@ -31,7 +31,6 @@ import com.mysql.cj.log.Log;
 
 import java.sql.SQLException;
 import java.util.Set;
-import java.util.concurrent.locks.ReentrantLock;
 
 public class MonitorConnectionContext {
   private final int failureDetectionIntervalMillis;

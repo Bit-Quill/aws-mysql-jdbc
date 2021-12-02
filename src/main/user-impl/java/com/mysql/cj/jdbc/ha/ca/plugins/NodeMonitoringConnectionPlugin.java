@@ -47,7 +47,6 @@ import java.util.concurrent.Callable;
 
 public class NodeMonitoringConnectionPlugin implements IConnectionPlugin {
 
-  static final int CHECK_INTERVAL_MILLIS = 1000;
   private static final String RETRIEVE_HOST_PORT_SQL = "SELECT CONCAT(@@hostname, ':', @@port)";
   private static final List<String> METHODS_STARTING_WITH = Arrays.asList("get", "abort");
   private static final List<String> METHODS_EQUAL_TO = Arrays.asList("close", "next");
@@ -156,15 +155,6 @@ public class NodeMonitoringConnectionPlugin implements IConnectionPlugin {
 
       result = this.nextPlugin.execute(methodInvokeOn, methodName, executeSqlFunc);
 
-    } catch (SQLException | CJException exception) {
-      throw exception;
-    } catch (Exception ex) {
-      if (monitorContext != null && monitorContext.isNodeUnhealthy()) {
-        // method execution has been interrupted by monitoring thread
-        throw new CJCommunicationsException("Node is unavailable.", ex);
-      } else {
-        throw ex;
-      }
     } finally {
       if (monitorContext != null) {
         this.monitorService.stopMonitoring(monitorContext);

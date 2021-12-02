@@ -195,7 +195,7 @@ class MonitorTest {
 
     verify(connectionProvider).connect(any(HostInfo.class));
     assertTrue(status.isValid);
-    assertEquals(0, status.elapsedTime);
+    assertTrue(status.elapsedTime >= 0);
   }
 
   @Test
