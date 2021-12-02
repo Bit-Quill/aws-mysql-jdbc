@@ -39,7 +39,9 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Callable;
 
@@ -47,6 +49,8 @@ public class NodeMonitoringConnectionPlugin implements IConnectionPlugin {
 
   static final int CHECK_INTERVAL_MILLIS = 1000;
   private static final String RETRIEVE_HOST_PORT_SQL = "SELECT CONCAT(@@hostname, ':', @@port)";
+  private static final List<String> METHODS_STARTING_WITH = Arrays.asList("get", "abort");
+  private static final List<String> METHODS_EQUAL_TO = Arrays.asList("close", "next");
 
   protected IConnectionPlugin nextPlugin;
   protected Log log;
@@ -194,8 +198,16 @@ public class NodeMonitoringConnectionPlugin implements IConnectionPlugin {
     // boolean isJdbcStatement = Statement.class.isAssignableFrom(methodInvokeOn);
     // boolean isJdbcResultSet = ResultSet.class.isAssignableFrom(methodInvokeOn);
 
-    if ("close".equals(methodName) || methodName.startsWith("get") || methodName.startsWith("abort")) {
-      return false;
+    for (final String method : METHODS_STARTING_WITH) {
+      if (methodName.startsWith(method)) {
+        return false;
+      }
+    }
+
+    for (final String method : METHODS_EQUAL_TO) {
+      if (method.equals(methodName)) {
+        return false;
+      }
     }
 
     // Monitor all other methods
