@@ -51,6 +51,10 @@ public class ConnectionPluginManager {
   ClusterAwareConnectionProxy proxy;
   protected static final List<ConnectionPluginManager> instances = new CopyOnWriteArrayList<>();
 
+  static {
+    Runtime.getRuntime().addShutdownHook(new Thread(ConnectionPluginManager::releaseAllResources));
+  }
+
   public ConnectionPluginManager(Log logger) {
     if (logger == null) {
       throw new IllegalArgumentException(NullArgumentMessage.getMessage("logger"));
