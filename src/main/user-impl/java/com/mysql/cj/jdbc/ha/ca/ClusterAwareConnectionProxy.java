@@ -733,7 +733,7 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
   }
 
   @Override
-  public Connection getCurrentConnection() {
+  public JdbcConnection getCurrentConnection() {
     return this.currentConnection;
   }
 

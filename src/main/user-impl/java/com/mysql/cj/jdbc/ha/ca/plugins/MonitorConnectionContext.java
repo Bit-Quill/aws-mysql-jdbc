@@ -26,8 +26,10 @@
 
 package com.mysql.cj.jdbc.ha.ca.plugins;
 
+import com.mysql.cj.jdbc.JdbcConnection;
 import com.mysql.cj.log.Log;
 
+import java.sql.SQLException;
 import java.util.Set;
 
 public class MonitorConnectionContext {
@@ -37,18 +39,22 @@ public class MonitorConnectionContext {
 
   private final Set<String> nodeKeys;
   private final Log log;
+  private final JdbcConnection connectionToAbort;
 
   private long startMonitorTime;
   private long invalidNodeStartTime;
   private int failureCount;
   private boolean nodeUnhealthy;
+  private boolean activeContext = true;
 
   public MonitorConnectionContext(
+      JdbcConnection connectionToAbort,
       Set<String> nodeKeys,
       Log log,
       int failureDetectionTimeMillis,
       int failureDetectionIntervalMillis,
       int failureDetectionCount) {
+    this.connectionToAbort = connectionToAbort;
     this.nodeKeys = nodeKeys;
     this.log = log;
     this.failureDetectionTimeMillis = failureDetectionTimeMillis;
@@ -98,11 +104,30 @@ public class MonitorConnectionContext {
     return this.nodeUnhealthy;
   }
 
-  void setNodeUnhealthy(boolean nodeUnhealthy) {
-    this.nodeUnhealthy = nodeUnhealthy;
+  void setNodeUnhealthy(boolean nodeUnhealthy) { this.nodeUnhealthy = nodeUnhealthy; }
+
+  public boolean isActiveContext() { return this.activeContext; }
+
+  public void invalidate() { this.activeContext = false; }
+
+  synchronized void abortConnection() {
+    if (this.connectionToAbort == null || !this.activeContext) {
+      return;
+    }
+
+    try {
+      this.connectionToAbort.abortInternal();
+    } catch (SQLException sqlEx) {
+      // ignore
+      this.log.logTrace(String.format("Exception during aborting connection: %s", sqlEx.getMessage()));
+    }
   }
 
-  void updateConnectionStatus(long currentTime, boolean isValid, long validationIntervalTimeMillis) {
+  public void updateConnectionStatus(long currentTime, boolean isValid, long validationIntervalTimeMillis) {
+    if (!this.activeContext) {
+      return;
+    }
+
     final long totalElapsedTimeMillis = currentTime - this.startMonitorTime;
 
     if (totalElapsedTimeMillis > this.failureDetectionTimeMillis) {
@@ -126,22 +151,24 @@ public class MonitorConnectionContext {
             String.format(
                 "[MonitorConnectionContext] node '%s' is *dead*.",
                 nodeKeys));
-        this.nodeUnhealthy = true;
+        this.setNodeUnhealthy(true);
+        this.abortConnection();
         return;
       }
+
       this.log.logTrace(String.format(
           "[MonitorConnectionContext] node '%s' is not *responding* (%d).",
           nodeKeys,
           this.getFailureCount()));
-    } else {
-      this.setFailureCount(0);
-      this.resetInvalidNodeStartTime();
+      return;
     }
+
+    this.setFailureCount(0);
+    this.resetInvalidNodeStartTime();
+    this.setNodeUnhealthy(false);
 
     this.log.logTrace(
         String.format("[MonitorConnectionContext] node '%s' is *alive*.",
             nodeKeys));
-
-    this.nodeUnhealthy = false;
   }
 }

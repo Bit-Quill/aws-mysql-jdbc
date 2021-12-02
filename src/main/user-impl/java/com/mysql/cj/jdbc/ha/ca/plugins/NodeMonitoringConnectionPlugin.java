@@ -30,6 +30,8 @@ import com.mysql.cj.conf.HostInfo;
 import com.mysql.cj.conf.PropertyKey;
 import com.mysql.cj.conf.PropertySet;
 import com.mysql.cj.exceptions.CJCommunicationsException;
+import com.mysql.cj.exceptions.CJException;
+import com.mysql.cj.jdbc.JdbcConnection;
 import com.mysql.cj.jdbc.ha.ca.ClusterAwareConnectionProxy;
 import com.mysql.cj.log.Log;
 
@@ -42,15 +44,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 
 public class NodeMonitoringConnectionPlugin implements IConnectionPlugin {
 
-  static final int CHECK_INTERVAL_MILLIS = 1000;
   private static final String RETRIEVE_HOST_PORT_SQL = "SELECT CONCAT(@@hostname, ':', @@port)";
   private static final List<String> METHODS_STARTING_WITH = Arrays.asList("get", "abort");
   private static final List<String> METHODS_EQUAL_TO = Arrays.asList("close", "next");
@@ -60,10 +56,9 @@ public class NodeMonitoringConnectionPlugin implements IConnectionPlugin {
   protected PropertySet propertySet;
   private IMonitorService monitorService;
   private final IMonitorServiceInitializer monitorServiceInitializer;
-  private MonitorConnectionContext monitorContext;
   private final Set<String> nodeKeys = new HashSet<>();
-  private final ClusterAwareConnectionProxy proxy;
-  private Connection connection;
+  private final ICurrentConnectionProvider currentConnectionProvider;
+  private JdbcConnection connection;
 
   @FunctionalInterface
   interface IMonitorServiceInitializer {
@@ -71,12 +66,12 @@ public class NodeMonitoringConnectionPlugin implements IConnectionPlugin {
   }
 
   public NodeMonitoringConnectionPlugin(
-      ClusterAwareConnectionProxy proxy,
+      ICurrentConnectionProvider currentConnectionProvider,
       PropertySet propertySet,
       IConnectionPlugin nextPlugin,
       Log log) {
     this(
-        proxy,
+        currentConnectionProvider,
         propertySet,
         nextPlugin,
         log,
@@ -84,24 +79,24 @@ public class NodeMonitoringConnectionPlugin implements IConnectionPlugin {
   }
 
   NodeMonitoringConnectionPlugin(
-      ClusterAwareConnectionProxy proxy,
+      ICurrentConnectionProvider currentConnectionProvider,
       PropertySet propertySet,
       IConnectionPlugin nextPlugin,
       Log log,
       IMonitorServiceInitializer monitorServiceInitializer) {
-    assertArgumentIsNotNull(proxy, "proxy");
+    assertArgumentIsNotNull(currentConnectionProvider, "currentConnectionProvider");
     assertArgumentIsNotNull(propertySet, "propertySet");
     assertArgumentIsNotNull(nextPlugin, "next");
     assertArgumentIsNotNull(log, "log");
 
-    this.proxy = proxy;
-    this.connection = proxy.getCurrentConnection();
+    this.currentConnectionProvider = currentConnectionProvider;
+    this.connection = currentConnectionProvider.getCurrentConnection();
     this.propertySet = propertySet;
     this.log = log;
     this.nextPlugin = nextPlugin;
     this.monitorServiceInitializer =  monitorServiceInitializer;
 
-    generateNodeKeys(this.proxy.getCurrentConnection());
+    generateNodeKeys(this.currentConnectionProvider.getCurrentConnection());
   }
 
   /**
@@ -140,48 +135,35 @@ public class NodeMonitoringConnectionPlugin implements IConnectionPlugin {
     initMonitorService();
 
     Object result;
-    ExecutorService executor = null;
+    MonitorConnectionContext monitorContext = null;
+
     try {
       this.log.logTrace(String.format(
           "[NodeMonitoringConnectionPlugin.execute]: method=%s.%s, monitoring is activated",
               methodInvokeOn.getName(), methodName));
 
-      checkNewConnection(this.proxy.getCurrentConnection());
+      this.checkIfChanged(this.currentConnectionProvider.getCurrentConnection());
 
-      this.monitorContext = this.monitorService.startMonitoring(
+      monitorContext = this.monitorService.startMonitoring(
+          this.connection, //abort current connection if needed
           this.nodeKeys,
-          this.proxy.getCurrentHostInfo(),
+          this.currentConnectionProvider.getCurrentHostInfo(),
           this.propertySet,
           failureDetectionTimeMillis,
           failureDetectionIntervalMillis,
           failureDetectionCount);
 
-      executor = Executors.newSingleThreadExecutor();
-      final Future<Object> executeFuncFuture = executor.submit(() -> this.nextPlugin.execute(methodInvokeOn, methodName, executeSqlFunc));
-      executor.shutdown(); // stop executor to accept new tasks
+      result = this.nextPlugin.execute(methodInvokeOn, methodName, executeSqlFunc);
 
-      boolean isDone = executeFuncFuture.isDone();
-      while (!isDone) {
-        TimeUnit.MILLISECONDS.sleep(CHECK_INTERVAL_MILLIS);
-        isDone = executeFuncFuture.isDone();
-
-        if (this.monitorContext.isNodeUnhealthy()) {
-          //throw new SocketTimeoutException("Read time out");
-          throw new CJCommunicationsException("Node is unavailable.");
-        }
-      }
-
-      result = executeFuncFuture.get();
-    } catch (ExecutionException exception) {
-      final Throwable throwable = exception.getCause();
-      if (throwable instanceof Error) {
-        throw (Error) throwable;
-      }
-      throw (Exception) throwable;
     } finally {
-      this.monitorService.stopMonitoring(this.monitorContext);
-      if (executor != null) {
-        executor.shutdownNow();
+      if (monitorContext != null) {
+        this.monitorService.stopMonitoring(monitorContext);
+        synchronized (monitorContext) {
+          if (monitorContext.isNodeUnhealthy() && !this.connection.isClosed()) {
+            abortConnection();
+            throw new CJCommunicationsException("Node is unavailable.");
+          }
+        }
       }
       this.log.logTrace(String.format(
           "[NodeMonitoringConnectionPlugin.execute]: method=%s.%s, monitoring is deactivated",
@@ -189,6 +171,14 @@ public class NodeMonitoringConnectionPlugin implements IConnectionPlugin {
     }
 
     return result;
+  }
+
+  void abortConnection() {
+    try {
+      this.connection.abortInternal();
+    } catch (SQLException sqlEx) {
+      // ignore
+    }
   }
 
   protected boolean doesNeedMonitoring(Class<?> methodInvokeOn, String methodName) {
@@ -243,7 +233,7 @@ public class NodeMonitoringConnectionPlugin implements IConnectionPlugin {
    *
    * @param newConnection The connection used by {@link ClusterAwareConnectionProxy}.
    */
-  private void checkNewConnection(Connection newConnection) {
+  private void checkIfChanged(JdbcConnection newConnection) {
     final boolean isSameConnection = this.connection.equals(newConnection);
     if (!isSameConnection) {
       this.monitorService.stopMonitoringForAllConnections(this.nodeKeys);
@@ -259,7 +249,7 @@ public class NodeMonitoringConnectionPlugin implements IConnectionPlugin {
    */
   private void generateNodeKeys(Connection connection) {
     this.nodeKeys.clear();
-    final HostInfo hostInfo = this.proxy.getCurrentHostInfo();
+    final HostInfo hostInfo = this.currentConnectionProvider.getCurrentHostInfo();
     try (Statement stmt = connection.createStatement()) {
       try (ResultSet rs = stmt.executeQuery(RETRIEVE_HOST_PORT_SQL)) {
         while (rs.next()) {

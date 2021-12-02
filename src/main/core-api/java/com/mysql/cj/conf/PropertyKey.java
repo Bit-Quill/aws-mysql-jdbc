@@ -285,7 +285,7 @@ public enum PropertyKey {
     nativeFailureDetectionEnabled("nativeFailureDetectionEnabled", true),
     failureDetectionTime("failureDetectionTime", true),
     failureDetectionInterval("failureDetectionInterval", true),
-    failureDetectionCount("nativeFailureDetectionEnabled", true),
+    failureDetectionCount("failureDetectionCount", true),
     monitorDisposalTime("monitorDisposalTime", true),
     useAwsIam("useAwsIam", true);
 
