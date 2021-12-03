@@ -28,7 +28,6 @@ package com.mysql.cj.jdbc.ha.ca.plugins;
 
 import com.mysql.cj.conf.DefaultPropertySet;
 import com.mysql.cj.conf.PropertySet;
-import com.mysql.cj.exceptions.CJCommunicationsException;
 import com.mysql.cj.jdbc.ha.ca.ClusterAwareConnectionProxy;
 import com.mysql.cj.log.Log;
 import com.mysql.cj.log.NullLogger;
@@ -44,10 +43,8 @@ import org.mockito.MockitoAnnotations;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Stream;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.atMostOnce;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
@@ -130,7 +127,7 @@ class NodeMonitoringConnectionPluginTest extends NodeMonitoringConnectionPluginB
 
   /**
    * Generate different sets of method arguments where one argument is null to ensure
-   * {@link NodeMonitoringConnectionPlugin#NodeMonitoringConnectionPlugin(ClusterAwareConnectionProxy, PropertySet, IConnectionPlugin, Log)}
+   * {@link NodeMonitoringConnectionPlugin#NodeMonitoringConnectionPlugin(ICurrentConnectionProvider, PropertySet, IConnectionPlugin, Log)}
    * can handle null arguments correctly.
    *
    * @return different sets of arguments.
