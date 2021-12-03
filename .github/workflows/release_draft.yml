@@ -46,7 +46,8 @@ jobs:
           passphrase: ${{ secrets.GPG_PASSPHRASE }}
       - name: 'Sign Jars'
         run: |
-          for jar in build/libs/*.jar; do gpg --detach-sign --armor $jar; done
+          export GPG_TTY=$(tty)
+          for jar in build/libs/*.jar; do gpg --local-user ${{ steps.import_gpg.outputs.email }} --detach-sign --armor $jar; done
           for signed in build/libs/*.asc; do gpg --verify $signed; done
       - name: 'Upload to Draft Release'
         uses: ncipollo/release-action@v1
