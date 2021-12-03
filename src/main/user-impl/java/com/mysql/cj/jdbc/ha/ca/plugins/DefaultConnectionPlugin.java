@@ -7,14 +7,14 @@ import java.util.concurrent.Callable;
 
 public class DefaultConnectionPlugin implements IConnectionPlugin {
 
-  protected Log log;
+  protected Log logger;
 
-  public DefaultConnectionPlugin(Log log) {
-    if (log == null) {
-      throw new NullArgumentException("log");
+  public DefaultConnectionPlugin(Log logger) {
+    if (logger == null) {
+      throw new IllegalArgumentException(NullArgumentMessage.getMessage("logger"));
     }
 
-    this.log = log;
+    this.logger = logger;
   }
 
   @Override
@@ -23,14 +23,14 @@ public class DefaultConnectionPlugin implements IConnectionPlugin {
       return executeSqlFunc.call();
     } catch (InvocationTargetException invocationTargetException) {
       Throwable targetException = invocationTargetException.getTargetException();
-      this.log.logTrace(
+      this.logger.logTrace(
               String.format("[DefaultConnectionPlugin.execute]: method=%s.%s, exception: ", methodInvokeOn.getName(), methodName), targetException);
       if (targetException instanceof Error) {
         throw (Error) targetException;
       }
       throw (Exception) targetException;
     } catch (Exception ex) {
-      this.log.logTrace(
+      this.logger.logTrace(
           String.format("[DefaultConnectionPlugin.execute]: method=%s.%s, exception: ", methodInvokeOn.getName(), methodName), ex);
       throw ex;
     }

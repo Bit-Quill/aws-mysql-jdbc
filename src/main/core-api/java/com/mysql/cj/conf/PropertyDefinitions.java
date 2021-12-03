@@ -683,7 +683,7 @@ public class PropertyDefinitions {
                         Messages.getString("ConnectionProperties.failureDetectionCount"), "0.3.0", CATEGORY_HA, Integer.MAX_VALUE, 0,
                         Integer.MAX_VALUE),
 
-                new IntegerPropertyDefinition(PropertyKey.monitorDisposalTime, 60000, RUNTIME_MODIFIABLE,
+                new IntegerPropertyDefinition(PropertyKey.monitorDisposalTime, 60_000, RUNTIME_MODIFIABLE,
                     Messages.getString("ConnectionProperties.monitorDisposalTime"), "0.3.0", CATEGORY_HA, Integer.MAX_VALUE, 0,
                     Integer.MAX_VALUE),
 

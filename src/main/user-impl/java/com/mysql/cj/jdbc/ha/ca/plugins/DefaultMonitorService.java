@@ -36,15 +36,14 @@ import com.mysql.cj.log.Log;
 
 import java.util.Set;
 import java.util.concurrent.Executors;
-import java.util.function.Supplier;
 
 public class DefaultMonitorService implements IMonitorService {
   MonitorThreadContainer threadContainer;
 
-  private final Log log;
+  private final Log logger;
   final IMonitorInitializer monitorInitializer;
 
-  public DefaultMonitorService(Log log) {
+  public DefaultMonitorService(Log logger) {
     this(
         (hostInfo, propertySet, monitorService) -> new Monitor(
             new BasicConnectionProvider(),
@@ -52,19 +51,19 @@ public class DefaultMonitorService implements IMonitorService {
             propertySet,
             propertySet.getIntegerProperty(PropertyKey.monitorDisposalTime).getValue(),
             monitorService,
-            log),
+            logger),
         Executors::newCachedThreadPool,
-        log
+        logger
     );
   }
 
   DefaultMonitorService(
       IMonitorInitializer monitorInitializer,
       IExecutorServiceInitializer executorServiceInitializer,
-      Log log) {
+      Log logger) {
 
     this.monitorInitializer = monitorInitializer;
-    this.log = log;
+    this.logger = logger;
     this.threadContainer = MonitorThreadContainer.getInstance(executorServiceInitializer);
   }
 
@@ -80,7 +79,7 @@ public class DefaultMonitorService implements IMonitorService {
 
     if (nodeKeys.isEmpty()) {
       final String warning = Messages.getString("DefaultMonitorService.EmptyNodeKeys");
-      log.logWarn(warning);
+      logger.logWarn(warning);
       throw new IllegalArgumentException(warning);
     }
 
@@ -89,7 +88,7 @@ public class DefaultMonitorService implements IMonitorService {
     final MonitorConnectionContext context = new MonitorConnectionContext(
         connectionToAbort,
         nodeKeys,
-        log,
+        logger,
         failureDetectionTimeMillis,
         failureDetectionIntervalMillis,
         failureDetectionCount);
@@ -103,7 +102,7 @@ public class DefaultMonitorService implements IMonitorService {
   @Override
   public void stopMonitoring(MonitorConnectionContext context) {
     if (context == null) {
-      log.logWarn(NullArgumentException.constructNullArgumentMessage("context"));
+      logger.logWarn(NullArgumentMessage.getMessage("context"));
       return;
     }
 
@@ -112,6 +111,7 @@ public class DefaultMonitorService implements IMonitorService {
     final String node = this.threadContainer.getNode(context.getNodeKeys());
 
     if (node == null) {
+      logger.logWarn(Messages.getString("DefaultMonitorService.InvalidContext"));
       return;
     }
 
@@ -122,7 +122,7 @@ public class DefaultMonitorService implements IMonitorService {
   public void stopMonitoringForAllConnections(Set<String> nodeKeys) {
     final String node = this.threadContainer.getNode(nodeKeys);
     if (node == null) {
-      this.log.logDebug("No existing monitor for the given set of node keys.");
+      this.logger.logDebug(Messages.getString("DefaultMonitorService.InvalidNodeKey"));
       return;
     }
     final IMonitor monitor = this.threadContainer.getMonitor(node);
@@ -139,7 +139,7 @@ public class DefaultMonitorService implements IMonitorService {
   @Override
   public synchronized void notifyUnused(IMonitor monitor) {
     if (monitor == null) {
-      log.logWarn(NullArgumentException.constructNullArgumentMessage("monitor"));
+      logger.logWarn(NullArgumentMessage.getMessage("monitor"));
       return;
     }
 

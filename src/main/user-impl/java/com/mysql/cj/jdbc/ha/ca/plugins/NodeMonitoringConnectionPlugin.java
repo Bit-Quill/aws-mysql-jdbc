@@ -52,7 +52,7 @@ public class NodeMonitoringConnectionPlugin implements IConnectionPlugin {
   private static final List<String> METHODS_EQUAL_TO = Arrays.asList("close", "next");
 
   protected IConnectionPlugin nextPlugin;
-  protected Log log;
+  protected Log logger;
   protected PropertySet propertySet;
   private IMonitorService monitorService;
   private final Supplier<IMonitorService> monitorServiceSupplier;
@@ -64,30 +64,30 @@ public class NodeMonitoringConnectionPlugin implements IConnectionPlugin {
       ICurrentConnectionProvider currentConnectionProvider,
       PropertySet propertySet,
       IConnectionPlugin nextPlugin,
-      Log log) {
+      Log logger) {
     this(
         currentConnectionProvider,
         propertySet,
         nextPlugin,
-        log,
-        () -> new DefaultMonitorService(log));
+        logger,
+        () -> new DefaultMonitorService(logger));
   }
 
   NodeMonitoringConnectionPlugin(
       ICurrentConnectionProvider currentConnectionProvider,
       PropertySet propertySet,
       IConnectionPlugin nextPlugin,
-      Log log,
+      Log logger,
       Supplier<IMonitorService> monitorServiceSupplier) {
     assertArgumentIsNotNull(currentConnectionProvider, "currentConnectionProvider");
     assertArgumentIsNotNull(propertySet, "propertySet");
-    assertArgumentIsNotNull(nextPlugin, "next");
-    assertArgumentIsNotNull(log, "log");
+    assertArgumentIsNotNull(nextPlugin, "nextPlugin");
+    assertArgumentIsNotNull(logger, "logger");
 
     this.currentConnectionProvider = currentConnectionProvider;
     this.connection = currentConnectionProvider.getCurrentConnection();
     this.propertySet = propertySet;
-    this.log = log;
+    this.logger = logger;
     this.nextPlugin = nextPlugin;
     this.monitorServiceSupplier = monitorServiceSupplier;
 
@@ -133,7 +133,7 @@ public class NodeMonitoringConnectionPlugin implements IConnectionPlugin {
     MonitorConnectionContext monitorContext = null;
 
     try {
-      this.log.logTrace(String.format(
+      this.logger.logTrace(String.format(
           "[NodeMonitoringConnectionPlugin.execute]: method=%s.%s, monitoring is activated",
               methodInvokeOn.getName(), methodName));
 
@@ -160,7 +160,7 @@ public class NodeMonitoringConnectionPlugin implements IConnectionPlugin {
           }
         }
       }
-      this.log.logTrace(String.format(
+      this.logger.logTrace(String.format(
           "[NodeMonitoringConnectionPlugin.execute]: method=%s.%s, monitoring is deactivated",
               methodInvokeOn.getName(), methodName));
     }
@@ -217,7 +217,7 @@ public class NodeMonitoringConnectionPlugin implements IConnectionPlugin {
 
   private void assertArgumentIsNotNull(Object param, String paramName) {
     if (param == null) {
-      throw new NullArgumentException(paramName);
+      throw new IllegalArgumentException(NullArgumentMessage.getMessage(paramName));
     }
   }
 
@@ -253,7 +253,7 @@ public class NodeMonitoringConnectionPlugin implements IConnectionPlugin {
       }
     } catch (SQLException sqlException) {
       // log and ignore
-      this.log.logTrace(
+      this.logger.logTrace(
           "[NodeMonitoringConnectionPlugin.initNodes]: Could not retrieve Host:Port from querying");
     }
 
