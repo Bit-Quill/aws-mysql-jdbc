@@ -8,8 +8,8 @@ public class NodeMonitoringConnectionPluginFactory implements IConnectionPluginF
   public IConnectionPlugin getInstance(
       ICurrentConnectionProvider currentConnectionProvider,
       PropertySet propertySet,
-      IConnectionPlugin next,
-      Log log) {
-    return new NodeMonitoringConnectionPlugin(currentConnectionProvider, propertySet, next, log);
+      IConnectionPlugin nextPlugin,
+      Log logger) {
+    return new NodeMonitoringConnectionPlugin(currentConnectionProvider, propertySet, nextPlugin, logger);
   }
 }
