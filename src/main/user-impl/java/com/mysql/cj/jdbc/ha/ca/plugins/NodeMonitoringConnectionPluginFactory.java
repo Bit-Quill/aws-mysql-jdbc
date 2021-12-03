@@ -9,7 +9,7 @@ public class NodeMonitoringConnectionPluginFactory implements IConnectionPluginF
       ICurrentConnectionProvider currentConnectionProvider,
       PropertySet propertySet,
       IConnectionPlugin nextPlugin,
-      Log log) {
-    return new NodeMonitoringConnectionPlugin(currentConnectionProvider, propertySet, nextPlugin, log);
+      Log logger) {
+    return new NodeMonitoringConnectionPlugin(currentConnectionProvider, propertySet, nextPlugin, logger);
   }
 }

@@ -4,5 +4,5 @@ import com.mysql.cj.conf.PropertySet;
 import com.mysql.cj.log.Log;
 
 public interface IConnectionPluginFactory {
-  IConnectionPlugin getInstance(ICurrentConnectionProvider currentConnectionProvider, PropertySet propertySet, IConnectionPlugin nextPlugin, Log log);
+  IConnectionPlugin getInstance(ICurrentConnectionProvider currentConnectionProvider, PropertySet propertySet, IConnectionPlugin nextPlugin, Log logger);
 }

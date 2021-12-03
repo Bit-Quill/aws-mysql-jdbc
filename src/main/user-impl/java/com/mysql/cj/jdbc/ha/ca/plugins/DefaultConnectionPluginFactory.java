@@ -9,7 +9,7 @@ public class DefaultConnectionPluginFactory implements IConnectionPluginFactory 
       ICurrentConnectionProvider currentConnectionProvider,
       PropertySet propertySet,
       IConnectionPlugin nextPlugin,
-      Log log) {
-    return new DefaultConnectionPlugin(log);
+      Log logger) {
+    return new DefaultConnectionPlugin(logger);
   }
 }
