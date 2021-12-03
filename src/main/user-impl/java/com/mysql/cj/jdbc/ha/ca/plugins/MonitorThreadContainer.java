@@ -46,28 +46,33 @@ public class MonitorThreadContainer {
     private final Map<IMonitor, Future<?>> tasksMap = new ConcurrentHashMap<>();
     private final Queue<IMonitor> availableMonitors = new ConcurrentLinkedDeque<>();
     private final ExecutorService threadPool;
+    private static final Object LOCK_OBJECT = new Object();
 
-    public static synchronized MonitorThreadContainer getInstance() {
+    public static MonitorThreadContainer getInstance() {
         return getInstance(Executors::newCachedThreadPool);
     }
 
-    static synchronized MonitorThreadContainer getInstance(IExecutorServiceInitializer executorServiceInitializer) {
+    static MonitorThreadContainer getInstance(IExecutorServiceInitializer executorServiceInitializer) {
         if (singleton == null) {
-            singleton = new MonitorThreadContainer(executorServiceInitializer);
+            synchronized (LOCK_OBJECT) {
+                singleton = new MonitorThreadContainer(executorServiceInitializer);
+            }
             CLASS_USAGE_COUNT.set(0);
         }
         CLASS_USAGE_COUNT.getAndIncrement();
         return singleton;
     }
 
-    public static synchronized void releaseInstance() {
+    public static void releaseInstance() {
         if (singleton == null) {
             return;
         }
 
         if (CLASS_USAGE_COUNT.decrementAndGet() <= 0) {
-            singleton.releaseResources();
-            singleton = null;
+            synchronized (LOCK_OBJECT) {
+                singleton.releaseResources();
+                singleton = null;
+            }
         }
     }
 
@@ -150,6 +155,10 @@ public class MonitorThreadContainer {
     }
 
     public void releaseResource(IMonitor monitor) {
+        if (monitor == null) {
+            return;
+        }
+
         final List<IMonitor> monitorList = Collections.singletonList(monitor);
         monitorMap.values().removeAll(monitorList);
         tasksMap.computeIfPresent(monitor, (k, v) -> {
@@ -158,7 +167,7 @@ public class MonitorThreadContainer {
         });
     }
 
-    private synchronized void releaseResources() {
+    private void releaseResources() {
         monitorMap.clear();
         tasksMap.values().stream()
             .filter(val -> !val.isDone() && !val.isCancelled())
