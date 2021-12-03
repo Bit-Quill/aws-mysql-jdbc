@@ -46,6 +46,7 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.concurrent.Callable;
+import java.util.function.Supplier;
 
 /**
  * Initialize constants and mock variables common to tests for {@link NodeMonitoringConnectionPlugin}.
@@ -59,7 +60,7 @@ public class NodeMonitoringConnectionPluginBaseTest {
   @Mock HostInfo hostInfo;
   @Mock IConnectionPlugin mockPlugin;
   @Mock Log logger;
-  @Mock NodeMonitoringConnectionPlugin.IMonitorServiceInitializer initializer;
+  @Mock Supplier<IMonitorService> supplier;
   @Mock MonitorConnectionContext context;
   @Mock IMonitorService monitorService;
   @Mock Callable sqlFunction;
@@ -79,7 +80,7 @@ public class NodeMonitoringConnectionPluginBaseTest {
   void initDefaultMockReturns() throws Exception {
     when(hostInfo.getHost())
         .thenReturn(NODE);
-    when(initializer.create(Mockito.any()))
+    when(supplier.get())
         .thenReturn(monitorService);
     when(monitorService.startMonitoring(
         any(JdbcConnection.class),
