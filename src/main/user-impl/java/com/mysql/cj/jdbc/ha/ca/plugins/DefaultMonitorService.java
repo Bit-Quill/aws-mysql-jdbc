@@ -36,7 +36,6 @@ import com.mysql.cj.log.Log;
 
 import java.util.Set;
 import java.util.concurrent.Executors;
-import java.util.function.Supplier;
 
 public class DefaultMonitorService implements IMonitorService {
   MonitorThreadContainer threadContainer;
@@ -44,7 +43,7 @@ public class DefaultMonitorService implements IMonitorService {
   private final Log logger;
   final IMonitorInitializer monitorInitializer;
 
-  public DefaultMonitorService(Log log) {
+  public DefaultMonitorService(Log logger) {
     this(
         (hostInfo, propertySet, monitorService) -> new Monitor(
             new BasicConnectionProvider(),
@@ -52,9 +51,9 @@ public class DefaultMonitorService implements IMonitorService {
             propertySet,
             propertySet.getIntegerProperty(PropertyKey.monitorDisposalTime).getValue(),
             monitorService,
-            log),
+            logger),
         Executors::newCachedThreadPool,
-        log
+        logger
     );
   }
 

@@ -23,14 +23,14 @@ public class DefaultConnectionPlugin implements IConnectionPlugin {
       return executeSqlFunc.call();
     } catch (InvocationTargetException invocationTargetException) {
       Throwable targetException = invocationTargetException.getTargetException();
-      this.log.logTrace(
+      this.logger.logTrace(
               String.format("[DefaultConnectionPlugin.execute]: method=%s.%s, exception: ", methodInvokeOn.getName(), methodName), targetException);
       if (targetException instanceof Error) {
         throw (Error) targetException;
       }
       throw (Exception) targetException;
     } catch (Exception ex) {
-      this.log.logTrace(
+      this.logger.logTrace(
           String.format("[DefaultConnectionPlugin.execute]: method=%s.%s, exception: ", methodInvokeOn.getName(), methodName), ex);
       throw ex;
     }

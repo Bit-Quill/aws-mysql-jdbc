@@ -70,7 +70,7 @@ public class NodeMonitoringConnectionPlugin implements IConnectionPlugin {
         propertySet,
         nextPlugin,
         logger,
-        () -> new DefaultMonitorService(log));
+        () -> new DefaultMonitorService(logger));
   }
 
   NodeMonitoringConnectionPlugin(
