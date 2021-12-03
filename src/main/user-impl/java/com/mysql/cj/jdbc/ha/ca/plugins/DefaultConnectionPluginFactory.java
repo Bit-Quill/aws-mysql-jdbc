@@ -8,7 +8,7 @@ public class DefaultConnectionPluginFactory implements IConnectionPluginFactory 
   public IConnectionPlugin getInstance(
       ICurrentConnectionProvider currentConnectionProvider,
       PropertySet propertySet,
-      IConnectionPlugin next,
+      IConnectionPlugin nextPlugin,
       Log log) {
     return new DefaultConnectionPlugin(log);
   }
