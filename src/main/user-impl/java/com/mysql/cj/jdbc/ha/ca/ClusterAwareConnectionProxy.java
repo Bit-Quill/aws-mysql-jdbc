@@ -39,7 +39,6 @@ import com.mysql.cj.conf.PropertyKey;
 import com.mysql.cj.exceptions.CJCommunicationsException;
 import com.mysql.cj.exceptions.CJException;
 import com.mysql.cj.exceptions.MysqlErrorNumbers;
-import com.mysql.cj.jdbc.AbandonedConnectionCleanupThread;
 import com.mysql.cj.jdbc.ConnectionImpl;
 import com.mysql.cj.jdbc.JdbcConnection;
 import com.mysql.cj.jdbc.JdbcPropertySetImpl;
@@ -384,7 +383,6 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
       this.pluginManager.init(
           this,
           this.currentConnection.getPropertySet());
-      AbandonedConnectionCleanupThread.trackCluster(this, this.pluginManager);
     }
   }
 

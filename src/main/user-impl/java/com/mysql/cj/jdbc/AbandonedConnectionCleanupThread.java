@@ -29,12 +29,6 @@
 
 package com.mysql.cj.jdbc;
 
-import com.mysql.cj.MysqlConnection;
-import com.mysql.cj.conf.PropertyDefinitions;
-import com.mysql.cj.jdbc.ha.ca.ClusterAwareConnectionProxy;
-import com.mysql.cj.jdbc.ha.ca.plugins.ConnectionPluginManager;
-import com.mysql.cj.protocol.NetworkResources;
-
 import java.lang.ref.PhantomReference;
 import java.lang.ref.Reference;
 import java.lang.ref.ReferenceQueue;
@@ -45,16 +39,17 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import com.mysql.cj.MysqlConnection;
+import com.mysql.cj.conf.PropertyDefinitions;
+import com.mysql.cj.protocol.NetworkResources;
+
 /**
  * This class implements a thread that is responsible for closing abandoned MySQL connections, i.e., connections that are not explicitly closed.
  * There is only one instance of this class and there is a single thread to do this task. This thread's executor is statically referenced in this same class.
  */
 public class AbandonedConnectionCleanupThread implements Runnable {
     private static final Set<ConnectionFinalizerPhantomReference> connectionFinalizerPhantomRefs = ConcurrentHashMap.newKeySet();
-    private static final ReferenceQueue<MysqlConnection> connectionReferenceQueue = new ReferenceQueue<>();
-
-    private static final Set<ClusterFinalizerPhantomReference> clusterFinalizerPhantomRef = ConcurrentHashMap.newKeySet();
-    private static final ReferenceQueue<ClusterAwareConnectionProxy> clusterReferenceQueue = new ReferenceQueue<>();
+    private static final ReferenceQueue<MysqlConnection> referenceQueue = new ReferenceQueue<>();
 
     private static final ExecutorService cleanupThreadExecutorService;
     private static Thread threadRef = null;
@@ -93,14 +88,9 @@ public class AbandonedConnectionCleanupThread implements Runnable {
         for (;;) {
             try {
                 checkThreadContextClassLoader();
-                Reference<? extends MysqlConnection> reference = connectionReferenceQueue.remove(5000);
+                Reference<? extends MysqlConnection> reference = referenceQueue.remove(5000);
                 if (reference != null) {
                     finalizeResource((ConnectionFinalizerPhantomReference) reference);
-                }
-
-                Reference<? extends ClusterAwareConnectionProxy> clusterReference = clusterReferenceQueue.remove(5000);
-                if (clusterReference != null) {
-                    finalizeResource((ClusterFinalizerPhantomReference) clusterReference);
                 }
             } catch (InterruptedException e) {
                 threadRefLock.lock();
@@ -109,16 +99,10 @@ public class AbandonedConnectionCleanupThread implements Runnable {
 
                     // Finalize remaining references.
                     Reference<? extends MysqlConnection> reference;
-                    while ((reference = connectionReferenceQueue.poll()) != null) {
+                    while ((reference = referenceQueue.poll()) != null) {
                         finalizeResource((ConnectionFinalizerPhantomReference) reference);
                     }
                     connectionFinalizerPhantomRefs.clear();
-
-                    Reference<? extends ClusterAwareConnectionProxy> clusterReference;
-                    while ((clusterReference = clusterReferenceQueue.poll()) != null) {
-                        finalizeResource((ClusterFinalizerPhantomReference) clusterReference);
-                    }
-                    clusterFinalizerPhantomRef.clear();
                 } finally {
                     threadRefLock.unlock();
                 }
@@ -223,36 +207,8 @@ public class AbandonedConnectionCleanupThread implements Runnable {
         threadRefLock.lock();
         try {
             if (isAlive()) {
-                ConnectionFinalizerPhantomReference reference = new ConnectionFinalizerPhantomReference(conn, io,
-                    connectionReferenceQueue);
+                ConnectionFinalizerPhantomReference reference = new ConnectionFinalizerPhantomReference(conn, io, referenceQueue);
                 connectionFinalizerPhantomRefs.add(reference);
-            }
-        } finally {
-            threadRefLock.unlock();
-        }
-    }
-
-    /**
-     * Tracks the finalization of a {@link ClusterAwareConnectionProxy} object and keeps a reference to its {@link ConnectionPluginManager} so that they can be later released.
-     *
-     * @param proxy
-     *            the proxy object to track for finalization
-     * @param pluginManager
-     *            the plugin manager resources to close on the connection finalization
-     */
-    public static void trackCluster(ClusterAwareConnectionProxy proxy, ConnectionPluginManager pluginManager) {
-        trackClusterProtected(proxy, pluginManager);
-    }
-
-    private static void trackClusterProtected(ClusterAwareConnectionProxy proxy, ConnectionPluginManager pluginManager) {
-        if (abandonedConnectionCleanupDisabled) {
-            return;
-        }
-        threadRefLock.lock();
-        try {
-            if (isAlive()) {
-                ClusterFinalizerPhantomReference reference = new ClusterFinalizerPhantomReference(proxy, pluginManager, clusterReferenceQueue);
-                clusterFinalizerPhantomRef.add(reference);
             }
         } finally {
             threadRefLock.unlock();
@@ -275,21 +231,6 @@ public class AbandonedConnectionCleanupThread implements Runnable {
     }
 
     /**
-     * Release resources from the given {@link ClusterFinalizerPhantomReference} and remove it from the references set.
-     *
-     * @param reference
-     *            the {@link ClusterFinalizerPhantomReference} to finalize.
-     */
-    private static void finalizeResource(ClusterFinalizerPhantomReference reference) {
-        try {
-            reference.finalizeResources();
-            reference.clear();
-        } finally {
-            clusterFinalizerPhantomRef.remove(reference);
-        }
-    }
-
-    /**
      * {@link PhantomReference} subclass to track {@link MysqlConnection} objects finalization.
      * This class holds a reference to the Connection's {@link NetworkResources} so they it can be later closed.
      */
@@ -307,29 +248,6 @@ public class AbandonedConnectionCleanupThread implements Runnable {
                     this.networkResources.forceClose();
                 } finally {
                     this.networkResources = null;
-                }
-            }
-        }
-    }
-
-    /**
-     * {@link PhantomReference} subclass to track {@link ClusterAwareConnectionProxy} objects finalization.
-     * This class holds a reference to the Proxy's {@link ConnectionPluginManager} so they it can be later closed.
-     */
-    private static class ClusterFinalizerPhantomReference extends PhantomReference<ClusterAwareConnectionProxy> {
-        private ConnectionPluginManager pluginManager;
-
-        public ClusterFinalizerPhantomReference(ClusterAwareConnectionProxy proxy, ConnectionPluginManager pluginManager, ReferenceQueue<? super ClusterAwareConnectionProxy> refQueue) {
-            super(proxy, refQueue);
-            this.pluginManager = pluginManager;
-        }
-
-        void finalizeResources() {
-            if (this.pluginManager != null) {
-                try {
-                    this.pluginManager.releaseResources();
-                } finally {
-                    this.pluginManager = null;
                 }
             }
         }

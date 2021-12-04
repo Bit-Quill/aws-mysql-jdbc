@@ -33,9 +33,9 @@ import com.mysql.cj.log.Log;
 import com.mysql.cj.util.StringUtils;
 import com.mysql.cj.util.Util;
 
-import java.util.List;
+import java.util.Queue;
 import java.util.concurrent.Callable;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class ConnectionPluginManager {
 
@@ -49,9 +49,10 @@ public class ConnectionPluginManager {
   protected PropertySet propertySet = null;
   protected IConnectionPlugin headPlugin = null;
   ClusterAwareConnectionProxy proxy;
-  protected static final List<ConnectionPluginManager> instances = new CopyOnWriteArrayList<>();
+  protected static final Queue<ConnectionPluginManager> instances;
 
   static {
+    instances = new ConcurrentLinkedQueue<>();
     Runtime.getRuntime().addShutdownHook(new Thread(ConnectionPluginManager::releaseAllResources));
   }
 
