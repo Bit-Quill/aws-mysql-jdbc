@@ -89,9 +89,9 @@ public class Driver extends NonRegisteringDriver {
   }
 
   /**
-   * Release all resources currently held up by Connection Plugin Manager
+   * Release all resources currently held up by {@link ConnectionPluginManager}.
    */
-  public static void releasePluginManager() {
+  public static void releasePluginManagers() {
     ConnectionPluginManager.releaseAllResources();
   }
 }

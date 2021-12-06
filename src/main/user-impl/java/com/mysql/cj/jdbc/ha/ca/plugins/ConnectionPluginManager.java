@@ -49,10 +49,9 @@ public class ConnectionPluginManager {
   protected PropertySet propertySet = null;
   protected IConnectionPlugin headPlugin = null;
   ClusterAwareConnectionProxy proxy;
-  protected static final Queue<ConnectionPluginManager> instances;
+  protected static final Queue<ConnectionPluginManager> instances = new ConcurrentLinkedQueue<>();
 
   static {
-    instances = new ConcurrentLinkedQueue<>();
     Runtime.getRuntime().addShutdownHook(new Thread(ConnectionPluginManager::releaseAllResources));
   }
 
@@ -117,8 +116,6 @@ public class ConnectionPluginManager {
   }
 
   public static void releaseAllResources() {
-    for (ConnectionPluginManager instance : instances) {
-      instance.releaseResources();
-    }
+    instances.forEach(ConnectionPluginManager::releaseResources);
   }
 }
