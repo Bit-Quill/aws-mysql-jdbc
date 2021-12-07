@@ -57,7 +57,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class DefaultMonitorServiceTest {
-  private static final Set<String> NODE_KEYS = new HashSet<>(Collections.singletonList("any.node.domain"));
+  private static final Set<String> NODE_KEYS =
+      new HashSet<>(Collections.singletonList("any.node.domain"));
   private static final int FAILURE_DETECTION_TIME_MILLIS = 10;
   private static final int FAILURE_DETECTION_INTERVAL_MILLIS = 100;
   private static final int FAILURE_DETECTION_COUNT = 3;
@@ -122,13 +123,13 @@ class DefaultMonitorServiceTest {
     doNothing().when(monitorA).startMonitoring(contextCaptor.capture());
 
     monitorService.startMonitoring(
-      connection,
-      NODE_KEYS,
-      info,
-      propertySet,
-      FAILURE_DETECTION_TIME_MILLIS,
-      FAILURE_DETECTION_INTERVAL_MILLIS,
-      FAILURE_DETECTION_COUNT);
+        connection,
+        NODE_KEYS,
+        info,
+        propertySet,
+        FAILURE_DETECTION_TIME_MILLIS,
+        FAILURE_DETECTION_INTERVAL_MILLIS,
+        FAILURE_DETECTION_COUNT);
 
     assertNotNull(contextCaptor.getValue());
     verify(executorService).submit(eq(monitorA));
@@ -210,12 +211,16 @@ class DefaultMonitorServiceTest {
     assertNotNull(monitorOne);
 
     // Should get the same monitor as before as contain the same key "nodeTwo.domain"
-    final IMonitor monitorOneSame = monitorService.getMonitor(nodeKeysTwo, info, propertySet);
+    final IMonitor monitorOneSame =
+        monitorService.getMonitor(nodeKeysTwo, info, propertySet);
     assertNotNull(monitorOneSame);
     assertEquals(monitorOne, monitorOneSame);
 
     // Make sure createMonitor was called once
-    verify(monitorInitializer).createMonitor(eq(info), eq(propertySet), eq(monitorService));
+    verify(monitorInitializer).createMonitor(
+        eq(info),
+        eq(propertySet),
+        eq(monitorService));
   }
 
   @Test
@@ -227,7 +232,8 @@ class DefaultMonitorServiceTest {
     assertNotNull(monitorOne);
 
     // Ensuring monitor is the same one and not creating a new one
-    final IMonitor monitorOneDupe = monitorService.getMonitor(nodeKeys, info, propertySet);
+    final IMonitor monitorOneDupe =
+        monitorService.getMonitor(nodeKeys, info, propertySet);
     assertEquals(monitorOne, monitorOneDupe);
 
     // Ensuring monitors are not the same as they have different keys
@@ -254,15 +260,20 @@ class DefaultMonitorServiceTest {
 
     // Add a new key using the same monitor
     // Adding "nodeB" as a new key using the same monitor as "nodeA"
-    final IMonitor monitorOneDupe = monitorService.getMonitor(nodeKeysTwo, info, propertySet);
+    final IMonitor monitorOneDupe =
+        monitorService.getMonitor(nodeKeysTwo, info, propertySet);
     assertEquals(monitorOne, monitorOneDupe);
 
     // Using new keyset but same node, "nodeB" should return same monitor
-    final IMonitor monitorOneDupeAgain = monitorService.getMonitor(nodeKeysThree, info, propertySet);
+    final IMonitor monitorOneDupeAgain =
+        monitorService.getMonitor(nodeKeysThree, info, propertySet);
     assertEquals(monitorOne, monitorOneDupeAgain);
 
     // Make sure createMonitor was called once
-    verify(monitorInitializer).createMonitor(eq(info), eq(propertySet), eq(monitorService));
+    verify(monitorInitializer).createMonitor(
+        eq(info),
+        eq(propertySet),
+        eq(monitorService));
   }
 
   @Test

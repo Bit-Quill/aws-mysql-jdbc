@@ -29,6 +29,8 @@ package com.mysql.cj.jdbc.ha.ca.plugins;
 import java.util.concurrent.Callable;
 
 public interface IConnectionPlugin {
-  Object execute(Class<?> methodInvokeOn, String methodName, Callable<?> executeSqlFunc) throws Exception;
+  Object execute(Class<?> methodInvokeOn, String methodName, Callable<?> executeSqlFunc)
+      throws Exception;
+
   void releaseResources();
 }

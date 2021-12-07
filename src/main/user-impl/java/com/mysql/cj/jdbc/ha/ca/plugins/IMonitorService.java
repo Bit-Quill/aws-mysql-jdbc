@@ -45,6 +45,7 @@ public interface IMonitorService {
   /**
    * Stop monitoring for a connection represented by the given
    * {@link MonitorConnectionContext}. Removes the context from the {@link Monitor}.
+   *
    * @param context The {@link MonitorConnectionContext} representing a connection.
    */
   void stopMonitoring(MonitorConnectionContext context);
