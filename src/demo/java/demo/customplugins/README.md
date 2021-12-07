@@ -346,11 +346,12 @@ public class SampleApplication {
 
     // NodeMonitoringConnectionPlugin is a built-in plugin with the Enhanced Instance
     // Monitoring feature.
+    // TODO: add link to Enhanced Instance Monitoring on README.
     final String nodeMonitoringPlugin =
         NodeMonitoringConnectionPluginFactory.class.getName();
 
     // To use custom connection plugins, set the connectionPluginFactories to a
-    // comm-separated string containing the fully-qualified class names of custom plugin
+    // comma-separated string containing the fully-qualified class names of custom plugin
     // factories to use.
     properties.setProperty(
         "connectionPluginFactories",
