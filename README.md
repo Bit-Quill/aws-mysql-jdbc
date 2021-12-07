@@ -133,9 +133,9 @@ In addition to [the parameters that can be configured for the MySQL Connector/J 
 
 ### Enhanced Failure Monitoring
 
-TODO - IMAGE OF MONITOR FAILURE GOES HERE
+<div style="text-align:center"><img src="./docs/files/images/node_monitoring_plugin_diagram.png" /></div>
 
-The figure above shows a simplified workflow of enhanced failure monitoring. Enhanced failure monitoring, implemented by using a monitor thread, which periodically pings the database node to check the health status. In the case of the database node showing up as unhealthy, `NodeMonitoringConnectionPlugin` will automatically failover to a different database node.
+The figure above shows a simplified workflow of enhanced failure monitoring. Enhanced failure monitoring, implemented by using a monitor thread, periodically pings the database node to check the node's health. In the case of the database node showing up as unhealthy, `NodeMonitoringConnectionPlugin` will automatically failover to a different database node, restart the monitor and retry the query.
 
 #### Enhanced Failure Monitoring Parameters
 `failureDetectionTime`, `failureDetectionInterval`, and `failureDetectionCount` are similar to TCP Keep Alive parameters. 
