@@ -24,7 +24,7 @@
  *
  */
 
-package demo.customplugins;
+package customplugins;
 
 import com.mysql.cj.conf.PropertySet;
 import com.mysql.cj.jdbc.ha.ca.plugins.IConnectionPlugin;
@@ -33,16 +33,17 @@ import com.mysql.cj.jdbc.ha.ca.plugins.ICurrentConnectionProvider;
 import com.mysql.cj.log.Log;
 
 /**
- * This class initializes the {@link TopLevelConnectionPlugin}.
+ * This class initializes {@link ExecutionTimeConnectionPlugin}.
  */
-public class TopLevelConnectionPluginFactory implements IConnectionPluginFactory {
+public class ExecutionTimeConnectionPluginFactory implements
+    IConnectionPluginFactory {
   @Override
   public IConnectionPlugin getInstance(
       ICurrentConnectionProvider currentConnectionProvider,
       PropertySet propertySet,
       IConnectionPlugin nextPlugin,
       Log logger) {
-    logger.logInfo("[TopLevelConnectionPluginFactory] ::: Creating a simple top level connection plugin");
-    return new TopLevelConnectionPlugin(nextPlugin, logger);
+    logger.logInfo("[ExecutionTimeConnectionPluginFactory] ::: Creating an execution time connection plugin");
+    return new ExecutionTimeConnectionPlugin(nextPlugin, logger);
   }
 }

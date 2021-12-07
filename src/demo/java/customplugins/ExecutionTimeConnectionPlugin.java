@@ -24,7 +24,7 @@
  *
  */
 
-package demo.customplugins;
+package customplugins;
 
 import com.mysql.cj.jdbc.ha.ca.plugins.IConnectionPlugin;
 import com.mysql.cj.log.Log;
@@ -35,8 +35,9 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
 /**
- * This connection plugin tracks the execution time of all methods executed with
- * enhanced instance monitoring enabled.
+ * This connection plugin tracks the execution time of all the given JDBC method throughout
+ * the lifespan of the current connection.
+ * <p>
  * During the cleanup phase when {@link ExecutionTimeConnectionPlugin#releaseResources()}
  * is called, this plugin logs all the methods executed and time spent on each execution
  * in milliseconds.
@@ -60,16 +61,13 @@ public class ExecutionTimeConnectionPlugin implements IConnectionPlugin {
   public Object execute(
       Class<?> methodInvokeOn,
       String methodName,
-      Callable<?> executeSqlFunc)
+      Callable<?> executeJdbcMethod)
       throws Exception {
     // This `execute` measures the time it takes for the remaining connection plugins to
     // execute the given method call.
-    // In this sample, the next connection plugin is the `NodeMonitoringConnectionPlugin`,
-    // so this measurement includes the time it takes for the
-    // `NodeMonitoringConnectionPlugin` to finish all its necessary setups.
     final long startTime = System.nanoTime();
     final Object result =
-        this.nextPlugin.execute(methodInvokeOn, methodName, executeSqlFunc);
+        this.nextPlugin.execute(methodInvokeOn, methodName, executeJdbcMethod);
     final long elapsedTime = System.nanoTime() - startTime;
     results.merge(
         methodName,
@@ -83,18 +81,18 @@ public class ExecutionTimeConnectionPlugin implements IConnectionPlugin {
   public void releaseResources() {
     // Output the aggregated information from all methods called throughout the lifespan
     // of the current connection.
-    final long elapsedTime = System.nanoTime() - initializeTime;
+    final long connectionUptime = System.nanoTime() - initializeTime;
     final String leftAlignFormat = "| %-19s | %-10s |\n";
     final StringBuilder logMessage = new StringBuilder();
 
     logMessage.append("** ExecutionTimeConnectionPlugin Summary **\n");
     logMessage.append(String.format(
-        "Plugin Uptime: %ds\n",
-        elapsedTime / 1000000
+        "Connection Uptime: %ds\n",
+        connectionUptime / 1000000
     ));
 
     logMessage
-        .append("** Method Execution Time With Enhanced Instance Monitoring **\n")
+        .append("** Method Execution Time **\n")
         .append("+---------------------+------------+\n")
         .append("| Method Executed     | Total Time |\n")
         .append("+---------------------+------------+\n");
@@ -111,8 +109,6 @@ public class ExecutionTimeConnectionPlugin implements IConnectionPlugin {
     // Traverse the connection plugin chain by calling the next plugin. This step allows
     // all connection plugins a chance to clean up any dangling resources or perform any
     // last tasks before shutting down.
-    // In this sample, `NodeMonitoringConnectionPlugin#releaseResources()` will be called
-    // to release any running monitoring threads.
     this.nextPlugin.releaseResources();
   }
 }

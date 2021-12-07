@@ -24,7 +24,7 @@
  *
  */
 
-package demo.customplugins;
+package customplugins;
 
 import com.mysql.cj.jdbc.ha.ca.plugins.IConnectionPlugin;
 import com.mysql.cj.log.Log;
@@ -35,26 +35,27 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 
 /**
- * This is a simple example for writing a custom connection plugin.
+ * This connection plugin counts the total number of executed JDBC methods throughout the
+ * lifespan of the current connection.
  * <p>
  * All connection plugins must implement the {@link IConnectionPlugin} interface. Since
  * all the connection plugins are chained together, the prior connection plugin needs to
  * invoke the next plugin.
  * Once registered, every connection will create an instance of this connection plugin.
  */
-public class TopLevelConnectionPlugin implements IConnectionPlugin {
+public class MethodCountConnectionPlugin implements IConnectionPlugin {
   private final IConnectionPlugin nextPlugin;
   private final Log logger;
   private final Map<String, Integer> methodCount = new HashMap<>();
 
-  public TopLevelConnectionPlugin(IConnectionPlugin nextPlugin, Log logger) {
+  public MethodCountConnectionPlugin(IConnectionPlugin nextPlugin, Log logger) {
     this.nextPlugin = nextPlugin;
     this.logger = logger;
   }
 
   /**
    * All method calls related to the connection object will be passed to this method as
-   * {@code Callable<?> executeSqlFunc}.
+   * {@code Callable<?> executeJdbcMethod}.
    * This includes methods that may be called frequently, such as:
    * <ul>
    *   <li>{@link ResultSet#next()}</li>
@@ -65,12 +66,12 @@ public class TopLevelConnectionPlugin implements IConnectionPlugin {
   public Object execute(
       Class<?> methodInvokeOn,
       String methodName,
-      Callable<?> executeSqlFunc) throws Exception {
+      Callable<?> executeJdbcMethod) throws Exception {
     // Increment the number of calls to this method.
     methodCount.merge(methodName, 1, Integer::sum);
     // Traverse the connection plugin chain by invoking the `execute` method in the
     // next plugin.
-    return this.nextPlugin.execute(methodInvokeOn, methodName, executeSqlFunc);
+    return this.nextPlugin.execute(methodInvokeOn, methodName, executeJdbcMethod);
   }
 
   /**
@@ -89,7 +90,7 @@ public class TopLevelConnectionPlugin implements IConnectionPlugin {
     final StringBuilder logMessage = new StringBuilder();
 
     logMessage
-        .append("** TopLevelConnectionPlugin Summary **\n")
+        .append("** MethodCountConnectionPlugin Summary **\n")
         .append("+---------------------+------------+\n")
         .append("| Method Executed     | Frequency  |\n")
         .append("+---------------------+------------+\n");

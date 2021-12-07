@@ -24,9 +24,7 @@
  *
  */
 
-package demo.customplugins;
-
-import com.mysql.cj.jdbc.ha.ca.plugins.NodeMonitoringConnectionPluginFactory;
+package customplugins;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -52,25 +50,18 @@ public class SampleApplication {
     properties.setProperty("password", PASSWORD);
     properties.setProperty("logger", "StandardLogger");
 
-    final String topLevelPlugin = TopLevelConnectionPluginFactory.class.getName();
-    final String executionMeasurementPlugin =
+    final String methodCountConnectionPluginFactoryClassName = MethodCountConnectionPluginFactory.class.getName();
+    final String executionMeasurementPluginFactoryClassName =
         ExecutionTimeConnectionPluginFactory.class.getName();
-
-    // NodeMonitoringConnectionPlugin is a built-in plugin with the Enhanced Instance
-    // Monitoring feature.
-    // TODO: add link to Enhanced Instance Monitoring on README.
-    final String nodeMonitoringPlugin =
-        NodeMonitoringConnectionPluginFactory.class.getName();
 
     // To use custom connection plugins, set the connectionPluginFactories to a
     // comma-separated string containing the fully-qualified class names of custom plugin
     // factories to use.
     properties.setProperty(
         "connectionPluginFactories",
-        String.format("%s,%s,%s",
-            topLevelPlugin,
-            executionMeasurementPlugin,
-            nodeMonitoringPlugin));
+        String.format("%s,%s",
+            methodCountConnectionPluginFactoryClassName,
+            executionMeasurementPluginFactoryClassName));
 
     try (Connection conn = DriverManager.getConnection(CONNECTION_STRING, properties)) {
       try (Statement statement = conn.createStatement()) {

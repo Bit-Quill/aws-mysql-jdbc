@@ -2,8 +2,7 @@
 
 This README walks through the steps to create 2 additional custom connection plugins for the AWS
 JDBC Driver for MySQL and use them in a simple JDBC application. All the code used in this README
-are available within this directory, to run the sample application directly,
-see [Running the Sample Code](#running-the-sample-code) section.
+are available within this directory.
 
 ### Minimum Requirements
 
@@ -17,80 +16,58 @@ To following along this tutorial or to run this sample program directly, the fol
 
 ## What are Connection Plugins
 
-Connection plugins are widgets attached to each `Connection` objects to help execute SQL functions
-related to that `Connection`. All the connection plugins are chained together, where the prior
-connection plugin calls the next plugin. The AWS JDBC Driver for MySQL provides 2 default connection
-plugins, the `NodeMonitoringConnectionPlugin` and the `DefaultConnectionPlugin`.
-The `DefaultConnectionPlugin` executes the desired method invocation as is,
-while `NodeMonitoringConnectionPlugin` uses background threads to monitor the connection for
-efficient failure detection.
+Connection plugins are widgets attached to each `Connection` objects to help execute additional or
+supplementary logic related to that `Connection`. All the connection plugins are chained together,
+where the prior connection plugin calls the next plugin. The AWS JDBC Driver for MySQL attaches the
+`DefaultConnectionPlugin` to the tail of the connection plugin chain and actually executes the given
+JDBC method.
 
-> **NOTE**: The `DefaultConnectionPlugin` will always be used and will always be the last plugin in
-> the connection plugin chain.
+Since all the connection plugins are chained together, the prior connection plugin affects the
+latter plugins. If the connection plugin at the head of the connection plugin chain measures the 
+execution time, this measurement would encompass the time spent in all the connection plugins down
+the chain.
+
+> **NOTE**: The `DefaultConnectionPlugin` will always be the last plugin to execute in the connection plugin chain.
 
 ## Creating Custom Connection Plugins
 
 This tutorial will walk through the steps to create two connection plugins. The first connection
-plugin is called `TopLevelConnectionPlugin`, it tracks the number of method calls throughout the
+plugin is called `MethodCountConnectionPlugin`, it tracks the number of method calls throughout the
 lifespan of the connection. The second connection plugin `ExecutionTimeConnectionPlugin` tracks the
 total execution time of each type of the method calls. We will use the two custom plugins together
 with the built-in plugins. The final connection plugin chain will look like the following:
+![](./diagrams/connection_plugin_chain.png)
 
-```mermaid
-graph LR
-   TopLevelConnectionPlugin --> ExecutionTimeConnectionPlugin;
-   ExecutionTimeConnectionPlugin --> NodeMonitoringConnectionPlugin;
-   NodeMonitoringConnectionPlugin --> DefaultConnectionPlugin;
-```
-
-Below is an example of the execution process of `Statement#executeQuery(str)`:
-
-```mermaid
-sequenceDiagram
-    TopLevelConnectionPlugin->>+ExecutionTimeConnectionPlugin: execute(Class, String, Callable)]
-    ExecutionTimeConnectionPlugin->>+NodeMonitoringConnectionPlugin: execute(Class, String, Callable)]
-    NodeMonitoringConnectionPlugin->>+DefaultConnectionPlugin: execute(Class, String, Callable)]
-    DefaultConnectionPlugin-->>+Statement: executeQuery(String)
-    Statement-->>-DefaultConnectionPlugin: executeQuery(String)
-    DefaultConnectionPlugin-->>-NodeMonitoringConnectionPlugin: execute(Class, String, Callable)]
-    NodeMonitoringConnectionPlugin-->>-ExecutionTimeConnectionPlugin: execute(Class, String, Callable)]
-    ExecutionTimeConnectionPlugin-->>-TopLevelConnectionPlugin: execute(Class, String, Callable)]
-```
+Below is an example of the execution process of a JDBC method:
+![](https://github.com/awslabs/aws-mysql-jdbc/tree/main/docs/files/images/plugin_manager_diagram.png)
 
 ### Creating a Top Level Connection Plugin
 
 All connection plugins have to implement the `IConnectionPlugin` interface.
 
 ```java
-import com.mysql.cj.jdbc.ha.ca.plugins.IConnectionPlugin;
-import com.mysql.cj.log.Log;
-
-import java.sql.ResultSet;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.Callable;
-
 /**
- * This is a simple example for writing a custom connection plugin.
+ * This connection plugin counts the total number of executed JDBC methods throughout the
+ * lifespan of the current connection.
  * <p>
  * All connection plugins must implement the {@link IConnectionPlugin} interface. Since
  * all the connection plugins are chained together, the prior connection plugin needs to
  * invoke the next plugin.
  * Once registered, every connection will create an instance of this connection plugin.
  */
-public class TopLevelConnectionPlugin implements IConnectionPlugin {
+public class MethodCountConnectionPlugin implements IConnectionPlugin {
   private final IConnectionPlugin nextPlugin;
   private final Log logger;
   private final Map<String, Integer> methodCount = new HashMap<>();
 
-  public TopLevelConnectionPlugin(IConnectionPlugin nextPlugin, Log logger) {
+  public MethodCountConnectionPlugin(IConnectionPlugin nextPlugin, Log logger) {
     this.nextPlugin = nextPlugin;
     this.logger = logger;
   }
 
   /**
    * All method calls related to the connection object will be passed to this method as
-   * {@code Callable<?> executeSqlFunc}.
+   * {@code Callable<?> executeJdbcMethod}.
    * This includes methods that may be called frequently, such as:
    * <ul>
    *   <li>{@link ResultSet#next()}</li>
@@ -101,12 +78,12 @@ public class TopLevelConnectionPlugin implements IConnectionPlugin {
   public Object execute(
       Class<?> methodInvokeOn,
       String methodName,
-      Callable<?> executeSqlFunc) throws Exception {
+      Callable<?> executeJdbcMethod) throws Exception {
     // Increment the number of calls to this method.
     methodCount.merge(methodName, 1, Integer::sum);
     // Traverse the connection plugin chain by invoking the `execute` method in the
     // next plugin.
-    return this.nextPlugin.execute(methodInvokeOn, methodName, executeSqlFunc);
+    return this.nextPlugin.execute(methodInvokeOn, methodName, executeJdbcMethod);
   }
 
   /**
@@ -125,7 +102,7 @@ public class TopLevelConnectionPlugin implements IConnectionPlugin {
     final StringBuilder logMessage = new StringBuilder();
 
     logMessage
-        .append("** TopLevelConnectionPlugin Summary **\n")
+        .append("** MethodCountConnectionPlugin Summary **\n")
         .append("+---------------------+------------+\n")
         .append("| Method Executed     | Frequency  |\n")
         .append("+---------------------+------------+\n");
@@ -164,8 +141,9 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
 /**
- * This connection plugin tracks the execution time of all methods executed with
- * enhanced instance monitoring enabled.
+ * This connection plugin tracks the execution time of all the given JDBC method throughout
+ * the lifespan of the current connection.
+ * <p>
  * During the cleanup phase when {@link ExecutionTimeConnectionPlugin#releaseResources()}
  * is called, this plugin logs all the methods executed and time spent on each execution
  * in milliseconds.
@@ -189,16 +167,13 @@ public class ExecutionTimeConnectionPlugin implements IConnectionPlugin {
   public Object execute(
       Class<?> methodInvokeOn,
       String methodName,
-      Callable<?> executeSqlFunc)
+      Callable<?> executeJdbcMethod)
       throws Exception {
     // This `execute` measures the time it takes for the remaining connection plugins to
     // execute the given method call.
-    // In this sample, the next connection plugin is the `NodeMonitoringConnectionPlugin`,
-    // so this measurement includes the time it takes for the
-    // `NodeMonitoringConnectionPlugin` to finish all its necessary setups.
     final long startTime = System.nanoTime();
     final Object result =
-        this.nextPlugin.execute(methodInvokeOn, methodName, executeSqlFunc);
+        this.nextPlugin.execute(methodInvokeOn, methodName, executeJdbcMethod);
     final long elapsedTime = System.nanoTime() - startTime;
     results.merge(
         methodName,
@@ -212,18 +187,18 @@ public class ExecutionTimeConnectionPlugin implements IConnectionPlugin {
   public void releaseResources() {
     // Output the aggregated information from all methods called throughout the lifespan
     // of the current connection.
-    final long elapsedTime = System.nanoTime() - initializeTime;
+    final long connectionUptime = System.nanoTime() - initializeTime;
     final String leftAlignFormat = "| %-19s | %-10s |\n";
     final StringBuilder logMessage = new StringBuilder();
 
     logMessage.append("** ExecutionTimeConnectionPlugin Summary **\n");
     logMessage.append(String.format(
-        "Plugin Uptime: %ds\n",
-        elapsedTime / 1000000
+        "Connection Uptime: %ds\n",
+        connectionUptime / 1000000
     ));
 
     logMessage
-        .append("** Method Execution Time With Enhanced Instance Monitoring **\n")
+        .append("** Method Execution Time **\n")
         .append("+---------------------+------------+\n")
         .append("| Method Executed     | Total Time |\n")
         .append("+---------------------+------------+\n");
@@ -240,8 +215,6 @@ public class ExecutionTimeConnectionPlugin implements IConnectionPlugin {
     // Traverse the connection plugin chain by calling the next plugin. This step allows
     // all connection plugins a chance to clean up any dangling resources or perform any
     // last tasks before shutting down.
-    // In this sample, `NodeMonitoringConnectionPlugin#releaseResources()` will be called
-    // to release any running monitoring threads.
     this.nextPlugin.releaseResources();
   }
 }
@@ -254,7 +227,7 @@ factory classes that implements `IConnectionPluginFactory` interface.
 Each `IConnectionPluginFactory`
 implementation instantiates a specific connection plugin.
 
-First is the `TopLevelConnectionPluginFactory`.
+First is the `MethodCountConnectionPluginFactory`.
 
 ```java
 import com.mysql.cj.conf.PropertySet;
@@ -264,18 +237,17 @@ import com.mysql.cj.jdbc.ha.ca.plugins.ICurrentConnectionProvider;
 import com.mysql.cj.log.Log;
 
 /**
- * This class initializes the {@link TopLevelConnectionPlugin}.
+ * This class initializes the {@link MethodCountConnectionPlugin}.
  */
-public class TopLevelConnectionPluginFactory implements IConnectionPluginFactory {
+public class MethodCountConnectionPluginFactory implements IConnectionPluginFactory {
   @Override
   public IConnectionPlugin getInstance(
       ICurrentConnectionProvider currentConnectionProvider,
       PropertySet propertySet,
       IConnectionPlugin nextPlugin,
       Log logger) {
-    logger.logInfo(
-        "[TopLevelConnectionPluginFactory] ::: Creating a simple top level connection plugin");
-    return new TopLevelConnectionPlugin(nextPlugin, logger);
+    logger.logInfo("[MethodCountConnectionPluginFactory] ::: Creating a method count connection plugin");
+    return new MethodCountConnectionPlugin(nextPlugin, logger);
   }
 }
 ```
@@ -300,12 +272,10 @@ public class ExecutionTimeConnectionPluginFactory implements
       PropertySet propertySet,
       IConnectionPlugin nextPlugin,
       Log logger) {
-    logger.logInfo(
-        "[ExecutionTimeConnectionPluginFactory] ::: Creating a execution time connection plugin");
+    logger.logInfo("[ExecutionTimeConnectionPluginFactory] ::: Creating an execution time connection plugin");
     return new ExecutionTimeConnectionPlugin(nextPlugin, logger);
   }
 }
-
 ```
 
 ## Using the Custom Connection Plugins
@@ -314,8 +284,6 @@ This main application is a simple JDBC application. It uses creates a connection
 instance and executes a query with the several layers of connection plugins.
 
 ```java
-import com.mysql.cj.jdbc.ha.ca.plugins.NodeMonitoringConnectionPluginFactory;
-
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -333,32 +301,24 @@ public class SampleApplication {
   private static final String PASSWORD = System.getenv("password");
   private static final String QUERY = System.getenv("query");
 
-  public static void main(String[] args) throws ClassNotFoundException, SQLException {
-    Class.forName("software.aws.rds.jdbc.mysql.Driver");
+  public static void main(String[] args) throws SQLException {
     final Properties properties = new Properties();
     properties.setProperty("user", USER);
     properties.setProperty("password", PASSWORD);
     properties.setProperty("logger", "StandardLogger");
 
-    final String topLevelPlugin = TopLevelConnectionPluginFactory.class.getName();
-    final String executionMeasurementPlugin =
+    final String methodCountConnectionPluginFactoryClassName = MethodCountConnectionPluginFactory.class.getName();
+    final String executionMeasurementPluginFactoryClassName =
         ExecutionTimeConnectionPluginFactory.class.getName();
-
-    // NodeMonitoringConnectionPlugin is a built-in plugin with the Enhanced Instance
-    // Monitoring feature.
-    // TODO: add link to Enhanced Instance Monitoring on README.
-    final String nodeMonitoringPlugin =
-        NodeMonitoringConnectionPluginFactory.class.getName();
 
     // To use custom connection plugins, set the connectionPluginFactories to a
     // comma-separated string containing the fully-qualified class names of custom plugin
     // factories to use.
     properties.setProperty(
         "connectionPluginFactories",
-        String.format("%s,%s,%s",
-            topLevelPlugin,
-            executionMeasurementPlugin,
-            nodeMonitoringPlugin));
+        String.format("%s,%s",
+            methodCountConnectionPluginFactoryClassName,
+            executionMeasurementPluginFactoryClassName));
 
     try (Connection conn = DriverManager.getConnection(CONNECTION_STRING, properties)) {
       try (Statement statement = conn.createStatement()) {
@@ -374,17 +334,14 @@ public class SampleApplication {
     }
   }
 }
-
 ```
 
 ## FAQ
 
-- Why does `IConnectionPlugin#execute(Class, String, Callable)` accepts the invoked method and the
+- Why does `IConnectionPlugin#execute(Class, String, Callable)` accept the invoked method and the
   Java class calling this method instead of the actual object?
     - The `execute` method accepts the invocation class and the method call, such as
       `execute(ResultSet.class, "getString", () -> rs.getString(1))` because the Java class and the
-  method name already provides enough details about the invoked method. Not passing the actual
-  object prevents modification on the object,and avoids side effects when executing SQL functions in
-  connection plugins.
-
-## Running the Sample Code
+      method name already provides enough details about the invoked method. Not passing the actual
+      object prevents modification on the object,and avoids side effects when executing SQL
+      functions in connection plugins.

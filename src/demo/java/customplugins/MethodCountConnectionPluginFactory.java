@@ -24,7 +24,7 @@
  *
  */
 
-package demo.customplugins;
+package customplugins;
 
 import com.mysql.cj.conf.PropertySet;
 import com.mysql.cj.jdbc.ha.ca.plugins.IConnectionPlugin;
@@ -33,17 +33,16 @@ import com.mysql.cj.jdbc.ha.ca.plugins.ICurrentConnectionProvider;
 import com.mysql.cj.log.Log;
 
 /**
- * This class initializes {@link ExecutionTimeConnectionPlugin}.
+ * This class initializes the {@link MethodCountConnectionPlugin}.
  */
-public class ExecutionTimeConnectionPluginFactory implements
-    IConnectionPluginFactory {
+public class MethodCountConnectionPluginFactory implements IConnectionPluginFactory {
   @Override
   public IConnectionPlugin getInstance(
       ICurrentConnectionProvider currentConnectionProvider,
       PropertySet propertySet,
       IConnectionPlugin nextPlugin,
       Log logger) {
-    logger.logInfo("[ExecutionTimeConnectionPluginFactory] ::: Creating a execution time connection plugin");
-    return new ExecutionTimeConnectionPlugin(nextPlugin, logger);
+    logger.logInfo("[MethodCountConnectionPluginFactory] ::: Creating a method count connection plugin");
+    return new MethodCountConnectionPlugin(nextPlugin, logger);
   }
 }
