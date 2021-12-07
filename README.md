@@ -300,9 +300,7 @@ By default, `NodeMonitoringConnectionPlugin` is loaded for [Enhanced Failure Mon
 
 To learn how to write custom plugins, refer to examples located inside [Custom Plugins Demo](https://github.com/awslabs/aws-mysql-jdbc/tree/main/src/demo/java/demo/customplugins).
 
-Note: The order of which plugins load in matters.
-
-
+**Note**: The order of which plugins load in matters.
 
 #### Plugin Manager Parameters
 | Parameter       | Value           | Required      | Description  |
@@ -310,7 +308,7 @@ Note: The order of which plugins load in matters.
 |`connectionPluginFactories` | String | No | String of custom plugins to use monitoring. If left unset, `NodeMonitoringConnectionPluginFactory` will be loaded. <br/><br/>Each factory in the string should be separated by `,`<br/><br/>NOTE: The order of factories declared matters.  <br/><br/>Example `MyPluginA`, `MyPluginA,MyPluginB,NodeMonitoringConnectionPluginFactory` <br/><br/>**Default value:** `NodeMonitoringConnectionPluginFactory` |
 
 ### Enhanced Failure Monitoring
-Enhanced failure monitoring, part of `NodeMonitoringConnectionPlugin`, periodically pings the database node to check if the database node is still healthy to be used. In the case of the database node showing up to be unhealthy, `NodeMonitoringConnectionPlugin` will automatically switch to a different database node.   
+Enhanced failure monitoring, part of `NodeMonitoringConnectionPlugin`, periodically pings the database node to check if the database node is still healthy/available to be used. In the case of the database node showing up as downed/unhealthy, `NodeMonitoringConnectionPlugin` will automatically failover to a different database node.   
 
 #### Enhanced Failure Monitoring Parameters
 | Parameter       | Value           | Required      | Description  |
