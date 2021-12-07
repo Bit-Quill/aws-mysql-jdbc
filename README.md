@@ -288,6 +288,39 @@ public class FailoverSampleApp2 {
   }
 }
 ```
+
+### Plugin Manager
+
+<div style="text-align:center"><img src="./docs/files/images/plugin_manager_diagram.png" /></div>
+
+Figure shows a simplified workflow of the plugin manager. Starting at the top, when a new query is executed by the application, it is passed into the plugin manager. From the  plugin manager, the query is passed in order of plugins loaded, in this figure, `Custom Plugin A` to `Custom Plugin B` and finally to `Default Plugin` which executes the query and returns the result sets back up the chain.
+Custom plugins can be used to interact with queries, such as adding a feature to monitor a connection's status in the case of `NodeMonitoringConnectionPlugin`. 
+
+By default, `NodeMonitoringConnectionPlugin` is loaded for [Enhanced Failure Monitoring](https://github.com/awslabs/aws-mysql-jdbc#aws-iam-database-authentication). Additional custom plugins can be included and chained together.
+
+To learn how to write custom plugins, refer to examples located inside [Custom Plugins Demo](https://github.com/awslabs/aws-mysql-jdbc/tree/main/src/demo/java/demo/customplugins).
+
+Note: The order of which plugins load in matters.
+
+
+
+#### Plugin Manager Parameters
+| Parameter       | Value           | Required      | Description  |
+| ------------- |:-------------:|:-------------:| ----- |
+|`connectionPluginFactories` | String | No | String of custom plugins to use monitoring. If left unset, `NodeMonitoringConnectionPluginFactory` will be loaded. <br/><br/>Each factory in the string should be separated by `,`<br/><br/>NOTE: The order of factories declared matters.  <br/><br/>Example `MyPluginA`, `MyPluginA,MyPluginB,NodeMonitoringConnectionPluginFactory` <br/><br/>**Default value:** `NodeMonitoringConnectionPluginFactory` |
+
+### Enhanced Failure Monitoring
+Enhanced failure monitoring, part of `NodeMonitoringConnectionPlugin`, periodically pings the database node to check if the database node is still healthy to be used. In the case of the database node showing up to be unhealthy, `NodeMonitoringConnectionPlugin` will automatically switch to a different database node.   
+
+#### Enhanced Failure Monitoring Parameters
+| Parameter       | Value           | Required      | Description  |
+| ------------- |:-------------:|:-------------:| ----- |
+|`nativeFailureDetectionEnabled` | Boolean | No | Set to false if you would like to disable enhanced failure monitoring feature. <br/><br/>**Default value:** `true` |
+|`failureDetectionTime` | Integer | No | Interval in milliseconds between sending a SQL query to the server and the first probe to the database node. <br/><br/>**Default value:** `30000` |
+|`failureDetectionInterval` | Integer | No | Interval in milliseconds between probes to database node. <br/><br/>**Default value:** `5000` |
+|`failureDetectionCount` | Integer | No | Number of failed connection checks before considering database node as unhealthy. <br/><br/>**Default value:** `3` |
+|`monitorDisposalTime` | Integer | No | Interval in milliseconds for a monitor to be considered inactive and to be disposed. <br/><br/>**Default value:** `60000` |
+
 >### :warning: Warnings About Proper Usage of the AWS JDBC Driver for MySQL
 >1. A common practice when using JDBC drivers is to wrap invocations against a Connection object in a try-catch block, and dispose of the Connection object if an Exception was hit. If this practice is left unaltered, the application will lose the fast-failover functionality offered by the Driver. When failover occurs, the Driver internally establishes a ready-to-use connection inside the original Connection object before throwing an exception to the user. If this Connection object is disposed of, the newly established connection will be thrown away. The correct practice is to check the SQL error code of the exception and reuse the Connection object if the error code indicates successful failover. [FailoverSampleApp1](#sample-code) and [FailoverSampleApp2](#sample-code-1) demonstrate this practice. See the section below on [Failover Exception Codes](#failover-exception-codes) for more details.
 >2. It is highly recommended that you use the cluster and read-only cluster endpoints instead of the direct instance endpoints of your Aurora cluster, unless you are confident about your application's usage of instance endpoints. Although the Driver will correctly failover to the new writer instance when using instance endpoints, usage of these endpoints are discouraged because individual instances can spontaneously change reader/writer status when failover occurs. The driver will always connect directly to the instance specified if an instance endpoint is provided, so a write-safe connection cannot be assumed if the application uses instance endpoints.
