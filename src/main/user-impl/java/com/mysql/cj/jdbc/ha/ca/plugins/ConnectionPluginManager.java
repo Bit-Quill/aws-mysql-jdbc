@@ -44,12 +44,12 @@ public class ConnectionPluginManager {
 
   protected static final String DEFAULT_PLUGIN_FACTORIES =
       NodeMonitoringConnectionPluginFactory.class.getName();
+  protected static final Queue<ConnectionPluginManager> instances = new ConcurrentLinkedQueue<>();
 
   protected Log logger;
   protected PropertySet propertySet = null;
   protected IConnectionPlugin headPlugin = null;
   ClusterAwareConnectionProxy proxy;
-  protected static final Queue<ConnectionPluginManager> instances = new ConcurrentLinkedQueue<>();
 
   static {
     Runtime.getRuntime().addShutdownHook(new Thread(ConnectionPluginManager::releaseAllResources));
