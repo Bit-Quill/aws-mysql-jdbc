@@ -108,7 +108,7 @@ public class NodeMonitoringConnectionPlugin implements IConnectionPlugin {
   public Object execute(Class<?> methodInvokeOn, String methodName, Callable<?> executeSqlFunc) throws Exception {
     // update config settings since they may change
     final boolean isEnabled = this.propertySet
-        .getBooleanProperty(PropertyKey.nativeFailureDetectionEnabled)
+        .getBooleanProperty(PropertyKey.failureDetectionEnabled)
         .getValue();
 
     if (!isEnabled || !this.doesNeedMonitoring(methodInvokeOn, methodName)) {

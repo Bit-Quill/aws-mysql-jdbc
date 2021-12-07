@@ -96,23 +96,60 @@ Note: The connection string follows standard URL parameters. In order to add par
 
 For more information about parameters that can be configured with the AWS JDBC Driver, see the section below about failover parameters.
 
+### Connection Plugin Manager
+
+<div style="text-align:center"><img src="./docs/files/images/connection_plugin_manager_diagram.png" /></div>
+
+The figure above shows a simplified workflow of the connection plugin manager. Starting at the top, when a new JDBC method is executed by the application, it is passed into the connection plugin manager. From the connection plugin manager, the JDBC method is passed in order of plugins loaded, in this figure, `Custom Plugin A` to `Custom Plugin B` and finally to `Default Plugin` which executes the JDBC method and returns the result sets back up the chain. Custom plugins can be used to interact with JDBC methods, such as adding a feature to monitor a connection's status in the case of `NodeMonitoringConnectionPlugin`.
+
+By default, `NodeMonitoringConnectionPlugin` is loaded for [Enhanced Failure Monitoring](https://github.com/awslabs/aws-mysql-jdbc#enhanced-failure-monitoring).
+Additional custom plugins can be implemented and used alongside existing ones. Plugins can be chained together in a desired order.
+Loading custom plugins will not include `NodeMonitoringConnectionPlugin` unless explicitly stated through the `connectionPluginFactories` parameter.
+
+To learn how to write custom plugins, refer to examples located inside [Custom Plugins Demo](https://github.com/awslabs/aws-mysql-jdbc/tree/main/src/demo/java/customplugins).
+
+#### Connection Plugin Manager Parameters
+| Parameter       | Value           | Required      | Description  |
+| ------------- |:-------------:|:-------------:| ----- |
+|`connectionPluginFactories` | String | No | String of fully-qualified class name of plugin factories. <br/><br/>Each factory in the string should be comma-separated `,`<br/><br/>**NOTE: The order of factories declared matters.**  <br/><br/>Example `MyPluginAFactory`, `MyPluginAFactory,NodeMonitoringConnectionPluginFactory,MyPluginBFactory` <br/><br/>**Default value:** If unspecified, `NodeMonitoringConnectionPluginFactory` will be loaded for [Enhanced Failure Monitoring](https://github.com/awslabs/aws-mysql-jdbc#enhanced-failure-monitoring).|
+
 #### Failover Parameters
 
 In addition to [the parameters that can be configured for the MySQL Connector/J driver](https://dev.mysql.com/doc/connector-j/8.0/en/connector-j-reference-configuration-properties.html), the following parameters can also be passed to the AWS JDBC Driver through the connection URL to configure additional driver behavior.
 
 | Parameter       | Value           | Required      | Description  |
 | ------------- |:-------------:|:-------------:| ----- |
-|`enableClusterAwareFailover` | Boolean | No | Set to true to enable the fast failover behavior offerred by the AWS JDBC Driver. Set to false for simple JDBC connections that do not require fast failover functionality.<br/><br/>**Default value:** `true` |
+|`enableClusterAwareFailover` | Boolean | No | Set to true to enable the fast failover behavior offered by the AWS JDBC Driver. Set to false for simple JDBC connections that do not require fast failover functionality.<br/><br/>**Default value:** `true` |
 |`clusterInstanceHostPattern` | String | If connecting using an IP address or custom domain URL: Yes<br/>Otherwise: No | This parameter is not required unless connecting to an AWS RDS cluster via an IP address or custom domain URL. In those cases, this parameter specifies the cluster instance DNS pattern that will be used to build a complete instance endpoint. A "?" character in this pattern should be used as a placeholder for the DB instance identifiers of the instances in the cluster. <br/><br/>Example: `?.my-domain.com`, `any-subdomain.?.my-domain.com:9999`<br/><br/>Usecase Example: If your cluster instance endpoints followed this pattern:`instanceIdentifier1.customHost`, `instanceIdentifier2.customHost`, etc. and you wanted your initial connection to be to `customHost:1234`, then your connection string should look something like this: `jdbc:mysql:aws://customHost:1234/test?clusterInstanceHostPattern=?.customHost`<br/><br/>**Default value:** if unspecified, and the provided connection string is not an IP address or custom domain, the driver will automatically acquire the cluster instance host pattern from the customer-provided connection string. |
 |`clusterId` | String | No | A unique identifier for the cluster. Connections with the same cluster id share a cluster topology cache. This connection parameter is not required and thus should only be set if desired. <br/><br/>**Default value:** If unspecified, the driver will automatically acquire a cluster id for AWS RDS clusters. |
 |`clusterTopologyRefreshRateMs` | Integer | No | Cluster topology refresh rate in milliseconds. The cached topology for the cluster will be invalidated after the specified time, after which it will be updated during the next interaction with the connection.<br/><br/>**Default value:** `30000` |
-|`failoverTimeoutMs` | Integer | No | Maximum allowed time in millipseconds to attempt reconnecting to a new writer or reader instance after a cluster failover is initiated.<br/><br/>**Default value:** `60000` |
+|`failoverTimeoutMs` | Integer | No | Maximum allowed time in milliseconds to attempt reconnecting to a new writer or reader instance after a cluster failover is initiated.<br/><br/>**Default value:** `60000` |
 |`failoverClusterTopologyRefreshRateMs` | Integer | No | Cluster topology refresh rate in milliseconds during a writer failover process. During the writer failover process, cluster topology may be refreshed at a faster pace than normal to speed up discovery of the newly promoted writer.<br/><br/>**Default value:** `5000` |
 |`failoverWriterReconnectIntervalMs` | Integer | No | Interval of time in milliseconds to wait between attempts to reconnect to a failed writer during a writer failover process.<br/><br/>**Default value:** `5000` |
 |`failoverReaderConnectTimeoutMs` | Integer | No | Maximum allowed time in milliseconds to attempt to connect to a reader instance during a reader failover process. <br/><br/>**Default value:** `5000`
 |`acceptAwsProtocolOnly` | Boolean | If using simultaneously with another MySQL driver that supports the same protocols: Yes<br/>Otherwise: No | Set to true to only accept connections for URLs with the jdbc:mysql:aws:// protocol. This setting should be set to true when running an application that uses this driver simultaneously with another MySQL driver that supports the same protocols (eg the MySQL JDBC Driver), to ensure the driver protocols do not clash. This behavior can also be set at the driver level for every connection via the Driver.setAcceptAwsProtocolOnly method; however, this connection parameter will take priority when present.<br/><br/>**Default value:** `false`
 |`gatherPerfMetrics` | Boolean | No | Set to true if you would like the driver to record failover-associated metrics, which will then be logged upon closing the connection. This behavior can also be set at the driver level for every connection via the Driver.setAcceptAwsProtocolOnly method; however, this connection parameter will take priority when present.<br/><br/>**Default value:** `false` | 
-|`allowXmlUnsafeExternalEntity` | Boolean | No | Set to true if you would like to use XML inputs that refer to external entities. WARNING: Setting this to true is unsafe since your system to be prone to XXE attacks.<br/><br/>**Default value:** `false` | 
+|`allowXmlUnsafeExternalEntity` | Boolean | No | Set to true if you would like to use XML inputs that refer to external entities. WARNING: Setting this to true is unsafe since your system to be prone to XXE attacks.<br/><br/>**Default value:** `false` |
+
+### Enhanced Failure Monitoring
+
+TODO - IMAGE OF MONITOR FAILURE GOES HERE
+
+The figure above shows a simplified workflow of enhanced failure monitoring. Enhanced failure monitoring, implemented by using a monitor thread, which periodically pings the database node to check the health status. In the case of the database node showing up as unhealthy, `NodeMonitoringConnectionPlugin` will automatically failover to a different database node.
+
+#### Enhanced Failure Monitoring Parameters
+`failureDetectionTime`, `failureDetectionInterval`, and `failureDetectionCount` are similar to TCP Keep Alive parameters. 
+
+Additional monitoring configurations can be included by adding the prefix `monitoring-` to the configuration key.
+
+| Parameter       | Value           | Required      | Description  |
+| ------------- |:-------------:|:-------------:| ----- |
+|`failureDetectionEnabled` | Boolean | No | Set to false if you would like to disable enhanced failure monitoring feature. <br/><br/>**Default value:** `true` |
+|`failureDetectionTime` | Integer | No | Interval in milliseconds between sending a SQL query to the server and the first probe to the database node. <br/><br/>**Default value:** `30000` |
+|`failureDetectionInterval` | Integer | No | Interval in milliseconds between probes to database node. <br/><br/>**Default value:** `5000` |
+|`failureDetectionCount` | Integer | No | Number of failed connection checks before considering database node as unhealthy. <br/><br/>**Default value:** `3` |
+|`monitorDisposalTime` | Integer | No | Interval in milliseconds for a monitor to be considered inactive and to be disposed. <br/><br/>**Default value:** `60000` |
+
 #### Failover Exception Codes
 ##### 08001 - Unable to Establish SQL Connection
 When the driver throws a SQLException with code ```08001```, it means the original connection failed, and the driver tried to failover to a new instance, but was unable to. There are various reasons this may happen: no nodes were available, a network failure occurred, etc. In this scenario, please wait until the server is up or other problems are solved. (Exception will be thrown.)
@@ -288,36 +325,6 @@ public class FailoverSampleApp2 {
   }
 }
 ```
-
-### Plugin Manager
-
-<div style="text-align:center"><img src="./docs/files/images/plugin_manager_diagram.png" /></div>
-
-Figure shows a simplified workflow of the plugin manager. Starting at the top, when a new query is executed by the application, it is passed into the plugin manager. From the  plugin manager, the query is passed in order of plugins loaded, in this figure, `Custom Plugin A` to `Custom Plugin B` and finally to `Default Plugin` which executes the query and returns the result sets back up the chain.
-Custom plugins can be used to interact with queries, such as adding a feature to monitor a connection's status in the case of `NodeMonitoringConnectionPlugin`. 
-
-By default, `NodeMonitoringConnectionPlugin` is loaded for [Enhanced Failure Monitoring](https://github.com/awslabs/aws-mysql-jdbc#aws-iam-database-authentication). Additional custom plugins can be included and chained together.
-
-To learn how to write custom plugins, refer to examples located inside [Custom Plugins Demo](https://github.com/awslabs/aws-mysql-jdbc/tree/main/src/demo/java/demo/customplugins).
-
-**Note**: The order of which plugins load in matters.
-
-#### Plugin Manager Parameters
-| Parameter       | Value           | Required      | Description  |
-| ------------- |:-------------:|:-------------:| ----- |
-|`connectionPluginFactories` | String | No | String of custom plugins to use monitoring. If left unset, `NodeMonitoringConnectionPluginFactory` will be loaded. <br/><br/>Each factory in the string should be separated by `,`<br/><br/>NOTE: The order of factories declared matters.  <br/><br/>Example `MyPluginA`, `MyPluginA,MyPluginB,NodeMonitoringConnectionPluginFactory` <br/><br/>**Default value:** `NodeMonitoringConnectionPluginFactory` |
-
-### Enhanced Failure Monitoring
-Enhanced failure monitoring, part of `NodeMonitoringConnectionPlugin`, periodically pings the database node to check if the database node is still healthy/available to be used. In the case of the database node showing up as downed/unhealthy, `NodeMonitoringConnectionPlugin` will automatically failover to a different database node.   
-
-#### Enhanced Failure Monitoring Parameters
-| Parameter       | Value           | Required      | Description  |
-| ------------- |:-------------:|:-------------:| ----- |
-|`nativeFailureDetectionEnabled` | Boolean | No | Set to false if you would like to disable enhanced failure monitoring feature. <br/><br/>**Default value:** `true` |
-|`failureDetectionTime` | Integer | No | Interval in milliseconds between sending a SQL query to the server and the first probe to the database node. <br/><br/>**Default value:** `30000` |
-|`failureDetectionInterval` | Integer | No | Interval in milliseconds between probes to database node. <br/><br/>**Default value:** `5000` |
-|`failureDetectionCount` | Integer | No | Number of failed connection checks before considering database node as unhealthy. <br/><br/>**Default value:** `3` |
-|`monitorDisposalTime` | Integer | No | Interval in milliseconds for a monitor to be considered inactive and to be disposed. <br/><br/>**Default value:** `60000` |
 
 >### :warning: Warnings About Proper Usage of the AWS JDBC Driver for MySQL
 >1. A common practice when using JDBC drivers is to wrap invocations against a Connection object in a try-catch block, and dispose of the Connection object if an Exception was hit. If this practice is left unaltered, the application will lose the fast-failover functionality offered by the Driver. When failover occurs, the Driver internally establishes a ready-to-use connection inside the original Connection object before throwing an exception to the user. If this Connection object is disposed of, the newly established connection will be thrown away. The correct practice is to check the SQL error code of the exception and reuse the Connection object if the error code indicates successful failover. [FailoverSampleApp1](#sample-code) and [FailoverSampleApp2](#sample-code-1) demonstrate this practice. See the section below on [Failover Exception Codes](#failover-exception-codes) for more details.

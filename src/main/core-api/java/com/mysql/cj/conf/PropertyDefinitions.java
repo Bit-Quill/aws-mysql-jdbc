@@ -668,8 +668,8 @@ public class PropertyDefinitions {
                 new StringPropertyDefinition(PropertyKey.connectionPluginFactories, DEFAULT_VALUE_NULL_STRING, RUNTIME_NOT_MODIFIABLE,
                         Messages.getString("ConnectionProperties.connectionPluginFactories"), "0.3.0", CATEGORY_HA, Integer.MIN_VALUE),
 
-                new BooleanPropertyDefinition(PropertyKey.nativeFailureDetectionEnabled, DEFAULT_VALUE_TRUE, RUNTIME_MODIFIABLE,
-                        Messages.getString("ConnectionProperties.nativeFailureDetectionEnabled"), "0.3.0", CATEGORY_HA, Integer.MIN_VALUE),
+                new BooleanPropertyDefinition(PropertyKey.failureDetectionEnabled, DEFAULT_VALUE_TRUE, RUNTIME_MODIFIABLE,
+                        Messages.getString("ConnectionProperties.failureDetectionEnabled"), "0.3.0", CATEGORY_HA, Integer.MIN_VALUE),
 
                 new IntegerPropertyDefinition(PropertyKey.failureDetectionTime, 30_000, RUNTIME_MODIFIABLE,
                         Messages.getString("ConnectionProperties.failureDetectionTime"), "0.3.0", CATEGORY_HA, Integer.MAX_VALUE, 0,
