@@ -47,15 +47,7 @@ public class DefaultConnectionPlugin implements IConnectionPlugin {
   public Object execute(Class<?> methodInvokeOn, String methodName, Callable<?> executeSqlFunc) throws Exception {
     try {
       return executeSqlFunc.call();
-    } catch (InvocationTargetException invocationTargetException) {
-      Throwable targetException = invocationTargetException.getTargetException();
-      this.logger.logTrace(
-              String.format("[DefaultConnectionPlugin.execute]: method=%s.%s, exception: ", methodInvokeOn.getName(), methodName), targetException);
-      if (targetException instanceof Error) {
-        throw (Error) targetException;
-      }
-      throw (Exception) targetException;
-    } catch (Exception ex) {
+    }  catch (Exception ex) {
       this.logger.logTrace(
           String.format("[DefaultConnectionPlugin.execute]: method=%s.%s, exception: ", methodInvokeOn.getName(), methodName), ex);
       throw ex;
