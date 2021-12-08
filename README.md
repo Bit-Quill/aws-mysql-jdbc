@@ -295,25 +295,42 @@ public class FailoverSampleApp2 {
 >2. It is highly recommended that you use the cluster and read-only cluster endpoints instead of the direct instance endpoints of your Aurora cluster, unless you are confident about your application's usage of instance endpoints. Although the Driver will correctly failover to the new writer instance when using instance endpoints, usage of these endpoints are discouraged because individual instances can spontaneously change reader/writer status when failover occurs. The driver will always connect directly to the instance specified if an instance endpoint is provided, so a write-safe connection cannot be assumed if the application uses instance endpoints.
 
 ### Connection Plugin Manager
+Connection Plugin Manager allows users to create and use connection plugins.
+
+Connection plugins are widgets attached to each `Connection` objects to help execute additional or
+supplementary logic related to that `Connection`. All the connection plugins are chained together,
+where the prior connection plugin calls the next plugin. The AWS JDBC Driver for MySQL attaches the
+`DefaultConnectionPlugin` to the tail of the connection plugin chain and actually executes the given
+JDBC method.
+
+Since all the connection plugins are chained together, the prior connection plugin affects the
+latter plugins. If the connection plugin at the head of the connection plugin chain measures the
+execution time, this measurement would encompass the time spent in all the connection plugins down
+the chain.
+
 <div style="text-align:center"><img src="./docs/files/images/connection_plugin_manager_diagram.png" /></div>
 
 The figure above shows a simplified workflow of the connection plugin manager. 
-Starting at the top, when a JDBC method is executed by the driver, it is passed to the connection plugin manager. From the connection plugin manager, the JDBC method is passed in order of plugins loaded, in this figure, `Custom Plugin A` to `Custom Plugin B` and finally to `Default Plugin` which executes the JDBC method and returns the result sets back up the chain. Custom plugins can be used to interact with JDBC methods, such as adding a feature to monitor a connection's status in the case of `NodeMonitoringConnectionPlugin`.
+Starting at the top, when a JDBC method is executed by the driver, it is passed to the connection plugin manager. From the connection plugin manager, the JDBC method is passed in order of plugins loaded, in this figure, `Custom Plugin A` to `Custom Plugin B` and finally to `Default Plugin` which executes the JDBC method and returns the result sets back up the chain.
  
-By default, `NodeMonitoringConnectionPlugin` is loaded. Additional custom plugins can be implemented and used alongside existing ones. Plugins can be chained together in a desired order. Loading custom plugins will not include `NodeMonitoringConnectionPlugin` unless explicitly stated through the `connectionPluginFactories` parameter.
+By default, [Enhanced Failure Monitoring](https://github.com/awslabs/aws-mysql-jdbc#enhanced-failure-monitoring) is loaded. Additional custom plugins can be implemented and used alongside existing ones. Plugins can be chained together in a desired order. Loading custom plugins will not include Enhanced Failure Monitoring unless explicitly stated through the `connectionPluginFactories` parameter.
 
 To learn how to write custom plugins, refer to examples located inside [Custom Plugins Demo](https://github.com/awslabs/aws-mysql-jdbc/tree/main/src/demo/java/customplugins).
 
 #### Connection Plugin Manager Parameters
 | Parameter       | Value           | Required      | Description  | Default Value |
 | ------------- |:-------------:|:-------------:|:-------------:| --------- |
-|`connectionPluginFactories` | String | No | String of fully-qualified class name of plugin factories. <br/><br/>Each factory in the string should be comma-separated `,`<br/><br/>**NOTE: The order of factories declared matters.**  <br/><br/>Example: `MyPluginAFactory`, `MyPluginAFactory,NodeMonitoringConnectionPluginFactory,MyPluginBFactory` | If unspecified or blank, `NodeMonitoringConnectionPluginFactory` will be loaded.|
+|`connectionPluginFactories` | String | No | String of fully-qualified class name of plugin factories. <br/><br/>Each factory in the string should be comma-separated `,`<br/><br/>**NOTE: The order of factories declared matters.**  <br/><br/>Example: `MyPluginAFactory`, `MyPluginAFactory,NodeMonitoringConnectionPluginFactory,MyPluginBFactory` | If unspecified or blank, Enhanced Failure Monitoring will be loaded.|
 
 ### Enhanced Failure Monitoring
+Enhanced failure monitoring, is a connection plugin implemented by using a monitor thread. The monitor will periodically check the connected database node's health. In the case of the database node showing up as unhealthy, the query will be retried with a new database node and the monitor is restarted. 
 
-<div style="text-align:center"><img src="./docs/files/images/node_monitoring_plugin_diagram.png" /></div>
+Enhanced Failure Monitoring is loaded in by default and can be disabled by setting parameter `failureDetectionEnabled` to `false`. 
 
-The figure above shows a simplified workflow of enhanced failure monitoring. Enhanced failure monitoring, implemented by using a monitor thread, periodically pings the database node to check the node's health. In the case of the database node showing up as unhealthy, failover to a different database node occurs, restarts the monitor and retries the query.
+If custom connection plugins are loaded, Enhanced Failure Monitoring will NOT be loaded unless explicitly included by adding `NodeMonitoringConnectionPluginFactory` to `connectionPluginFactories`.
+
+<div style="text-align:center"><img src="./docs/files/images/enhanced_failure_monitoring_diagram.png" /></div>
+The figure above shows a simplified workflow of enhanced failure monitoring. 
 
 #### Enhanced Failure Monitoring Parameters
 `failureDetectionTime`, `failureDetectionInterval`, and `failureDetectionCount` are similar to TCP Keep Alive parameters.
