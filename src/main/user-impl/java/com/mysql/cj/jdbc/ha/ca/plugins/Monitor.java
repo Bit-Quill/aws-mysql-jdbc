@@ -122,7 +122,8 @@ public class Monitor implements IMonitor {
           final long currentTime = this.getCurrentTimeMillis();
           this.lastContextUsedTimestamp.set(currentTime);
 
-          final ConnectionStatus status = checkConnectionStatus(this.getConnectionCheckIntervalMillis());
+          final ConnectionStatus status =
+              checkConnectionStatus(this.getConnectionCheckIntervalMillis());
 
           for (MonitorConnectionContext monitorContext : this.contexts) {
             monitorContext.updateConnectionStatus(
@@ -131,9 +132,12 @@ public class Monitor implements IMonitor {
                 this.connectionCheckIntervalMillis);
           }
 
-          TimeUnit.MILLISECONDS.sleep(Math.max(0, this.getConnectionCheckIntervalMillis() - status.elapsedTime));
+          TimeUnit.MILLISECONDS.sleep(Math.max(
+              0,
+              this.getConnectionCheckIntervalMillis() - status.elapsedTime));
         } else {
-          if ((this.getCurrentTimeMillis() - this.lastContextUsedTimestamp.get()) >= this.monitorDisposalTime) {
+          if ((this.getCurrentTimeMillis() - this.lastContextUsedTimestamp.get())
+              >= this.monitorDisposalTime) {
             monitorService.notifyUnused(this);
             break;
           }
@@ -161,19 +165,24 @@ public class Monitor implements IMonitor {
         // open a new connection
         Map<String, String> monitoringConnProperties = new HashMap<>();
         Properties originalProperties = this.propertySet.exposeAsProperties();
-        if(originalProperties != null) {
+        if (originalProperties != null) {
           originalProperties.stringPropertyNames().stream()
-                  .filter(p -> p.startsWith(MONITORING_PROPERTY_PREFIX))
-                  .forEach(p -> monitoringConnProperties.put(p.substring(MONITORING_PROPERTY_PREFIX.length()), originalProperties.getProperty(p)));
+              .filter(p -> p.startsWith(MONITORING_PROPERTY_PREFIX))
+              .forEach(p -> monitoringConnProperties.put(
+                  p.substring(MONITORING_PROPERTY_PREFIX.length()),
+                  originalProperties.getProperty(p)));
         }
 
         start = this.getCurrentTimeMillis();
-        this.monitoringConn = this.connectionProvider.connect(copy(this.hostInfo, monitoringConnProperties));
+        this.monitoringConn = this.connectionProvider.connect(copy(
+            this.hostInfo,
+            monitoringConnProperties));
         return new ConnectionStatus(true, this.getCurrentTimeMillis() - start);
       }
 
       start = this.getCurrentTimeMillis();
-      boolean isValid = this.monitoringConn.isValid(shortestFailureDetectionIntervalMillis / 1000);
+      boolean isValid =
+          this.monitoringConn.isValid(shortestFailureDetectionIntervalMillis / 1000);
       return new ConnectionStatus(isValid, this.getCurrentTimeMillis() - start);
     } catch (SQLException sqlEx) {
       //this.logger.logTrace(String.format("[Monitor] Error checking connection status: %s", sqlEx.getMessage()));

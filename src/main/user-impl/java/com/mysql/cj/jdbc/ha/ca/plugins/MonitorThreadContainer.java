@@ -40,141 +40,141 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
 public class MonitorThreadContainer {
-    private static MonitorThreadContainer singleton = null;
-    private static final AtomicInteger CLASS_USAGE_COUNT = new AtomicInteger();
-    private final Map<String, IMonitor> monitorMap = new ConcurrentHashMap<>();
-    private final Map<IMonitor, Future<?>> tasksMap = new ConcurrentHashMap<>();
-    private final Queue<IMonitor> availableMonitors = new ConcurrentLinkedDeque<>();
-    private final ExecutorService threadPool;
-    private static final Object LOCK_OBJECT = new Object();
+  private static MonitorThreadContainer singleton = null;
+  private static final AtomicInteger CLASS_USAGE_COUNT = new AtomicInteger();
+  private final Map<String, IMonitor> monitorMap = new ConcurrentHashMap<>();
+  private final Map<IMonitor, Future<?>> tasksMap = new ConcurrentHashMap<>();
+  private final Queue<IMonitor> availableMonitors = new ConcurrentLinkedDeque<>();
+  private final ExecutorService threadPool;
+  private static final Object LOCK_OBJECT = new Object();
 
-    public static MonitorThreadContainer getInstance() {
-        return getInstance(Executors::newCachedThreadPool);
+  public static MonitorThreadContainer getInstance() {
+    return getInstance(Executors::newCachedThreadPool);
+  }
+
+  static MonitorThreadContainer getInstance(IExecutorServiceInitializer executorServiceInitializer) {
+    if (singleton == null) {
+      synchronized (LOCK_OBJECT) {
+        singleton = new MonitorThreadContainer(executorServiceInitializer);
+      }
+      CLASS_USAGE_COUNT.set(0);
+    }
+    CLASS_USAGE_COUNT.getAndIncrement();
+    return singleton;
+  }
+
+  public static void releaseInstance() {
+    if (singleton == null) {
+      return;
     }
 
-    static MonitorThreadContainer getInstance(IExecutorServiceInitializer executorServiceInitializer) {
-        if (singleton == null) {
-            synchronized (LOCK_OBJECT) {
-                singleton = new MonitorThreadContainer(executorServiceInitializer);
-            }
-            CLASS_USAGE_COUNT.set(0);
+    if (CLASS_USAGE_COUNT.decrementAndGet() <= 0) {
+      synchronized (LOCK_OBJECT) {
+        singleton.releaseResources();
+        singleton = null;
+      }
+    }
+  }
+
+  private MonitorThreadContainer(IExecutorServiceInitializer executorServiceInitializer) {
+    this.threadPool = executorServiceInitializer.createExecutorService();
+  }
+
+  public Map<String, IMonitor> getMonitorMap() {
+    return monitorMap;
+  }
+
+  public Map<IMonitor, Future<?>> getTasksMap() {
+    return tasksMap;
+  }
+
+  public ExecutorService getThreadPool() {
+    return threadPool;
+  }
+
+  String getNode(Set<String> nodeKeys) {
+    return getNode(nodeKeys, null);
+  }
+
+  String getNode(Set<String> nodeKeys, String defaultValue) {
+    return nodeKeys
+        .stream().filter(monitorMap::containsKey)
+        .findAny()
+        .orElse(defaultValue);
+  }
+
+  IMonitor getMonitor(String node) {
+    return monitorMap.get(node);
+  }
+
+  IMonitor getOrCreateMonitor(Set<String> nodeKeys, Supplier<IMonitor> monitorSupplier) {
+    final String node = getNode(nodeKeys, nodeKeys.iterator().next());
+    final IMonitor monitor = monitorMap.computeIfAbsent(node, k -> {
+      if (!availableMonitors.isEmpty()) {
+        final IMonitor availableMonitor = availableMonitors.remove();
+        if (!availableMonitor.isStopped()) {
+          return availableMonitor;
         }
-        CLASS_USAGE_COUNT.getAndIncrement();
-        return singleton;
-    }
-
-    public static void releaseInstance() {
-        if (singleton == null) {
-            return;
-        }
-
-        if (CLASS_USAGE_COUNT.decrementAndGet() <= 0) {
-            synchronized (LOCK_OBJECT) {
-                singleton.releaseResources();
-                singleton = null;
-            }
-        }
-    }
-
-    private MonitorThreadContainer(IExecutorServiceInitializer executorServiceInitializer) {
-        this.threadPool = executorServiceInitializer.createExecutorService();
-    }
-
-    public Map<String, IMonitor> getMonitorMap() {
-        return monitorMap;
-    }
-
-    public Map<IMonitor, Future<?>> getTasksMap() {
-        return tasksMap;
-    }
-
-    public ExecutorService getThreadPool() {
-        return threadPool;
-    }
-
-    String getNode(Set<String> nodeKeys) {
-        return getNode(nodeKeys, null);
-    }
-
-    String getNode(Set<String> nodeKeys, String defaultValue) {
-        return nodeKeys
-            .stream().filter(monitorMap::containsKey)
-            .findAny()
-            .orElse(defaultValue);
-    }
-
-    IMonitor getMonitor(String node) {
-        return monitorMap.get(node);
-    }
-
-    IMonitor getOrCreateMonitor(Set<String> nodeKeys, Supplier<IMonitor> monitorSupplier) {
-        final String node = getNode(nodeKeys, nodeKeys.iterator().next());
-        final IMonitor monitor = monitorMap.computeIfAbsent(node, k -> {
-            if (!availableMonitors.isEmpty()) {
-                final IMonitor availableMonitor = availableMonitors.remove();
-                if (!availableMonitor.isStopped()) {
-                    return availableMonitor;
-                }
-                tasksMap.computeIfPresent(availableMonitor, (key, v) -> {
-                    v.cancel(true);
-                    return null;
-                });
-            }
-
-            return monitorSupplier.get();
+        tasksMap.computeIfPresent(availableMonitor, (key, v) -> {
+          v.cancel(true);
+          return null;
         });
+      }
 
-        populateMonitorMap(nodeKeys, monitor);
-        return monitor;
+      return monitorSupplier.get();
+    });
+
+    populateMonitorMap(nodeKeys, monitor);
+    return monitor;
+  }
+
+  private void populateMonitorMap(Set<String> nodeKeys, IMonitor monitor) {
+    for (String nodeKey : nodeKeys) {
+      monitorMap.putIfAbsent(nodeKey, monitor);
+    }
+  }
+
+  void addTask(IMonitor monitor) {
+    tasksMap.computeIfAbsent(monitor, k -> threadPool.submit(monitor));
+  }
+
+  /**
+   * Clear all references used by the given monitor.
+   * Put the monitor in to a queue waiting to be reused.
+   *
+   * @param monitor The monitor to reset.
+   */
+  public void resetResource(IMonitor monitor) {
+    if (monitor == null) {
+      return;
     }
 
-    private void populateMonitorMap(Set<String> nodeKeys, IMonitor monitor) {
-        for (String nodeKey : nodeKeys) {
-            monitorMap.putIfAbsent(nodeKey, monitor);
-        }
+    final List<IMonitor> monitorList = Collections.singletonList(monitor);
+    monitorMap.values().removeAll(monitorList);
+    availableMonitors.add(monitor);
+  }
+
+  public void releaseResource(IMonitor monitor) {
+    if (monitor == null) {
+      return;
     }
 
-    void addTask(IMonitor monitor) {
-        tasksMap.computeIfAbsent(monitor, k -> threadPool.submit(monitor));
+    final List<IMonitor> monitorList = Collections.singletonList(monitor);
+    monitorMap.values().removeAll(monitorList);
+    tasksMap.computeIfPresent(monitor, (k, v) -> {
+      v.cancel(true);
+      return null;
+    });
+  }
+
+  private void releaseResources() {
+    monitorMap.clear();
+    tasksMap.values().stream()
+        .filter(val -> !val.isDone() && !val.isCancelled())
+        .forEach(val -> val.cancel(true));
+
+    if (threadPool != null) {
+      threadPool.shutdownNow();
     }
-
-    /**
-     * Clear all references used by the given monitor.
-     * Put the monitor in to a queue waiting to be reused.
-     *
-     * @param monitor The monitor to reset.
-     */
-    public void resetResource(IMonitor monitor) {
-        if (monitor == null) {
-            return;
-        }
-
-        final List<IMonitor> monitorList = Collections.singletonList(monitor);
-        monitorMap.values().removeAll(monitorList);
-        availableMonitors.add(monitor);
-    }
-
-    public void releaseResource(IMonitor monitor) {
-        if (monitor == null) {
-            return;
-        }
-
-        final List<IMonitor> monitorList = Collections.singletonList(monitor);
-        monitorMap.values().removeAll(monitorList);
-        tasksMap.computeIfPresent(monitor, (k, v) -> {
-            v.cancel(true);
-            return null;
-        });
-    }
-
-    private void releaseResources() {
-        monitorMap.clear();
-        tasksMap.values().stream()
-            .filter(val -> !val.isDone() && !val.isCancelled())
-            .forEach(val -> val.cancel(true));
-
-        if (threadPool != null) {
-            threadPool.shutdownNow();
-        }
-    }
+  }
 }
