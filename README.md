@@ -96,23 +96,6 @@ Note: The connection string follows standard URL parameters. In order to add par
 
 For more information about parameters that can be configured with the AWS JDBC Driver, see the section below about failover parameters.
 
-### Connection Plugin Manager
-
-<div style="text-align:center"><img src="./docs/files/images/connection_plugin_manager_diagram.png" /></div>
-
-The figure above shows a simplified workflow of the connection plugin manager. Starting at the top, when a new JDBC method is executed by the application, it is passed into the connection plugin manager. From the connection plugin manager, the JDBC method is passed in order of plugins loaded, in this figure, `Custom Plugin A` to `Custom Plugin B` and finally to `Default Plugin` which executes the JDBC method and returns the result sets back up the chain. Custom plugins can be used to interact with JDBC methods, such as adding a feature to monitor a connection's status in the case of `NodeMonitoringConnectionPlugin`.
-
-By default, `NodeMonitoringConnectionPlugin` is loaded for [Enhanced Failure Monitoring](https://github.com/awslabs/aws-mysql-jdbc#enhanced-failure-monitoring).
-Additional custom plugins can be implemented and used alongside existing ones. Plugins can be chained together in a desired order.
-Loading custom plugins will not include `NodeMonitoringConnectionPlugin` unless explicitly stated through the `connectionPluginFactories` parameter.
-
-To learn how to write custom plugins, refer to examples located inside [Custom Plugins Demo](https://github.com/awslabs/aws-mysql-jdbc/tree/main/src/demo/java/customplugins).
-
-#### Connection Plugin Manager Parameters
-| Parameter       | Value           | Required      | Description  |
-| ------------- |:-------------:|:-------------:| ----- |
-|`connectionPluginFactories` | String | No | String of fully-qualified class name of plugin factories. <br/><br/>Each factory in the string should be comma-separated `,`<br/><br/>**NOTE: The order of factories declared matters.**  <br/><br/>Example `MyPluginAFactory`, `MyPluginAFactory,NodeMonitoringConnectionPluginFactory,MyPluginBFactory` <br/><br/>**Default value:** If unspecified, `NodeMonitoringConnectionPluginFactory` will be loaded for [Enhanced Failure Monitoring](https://github.com/awslabs/aws-mysql-jdbc#enhanced-failure-monitoring).|
-
 #### Failover Parameters
 
 In addition to [the parameters that can be configured for the MySQL Connector/J driver](https://dev.mysql.com/doc/connector-j/8.0/en/connector-j-reference-configuration-properties.html), the following parameters can also be passed to the AWS JDBC Driver through the connection URL to configure additional driver behavior.
@@ -130,25 +113,6 @@ In addition to [the parameters that can be configured for the MySQL Connector/J 
 |`acceptAwsProtocolOnly` | Boolean | If using simultaneously with another MySQL driver that supports the same protocols: Yes<br/>Otherwise: No | Set to true to only accept connections for URLs with the jdbc:mysql:aws:// protocol. This setting should be set to true when running an application that uses this driver simultaneously with another MySQL driver that supports the same protocols (eg the MySQL JDBC Driver), to ensure the driver protocols do not clash. This behavior can also be set at the driver level for every connection via the Driver.setAcceptAwsProtocolOnly method; however, this connection parameter will take priority when present.<br/><br/>**Default value:** `false`
 |`gatherPerfMetrics` | Boolean | No | Set to true if you would like the driver to record failover-associated metrics, which will then be logged upon closing the connection. This behavior can also be set at the driver level for every connection via the Driver.setAcceptAwsProtocolOnly method; however, this connection parameter will take priority when present.<br/><br/>**Default value:** `false` | 
 |`allowXmlUnsafeExternalEntity` | Boolean | No | Set to true if you would like to use XML inputs that refer to external entities. WARNING: Setting this to true is unsafe since your system to be prone to XXE attacks.<br/><br/>**Default value:** `false` |
-
-### Enhanced Failure Monitoring
-
-<div style="text-align:center"><img src="./docs/files/images/node_monitoring_plugin_diagram.png" /></div>
-
-The figure above shows a simplified workflow of enhanced failure monitoring. Enhanced failure monitoring, implemented by using a monitor thread, periodically pings the database node to check the node's health. In the case of the database node showing up as unhealthy, `NodeMonitoringConnectionPlugin` will automatically failover to a different database node, restart the monitor and retry the query.
-
-#### Enhanced Failure Monitoring Parameters
-`failureDetectionTime`, `failureDetectionInterval`, and `failureDetectionCount` are similar to TCP Keep Alive parameters. 
-
-Additional monitoring configurations can be included by adding the prefix `monitoring-` to the configuration key.
-
-| Parameter       | Value           | Required      | Description  |
-| ------------- |:-------------:|:-------------:| ----- |
-|`failureDetectionEnabled` | Boolean | No | Set to false if you would like to disable enhanced failure monitoring feature. <br/><br/>**Default value:** `true` |
-|`failureDetectionTime` | Integer | No | Interval in milliseconds between sending a SQL query to the server and the first probe to the database node. <br/><br/>**Default value:** `30000` |
-|`failureDetectionInterval` | Integer | No | Interval in milliseconds between probes to database node. <br/><br/>**Default value:** `5000` |
-|`failureDetectionCount` | Integer | No | Number of failed connection checks before considering database node as unhealthy. <br/><br/>**Default value:** `3` |
-|`monitorDisposalTime` | Integer | No | Interval in milliseconds for a monitor to be considered inactive and to be disposed. <br/><br/>**Default value:** `60000` |
 
 #### Failover Exception Codes
 ##### 08001 - Unable to Establish SQL Connection
@@ -329,6 +293,41 @@ public class FailoverSampleApp2 {
 >### :warning: Warnings About Proper Usage of the AWS JDBC Driver for MySQL
 >1. A common practice when using JDBC drivers is to wrap invocations against a Connection object in a try-catch block, and dispose of the Connection object if an Exception was hit. If this practice is left unaltered, the application will lose the fast-failover functionality offered by the Driver. When failover occurs, the Driver internally establishes a ready-to-use connection inside the original Connection object before throwing an exception to the user. If this Connection object is disposed of, the newly established connection will be thrown away. The correct practice is to check the SQL error code of the exception and reuse the Connection object if the error code indicates successful failover. [FailoverSampleApp1](#sample-code) and [FailoverSampleApp2](#sample-code-1) demonstrate this practice. See the section below on [Failover Exception Codes](#failover-exception-codes) for more details.
 >2. It is highly recommended that you use the cluster and read-only cluster endpoints instead of the direct instance endpoints of your Aurora cluster, unless you are confident about your application's usage of instance endpoints. Although the Driver will correctly failover to the new writer instance when using instance endpoints, usage of these endpoints are discouraged because individual instances can spontaneously change reader/writer status when failover occurs. The driver will always connect directly to the instance specified if an instance endpoint is provided, so a write-safe connection cannot be assumed if the application uses instance endpoints.
+
+### Connection Plugin Manager
+<div style="text-align:center"><img src="./docs/files/images/connection_plugin_manager_diagram.png" /></div>
+
+The figure above shows a simplified workflow of the connection plugin manager. 
+Starting at the top, when a JDBC method is executed by the driver, it is passed to the connection plugin manager. From the connection plugin manager, the JDBC method is passed in order of plugins loaded, in this figure, `Custom Plugin A` to `Custom Plugin B` and finally to `Default Plugin` which executes the JDBC method and returns the result sets back up the chain. Custom plugins can be used to interact with JDBC methods, such as adding a feature to monitor a connection's status in the case of `NodeMonitoringConnectionPlugin`.
+ 
+By default, `NodeMonitoringConnectionPlugin` is loaded. Additional custom plugins can be implemented and used alongside existing ones. Plugins can be chained together in a desired order. Loading custom plugins will not include `NodeMonitoringConnectionPlugin` unless explicitly stated through the `connectionPluginFactories` parameter.
+
+To learn how to write custom plugins, refer to examples located inside [Custom Plugins Demo](https://github.com/awslabs/aws-mysql-jdbc/tree/main/src/demo/java/customplugins).
+
+#### Connection Plugin Manager Parameters
+| Parameter       | Value           | Required      | Description  |
+| ------------- |:-------------:|:-------------:| ----- |
+|`connectionPluginFactories` | String | No | String of fully-qualified class name of plugin factories. <br/><br/>Each factory in the string should be comma-separated `,`<br/><br/>**NOTE: The order of factories declared matters.**  <br/><br/>Example: `MyPluginAFactory`, `MyPluginAFactory,NodeMonitoringConnectionPluginFactory,MyPluginBFactory` <br/><br/>**Default value:** If unspecified or blank, `NodeMonitoringConnectionPluginFactory` will be loaded. for [Enhanced Failure Monitoring](https://github.com/awslabs/aws-mysql-jdbc#enhanced-failure-monitoring).|
+
+### Enhanced Failure Monitoring
+
+<div style="text-align:center"><img src="./docs/files/images/node_monitoring_plugin_diagram.png" /></div>
+
+The figure above shows a simplified workflow of enhanced failure monitoring. Enhanced failure monitoring, implemented by using a monitor thread, periodically pings the database node to check the node's health. In the case of the database node showing up as unhealthy, failover to a different database node occurs, restarts the monitor and retries the query.
+
+#### Enhanced Failure Monitoring Parameters
+`failureDetectionTime`, `failureDetectionInterval`, and `failureDetectionCount` are similar to TCP Keep Alive parameters.
+
+Additional monitoring configurations can be included by adding the prefix `monitoring-` to the configuration key.
+
+| Parameter       | Value           | Required      | Description  |
+| ------------- |:-------------:|:-------------:| ----- |
+|`failureDetectionEnabled` | Boolean | No | Set to false if you would like to disable enhanced failure monitoring feature. <br/><br/>**Default value:** `true` |
+|`failureDetectionTime` | Integer | No | Interval in milliseconds between sending a SQL query to the server and the first probe to the database node. <br/><br/>**Default value:** `30000` |
+|`failureDetectionInterval` | Integer | No | Interval in milliseconds between probes to database node. <br/><br/>**Default value:** `5000` |
+|`failureDetectionCount` | Integer | No | Number of failed connection checks before considering database node as unhealthy. <br/><br/>**Default value:** `3` |
+|`monitorDisposalTime` | Integer | No | Interval in milliseconds for a monitor to be considered inactive and to be disposed. <br/><br/>**Default value:** `60000` |
+
 ## Extra Additions
 
 ### XML Entity Injection Fix
