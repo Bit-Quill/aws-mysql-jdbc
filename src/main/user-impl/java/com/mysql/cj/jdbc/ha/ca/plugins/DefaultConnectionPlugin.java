@@ -28,7 +28,6 @@ package com.mysql.cj.jdbc.ha.ca.plugins;
 
 import com.mysql.cj.log.Log;
 
-import java.lang.reflect.InvocationTargetException;
 import java.util.concurrent.Callable;
 
 public class DefaultConnectionPlugin implements IConnectionPlugin {
@@ -47,7 +46,7 @@ public class DefaultConnectionPlugin implements IConnectionPlugin {
   public Object execute(Class<?> methodInvokeOn, String methodName, Callable<?> executeSqlFunc) throws Exception {
     try {
       return executeSqlFunc.call();
-    }  catch (Exception ex) {
+    } catch (Exception ex) {
       this.logger.logTrace(
           String.format("[DefaultConnectionPlugin.execute]: method=%s.%s, exception: ", methodInvokeOn.getName(), methodName), ex);
       throw ex;
