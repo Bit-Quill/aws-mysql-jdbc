@@ -37,6 +37,9 @@ import java.util.Queue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
+/**
+ * This class creates and handles a chain of {@link IConnectionPlugin} for each connection.
+ */
 public class ConnectionPluginManager {
 
   /* THIS CLASS IS NOT MULTI-THREADING SAFE */
@@ -63,6 +66,18 @@ public class ConnectionPluginManager {
     this.logger = logger;
   }
 
+  /**
+   * Initialize a chain of {@link IConnectionPlugin} using their corresponding {@link IConnectionPluginFactory}.
+   * If {@code PropertyKey.connectionPluginFactories} is provided by the user, initialize
+   * the chain with the given connection plugins in the order they are specified. Otherwise,
+   * initialize the {@link NodeMonitoringConnectionPlugin} instead.
+   *
+   * <p>The {@link DefaultConnectionPlugin} will always be initialized and attached as the
+   * last connection plugin in the chain.
+   *
+   * @param proxy The connection the plugins are associated with.
+   * @param propertySet The configuration of the connection.
+   */
   public void init(ClusterAwareConnectionProxy proxy, PropertySet propertySet) {
     instances.add(this);
     this.proxy = proxy;
@@ -105,7 +120,10 @@ public class ConnectionPluginManager {
 
   }
 
-  public Object execute(Class<?> methodInvokeOn, String methodName, Callable<?> executeSqlFunc) throws Exception {
+  public Object execute(
+      Class<?> methodInvokeOn,
+      String methodName,
+      Callable<?> executeSqlFunc) throws Exception {
     return this.headPlugin.execute(methodInvokeOn, methodName, executeSqlFunc);
   }
 

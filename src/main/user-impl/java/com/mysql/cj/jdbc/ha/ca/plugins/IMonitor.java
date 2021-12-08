@@ -28,7 +28,10 @@ package com.mysql.cj.jdbc.ha.ca.plugins;
 
 public interface IMonitor extends Runnable {
   void startMonitoring(MonitorConnectionContext context);
+
   void stopMonitoring(MonitorConnectionContext context);
+
   void clearContexts();
+
   boolean isStopped();
 }

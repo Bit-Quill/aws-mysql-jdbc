@@ -107,7 +107,8 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
   protected transient Log log = NULL_LOGGER;
 
   protected static final int NO_CONNECTION_INDEX = -1;
-  protected static final int WRITER_CONNECTION_INDEX = 0; // writer host is always stored at index 0
+  protected static final int WRITER_CONNECTION_INDEX = 0;
+  // writer host is always stored at index 0
 
   protected int currentHostIndex = NO_CONNECTION_INDEX;
   protected Map<String, String> initialConnectionProps;
@@ -164,7 +165,11 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
         Object result = null;
 
         try {
-          result = ClusterAwareConnectionProxy.this.pluginManager.execute(this.invokeOn.getClass(), method.getName(), () -> method.invoke(this.invokeOn, args));
+          result =
+              ClusterAwareConnectionProxy.this.pluginManager.execute(
+                  this.invokeOn.getClass(),
+                  method.getName(),
+                  () -> method.invoke(this.invokeOn, args));
           result = proxyIfReturnTypeIsJdbcInterface(method.getReturnType(), result);
         } catch (InvocationTargetException e) {
           dealWithInvocationException(e);
@@ -189,7 +194,8 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
   public static JdbcConnection autodetectClusterAndCreateProxyInstance(ConnectionUrl connectionUrl)
       throws SQLException {
 
-    ClusterAwareConnectionProxy connProxy = new ClusterAwareConnectionProxy(connectionUrl);
+    ClusterAwareConnectionProxy connProxy =
+        new ClusterAwareConnectionProxy(connectionUrl);
 
     if (connProxy.isFailoverEnabled()) {
       return (JdbcConnection)
@@ -225,7 +231,8 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
    */
   public static JdbcConnection createProxyInstance(ConnectionUrl connectionUrl)
       throws SQLException {
-    ClusterAwareConnectionProxy connProxy = new ClusterAwareConnectionProxy(connectionUrl);
+    ClusterAwareConnectionProxy connProxy =
+        new ClusterAwareConnectionProxy(connectionUrl);
     return (JdbcConnection)
         java.lang.reflect.Proxy.newProxyInstance(
             JdbcConnection.class.getClassLoader(),
@@ -318,21 +325,30 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
     this.failoverTimeoutMsSetting =
         connProps.getIntegerProperty(PropertyKey.failoverTimeoutMs).getValue();
     this.failoverClusterTopologyRefreshRateMsSetting =
-        connProps.getIntegerProperty(PropertyKey.failoverClusterTopologyRefreshRateMs).getValue();
+        connProps
+            .getIntegerProperty(PropertyKey.failoverClusterTopologyRefreshRateMs)
+            .getValue();
     this.failoverWriterReconnectIntervalMsSetting =
-        connProps.getIntegerProperty(PropertyKey.failoverWriterReconnectIntervalMs).getValue();
+        connProps
+            .getIntegerProperty(PropertyKey.failoverWriterReconnectIntervalMs)
+            .getValue();
     this.failoverReaderConnectTimeoutMsSetting =
-        connProps.getIntegerProperty(PropertyKey.failoverReaderConnectTimeoutMs).getValue();
+        connProps
+            .getIntegerProperty(PropertyKey.failoverReaderConnectTimeoutMs)
+            .getValue();
     this.clusterIdSetting = connProps.getStringProperty(PropertyKey.clusterId).getValue();
     this.clusterInstanceHostPatternSetting =
         connProps.getStringProperty(PropertyKey.clusterInstanceHostPattern).getValue();
 
-    this.failoverConnectTimeoutMs = connProps.getIntegerProperty(PropertyKey.connectTimeout).getValue();
-    this.failoverSocketTimeoutMs = connProps.getIntegerProperty(PropertyKey.socketTimeout).getValue();
+    this.failoverConnectTimeoutMs =
+        connProps.getIntegerProperty(PropertyKey.connectTimeout).getValue();
+    this.failoverSocketTimeoutMs =
+        connProps.getIntegerProperty(PropertyKey.socketTimeout).getValue();
   }
 
   protected void initLogger(ConnectionUrl connUrl) {
-    String loggerClassName = connUrl.getOriginalProperties().get(PropertyKey.logger.getKeyName());
+    String loggerClassName =
+        connUrl.getOriginalProperties().get(PropertyKey.logger.getKeyName());
     if (!StringUtils.isNullOrEmpty(loggerClassName)) {
       this.log = LogFactory.getLogger(loggerClassName, Log.LOGGER_INSTANCE_NAME);
     }
@@ -355,11 +371,13 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
     this.log.logDebug(Messages.getString("ClusterAwareConnectionProxy.8"));
     this.log.logTrace(
         Messages.getString(
-            "ClusterAwareConnectionProxy.9", new Object[] {"clusterId", this.clusterIdSetting}));
+            "ClusterAwareConnectionProxy.9",
+            new Object[] {"clusterId", this.clusterIdSetting}));
     this.log.logTrace(
         Messages.getString(
             "ClusterAwareConnectionProxy.9",
-            new Object[] {"clusterInstanceHostPattern", this.clusterInstanceHostPatternSetting}));
+            new Object[] {"clusterInstanceHostPattern",
+                this.clusterInstanceHostPatternSetting}));
 
     this.mainHost = this.connectionUrl.getMainHost();
     if (!StringUtils.isNullOrEmpty(this.clusterInstanceHostPatternSetting)) {
@@ -384,10 +402,13 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
     }
   }
 
-  private void initFromHostPatternSetting(ConnectionUrl connUrl, HostInfo mainHost) throws SQLException {
-    ConnectionUrlParser.Pair<String, Integer> pair = getHostPortPairFromHostPatternSetting();
+  private void initFromHostPatternSetting(ConnectionUrl connUrl, HostInfo mainHost)
+      throws SQLException {
+    ConnectionUrlParser.Pair<String, Integer> pair =
+        getHostPortPairFromHostPatternSetting();
     String instanceHostPattern = pair.left;
-    int instanceHostPort = pair.right != HostInfo.NO_PORT ? pair.right : mainHost.getPort();
+    int instanceHostPort =
+        pair.right != HostInfo.NO_PORT ? pair.right : mainHost.getPort();
 
     // Instance host info is similar to original main host except host and port which come from the configuration property
     setClusterId(instanceHostPattern, instanceHostPort);
@@ -396,9 +417,11 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
     createConnectionAndInitializeTopology(connUrl);
   }
 
-  private ConnectionUrlParser.Pair<String, Integer> getHostPortPairFromHostPatternSetting() throws SQLException {
-    ConnectionUrlParser.Pair<String, Integer> pair = ConnectionUrlParser.parseHostPortPair(
-        this.clusterInstanceHostPatternSetting);
+  private ConnectionUrlParser.Pair<String, Integer> getHostPortPairFromHostPatternSetting()
+      throws SQLException {
+    ConnectionUrlParser.Pair<String, Integer> pair =
+        ConnectionUrlParser.parseHostPortPair(
+            this.clusterInstanceHostPatternSetting);
     if (pair == null) {
       // "Invalid value for the 'clusterInstanceHostPattern' configuration setting - the value could not be parsed"
       throw new SQLException(Messages.getString("ClusterAwareConnectionProxy.5"));
@@ -437,15 +460,19 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
   private void identifyRdsType(String host) {
     this.isRds = isRdsDns(host);
     this.log.logTrace(
-        Messages.getString("ClusterAwareConnectionProxy.10", new Object[] {"isRds", this.isRds}));
+        Messages.getString(
+            "ClusterAwareConnectionProxy.10",
+            new Object[] {"isRds", this.isRds}));
 
     this.isRdsProxy = isRdsProxyDns(host);
     this.log.logTrace(
         Messages.getString(
-            "ClusterAwareConnectionProxy.10", new Object[] {"isRdsProxy", this.isRdsProxy}));
+            "ClusterAwareConnectionProxy.10",
+            new Object[] {"isRdsProxy", this.isRdsProxy}));
   }
 
-  private void initExpectingNoTopology(ConnectionUrl connUrl, HostInfo mainHost) throws SQLException {
+  private void initExpectingNoTopology(ConnectionUrl connUrl, HostInfo mainHost)
+      throws SQLException {
     setClusterId(mainHost.getHost(), mainHost.getPort());
     this.topologyService.setClusterInstanceTemplate(
         createClusterInstanceTemplate(mainHost, mainHost.getHost(), mainHost.getPort()));
@@ -460,16 +487,20 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
     }
   }
 
-  private void initFromConnectionString(ConnectionUrl connUrl, HostInfo mainHost) throws SQLException {
+  private void initFromConnectionString(ConnectionUrl connUrl, HostInfo mainHost)
+      throws SQLException {
     String rdsInstanceHostPattern = getRdsInstanceHostPattern(mainHost.getHost());
-    if(rdsInstanceHostPattern == null) {
+    if (rdsInstanceHostPattern == null) {
       this.log.logError(Messages.getString("ClusterAwareConnectionProxy.20"));
       throw new SQLException(Messages.getString("ClusterAwareConnectionProxy.20"));
     }
 
     setClusterId(mainHost.getHost(), mainHost.getPort());
     this.topologyService.setClusterInstanceTemplate(
-        createClusterInstanceTemplate(mainHost, rdsInstanceHostPattern, mainHost.getPort()));
+        createClusterInstanceTemplate(
+            mainHost,
+            rdsInstanceHostPattern,
+            mainHost.getPort()));
     createConnectionAndInitializeTopology(connUrl);
   }
 
@@ -488,10 +519,17 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
     }
   }
 
-  private HostInfo createClusterInstanceTemplate(HostInfo mainHost, String host, int port) {
+  private HostInfo createClusterInstanceTemplate(
+      HostInfo mainHost,
+      String host,
+      int port) {
     Map<String, String> properties = new HashMap<>(this.initialConnectionProps);
-    properties.put(PropertyKey.connectTimeout.getKeyName(), String.valueOf(this.failoverConnectTimeoutMs));
-    properties.put(PropertyKey.socketTimeout.getKeyName(), String.valueOf(this.failoverSocketTimeoutMs));
+    properties.put(
+        PropertyKey.connectTimeout.getKeyName(),
+        String.valueOf(this.failoverConnectTimeoutMs));
+    properties.put(
+        PropertyKey.socketTimeout.getKeyName(),
+        String.valueOf(this.failoverSocketTimeoutMs));
 
     return new HostInfo(
         this.connectionUrl,
@@ -503,21 +541,26 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
         properties);
   }
 
-  protected void createConnectionAndInitializeTopology(ConnectionUrl connUrl) throws SQLException {
+  protected void createConnectionAndInitializeTopology(ConnectionUrl connUrl)
+      throws SQLException {
     synchronized (this.lockObject) {
       createInitialConnection(connUrl);
       initTopology();
       if (this.isFailoverEnabled()) {
         validateInitialConnection();
 
-        if (this.currentHostIndex != NO_CONNECTION_INDEX && !Util.isNullOrEmpty(this.hosts)) {
+        if (this.currentHostIndex != NO_CONNECTION_INDEX
+            && !Util.isNullOrEmpty(this.hosts)) {
           HostInfo currentHost = this.hosts.get(this.currentHostIndex);
           if (isExplicitlyReadOnly()) {
             topologyService.setLastUsedReaderHost(currentHost);
           }
         }
 
-        this.currentConnection.getPropertySet().getIntegerProperty(PropertyKey.socketTimeout).setValue(this.failoverSocketTimeoutMs);
+        this.currentConnection
+            .getPropertySet()
+            .getIntegerProperty(PropertyKey.socketTimeout)
+            .setValue(this.failoverSocketTimeoutMs);
         ((NativeSession) this.currentConnection.getSession()).setSocketTimeout(this.failoverSocketTimeoutMs);
       }
     }
@@ -592,7 +635,7 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
   }
 
   private int getCandidateIndexForInitialConnection() {
-    if(Util.isNullOrEmpty(this.hosts)) {
+    if (Util.isNullOrEmpty(this.hosts)) {
       return NO_CONNECTION_INDEX;
     }
 
@@ -637,7 +680,8 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
 
   private void initTopology() {
     if (this.currentConnection != null) {
-      List<HostInfo> topology = this.topologyService.getTopology(this.currentConnection, false);
+      List<HostInfo> topology =
+          this.topologyService.getTopology(this.currentConnection, false);
       if (!Util.isNullOrEmpty(topology)) {
         this.hosts = topology;
       }
@@ -656,7 +700,8 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
   }
 
   private void validateInitialConnection() throws SQLException {
-    this.currentHostIndex = getHostIndex(topologyService.getHostByName(this.currentConnection));
+    this.currentHostIndex =
+        getHostIndex(topologyService.getHostByName(this.currentConnection));
     if (!isConnected()) {
       pickNewConnection();
       return;
@@ -737,7 +782,8 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
 
   @Override
   public HostInfo getCurrentHostInfo() {
-    return this.currentHostIndex != NO_CONNECTION_INDEX ? this.hosts.get(this.currentHostIndex) : mainHost;
+    return this.currentHostIndex != NO_CONNECTION_INDEX
+        ? this.hosts.get(this.currentHostIndex) : mainHost;
   }
 
   private boolean shouldAttemptReaderConnection() {
@@ -757,7 +803,8 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
         switchCurrentConnectionTo(hostIndex, createConnectionForHostIndex(hostIndex));
         this.log.logDebug(
             Messages.getString(
-                "ClusterAwareConnectionProxy.15", new Object[]{this.hosts.get(hostIndex)}));
+                "ClusterAwareConnectionProxy.15",
+                new Object[] {this.hosts.get(hostIndex)}));
       } catch (SQLException e) {
         if (this.currentConnection != null) {
           HostInfo host = this.hosts.get(hostIndex);
@@ -839,7 +886,9 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
   @Override
   protected ConnectionImpl createConnectionForHost(HostInfo baseHostInfo)
       throws SQLException {
-    HostInfo hostInfoWithInitialProps = ClusterAwareUtils.copyWithAdditionalProps(baseHostInfo, this.initialConnectionProps);
+    HostInfo hostInfoWithInitialProps = ClusterAwareUtils.copyWithAdditionalProps(
+        baseHostInfo,
+        this.initialConnectionProps);
     ConnectionImpl conn = this.connectionProvider.connect(hostInfoWithInitialProps);
     setConnectionProxy(conn);
     return conn;
@@ -895,7 +944,8 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
 
     if (this.gatherPerfMetricsSetting) {
       long currentTimeMs = System.currentTimeMillis();
-      this.metrics.registerWriterFailoverProcedureTime(currentTimeMs - this.failoverStartTimeMs);
+      this.metrics.registerWriterFailoverProcedureTime(
+          currentTimeMs - this.failoverStartTimeMs);
       this.failoverStartTimeMs = 0;
     }
 
@@ -931,7 +981,9 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
 
     this.log.logError(message);
     releasePluginManager();
-    throw new SQLException(message, MysqlErrorNumbers.SQL_STATE_UNABLE_TO_CONNECT_TO_DATASOURCE);
+    throw new SQLException(
+        message,
+        MysqlErrorNumbers.SQL_STATE_UNABLE_TO_CONNECT_TO_DATASOURCE);
   }
 
   protected void failoverReader(int failedHostIdx) throws SQLException {
@@ -945,7 +997,8 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
 
     if (this.gatherPerfMetricsSetting) {
       long currentTimeMs = System.currentTimeMillis();
-      this.metrics.registerReaderFailoverProcedureTime(currentTimeMs - this.failoverStartTimeMs);
+      this.metrics.registerReaderFailoverProcedureTime(
+          currentTimeMs - this.failoverStartTimeMs);
       this.failoverStartTimeMs = 0;
     }
 
@@ -964,7 +1017,7 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
     this.currentHostIndex = result.getConnectionIndex();
     updateTopologyAndConnectIfNeeded(true);
 
-    if(this.currentHostIndex != NO_CONNECTION_INDEX && !Util.isNullOrEmpty(this.hosts)) {
+    if (this.currentHostIndex != NO_CONNECTION_INDEX && !Util.isNullOrEmpty(this.hosts)) {
       HostInfo currentHost = this.hosts.get(this.currentHostIndex);
       topologyService.setLastUsedReaderHost(currentHost);
       this.log.logDebug(
@@ -974,12 +1027,15 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
     }
   }
 
-  protected void updateTopologyAndConnectIfNeeded(boolean forceUpdate) throws SQLException {
-    if (!isFailoverEnabled() || this.currentConnection == null || this.currentConnection.isClosed()) {
+  protected void updateTopologyAndConnectIfNeeded(boolean forceUpdate)
+      throws SQLException {
+    if (!isFailoverEnabled() || this.currentConnection == null
+        || this.currentConnection.isClosed()) {
       return;
     }
 
-    List<HostInfo> latestTopology = this.topologyService.getTopology(this.currentConnection, forceUpdate);
+    List<HostInfo> latestTopology =
+        this.topologyService.getTopology(this.currentConnection, forceUpdate);
     if (Util.isNullOrEmpty(latestTopology)) {
       return;
     }
@@ -1058,10 +1114,12 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
     String clusterKeyword = getClusterKeyword(matcher);
     if ("cluster-".equalsIgnoreCase(clusterKeyword)
         || "cluster-ro-".equalsIgnoreCase(clusterKeyword)) {
-      return matcher.group(1) + ".cluster-" + matcher.group(3); // always RDS cluster endpoint
+      return matcher.group(1) + ".cluster-"
+          + matcher.group(3); // always RDS cluster endpoint
     }
     return null;
   }
+
   private boolean isRdsClusterDns(String host) {
     Matcher matcher = auroraDnsPattern.matcher(host);
     String clusterKeyword = getClusterKeyword(matcher);
@@ -1073,6 +1131,7 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
     Matcher matcher = auroraDnsPattern.matcher(host);
     return "cluster-ro-".equalsIgnoreCase(getClusterKeyword(matcher));
   }
+
   private boolean isRdsCustomClusterDns(String host) {
     Matcher matcher = auroraCustomClusterPattern.matcher(host);
     return matcher.find();
@@ -1091,7 +1150,8 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
   @Override
   public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
     synchronized (this.lockObject) {
-      this.invokeStartTimeMs = this.gatherPerfMetricsSetting ? System.currentTimeMillis() : 0;
+      this.invokeStartTimeMs =
+          this.gatherPerfMetricsSetting ? System.currentTimeMillis() : 0;
 
       Object result = super.invoke(proxy, method, args);
 
@@ -1125,7 +1185,10 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
 
     Object result = null;
     try {
-      result = this.pluginManager.execute(this.thisAsConnection.getClass(), methodName, () -> method.invoke(this.thisAsConnection, args));
+      result = this.pluginManager.execute(
+          this.thisAsConnection.getClass(),
+          methodName,
+          () -> method.invoke(this.thisAsConnection, args));
       result = proxyIfReturnTypeIsJdbcInterface(method.getReturnType(), result);
     } catch (InvocationTargetException e) {
       dealWithInvocationException(e);
@@ -1139,7 +1202,8 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
 
   private void invalidInvocationOnClosedConnection() throws SQLException {
     if (this.autoReconnect && !this.closedExplicitly) {
-      this.currentHostIndex = NO_CONNECTION_INDEX; // Act as if this is the first connection but let it sync with the previous one.
+      this.currentHostIndex =
+          NO_CONNECTION_INDEX; // Act as if this is the first connection but let it sync with the previous one.
       this.isClosed = false;
       this.closedReason = null;
       pickNewConnection();
@@ -1156,7 +1220,10 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
       }
 
       releasePluginManager();
-      throw SQLError.createSQLException(reason, MysqlErrorNumbers.SQL_STATE_CONNECTION_NOT_OPEN, null /* no access to a interceptor here... */);
+      throw SQLError.createSQLException(
+          reason,
+          MysqlErrorNumbers.SQL_STATE_CONNECTION_NOT_OPEN,
+          null /* no access to a interceptor here... */);
     }
   }
 
@@ -1178,13 +1245,19 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
     dealWithOriginalException(e.getCause(), e);
   }
 
-  private void dealWithOriginalException(Throwable originalException, Exception wrapperException) throws Throwable {
+  private void dealWithOriginalException(
+      Throwable originalException,
+      Exception wrapperException) throws Throwable {
     if (originalException != null) {
-      this.log.logTrace(Messages.getString("ClusterAwareConnectionProxy.12"), originalException);
-      if (this.lastExceptionDealtWith != originalException && shouldExceptionTriggerConnectionSwitch(originalException)) {
+      this.log.logTrace(
+          Messages.getString("ClusterAwareConnectionProxy.12"),
+          originalException);
+      if (this.lastExceptionDealtWith != originalException
+          && shouldExceptionTriggerConnectionSwitch(originalException)) {
         if (this.gatherPerfMetricsSetting) {
           long currentTimeMs = System.currentTimeMillis();
-          this.metrics.registerFailureDetectionTime(currentTimeMs - this.invokeStartTimeMs);
+          this.metrics.registerFailureDetectionTime(
+              currentTimeMs - this.invokeStartTimeMs);
           this.invokeStartTimeMs = 0;
           this.failoverStartTimeMs = currentTimeMs;
         }
@@ -1249,7 +1322,8 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
     super.invalidateConnection(this.currentConnection);
   }
 
-  private void performSpecialMethodHandlingIfRequired(Object[] args, String methodName) throws SQLException {
+  private void performSpecialMethodHandlingIfRequired(Object[] args, String methodName)
+      throws SQLException {
     if (METHOD_SET_AUTO_COMMIT.equals(methodName)) {
       this.explicitlyAutoCommit = (Boolean) args[0];
       this.inTransaction = !this.explicitlyAutoCommit;
@@ -1296,9 +1370,9 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
           this.currentConnection.close();
           return null;
         });
-      } catch(SQLException sqlEx) {
+      } catch (SQLException sqlEx) {
         throw sqlEx;
-      } catch(Exception ex) {
+      } catch (Exception ex) {
         throw new SQLException(ex.getMessage(), ex);
       }
       releasePluginManager();
@@ -1318,9 +1392,9 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
           this.currentConnection.abort(executor);
           return null;
         });
-      } catch(SQLException sqlEx) {
+      } catch (SQLException sqlEx) {
         throw sqlEx;
-      } catch(Exception ex) {
+      } catch (Exception ex) {
         throw new SQLException(ex.getMessage(), ex);
       }
       releasePluginManager();
@@ -1340,9 +1414,9 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
           this.currentConnection.abortInternal();
           return null;
         });
-      } catch(SQLException sqlEx) {
+      } catch (SQLException sqlEx) {
         throw sqlEx;
-      } catch(Exception ex) {
+      } catch (Exception ex) {
         throw new SQLException(ex.getMessage(), ex);
       }
       releasePluginManager();
@@ -1405,7 +1479,9 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
           .append(hostInfo == null ? "<null>" : hostInfo.getHost());
     }
     this.log.logTrace(
-        Messages.getString("ClusterAwareConnectionProxy.11", new Object[] {msg.toString()}));
+        Messages.getString(
+            "ClusterAwareConnectionProxy.11",
+            new Object[] {msg.toString()}));
   }
 
   private void releasePluginManager() {
