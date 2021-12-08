@@ -37,8 +37,8 @@ import java.util.concurrent.Callable;
 /**
  * This connection plugin counts the total number of executed JDBC methods throughout the
  * lifespan of the current connection.
- * <p>
- * All connection plugins must implement the {@link IConnectionPlugin} interface. Since
+ *
+ * <p>All connection plugins must implement the {@link IConnectionPlugin} interface. Since
  * all the connection plugins are chained together, the prior connection plugin needs to
  * invoke the next plugin.
  * Once registered, every connection will create an instance of this connection plugin.

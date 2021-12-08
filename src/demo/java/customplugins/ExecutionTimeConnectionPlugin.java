@@ -36,8 +36,8 @@ import java.util.concurrent.Callable;
 /**
  * This connection plugin tracks the execution time of all the given JDBC method throughout
  * the lifespan of the current connection.
- * <p>
- * During the cleanup phase when {@link ExecutionTimeConnectionPlugin#releaseResources()}
+ *
+ * <p>During the cleanup phase when {@link ExecutionTimeConnectionPlugin#releaseResources()}
  * is called, this plugin logs all the methods executed and time spent on each execution
  * in milliseconds.
  */
