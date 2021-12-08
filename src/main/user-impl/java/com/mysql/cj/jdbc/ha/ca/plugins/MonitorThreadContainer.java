@@ -55,7 +55,7 @@ public class MonitorThreadContainer {
   /**
    * Create an instance of the {@link MonitorThreadContainer}.
    *
-   * @return an instance of
+   * @return a singleton instance of the {@link MonitorThreadContainer}.
    */
   public static MonitorThreadContainer getInstance() {
     return getInstance(Executors::newCachedThreadPool);
@@ -73,7 +73,7 @@ public class MonitorThreadContainer {
   }
 
   /**
-   * Release resources held in the the {@link MonitorThreadContainer} and clear reference
+   * Release resources held in the {@link MonitorThreadContainer} and clear references
    * to the container.
    */
   public static void releaseInstance() {
