@@ -100,19 +100,19 @@ For more information about parameters that can be configured with the AWS JDBC D
 
 In addition to [the parameters that can be configured for the MySQL Connector/J driver](https://dev.mysql.com/doc/connector-j/8.0/en/connector-j-reference-configuration-properties.html), the following parameters can also be passed to the AWS JDBC Driver through the connection URL to configure additional driver behavior.
 
-| Parameter       | Value           | Required      | Description  |
-| ------------- |:-------------:|:-------------:| ----- |
-|`enableClusterAwareFailover` | Boolean | No | Set to true to enable the fast failover behavior offered by the AWS JDBC Driver. Set to false for simple JDBC connections that do not require fast failover functionality.<br/><br/>**Default value:** `true` |
-|`clusterInstanceHostPattern` | String | If connecting using an IP address or custom domain URL: Yes<br/>Otherwise: No | This parameter is not required unless connecting to an AWS RDS cluster via an IP address or custom domain URL. In those cases, this parameter specifies the cluster instance DNS pattern that will be used to build a complete instance endpoint. A "?" character in this pattern should be used as a placeholder for the DB instance identifiers of the instances in the cluster. <br/><br/>Example: `?.my-domain.com`, `any-subdomain.?.my-domain.com:9999`<br/><br/>Usecase Example: If your cluster instance endpoints followed this pattern:`instanceIdentifier1.customHost`, `instanceIdentifier2.customHost`, etc. and you wanted your initial connection to be to `customHost:1234`, then your connection string should look something like this: `jdbc:mysql:aws://customHost:1234/test?clusterInstanceHostPattern=?.customHost`<br/><br/>**Default value:** if unspecified, and the provided connection string is not an IP address or custom domain, the driver will automatically acquire the cluster instance host pattern from the customer-provided connection string. |
-|`clusterId` | String | No | A unique identifier for the cluster. Connections with the same cluster id share a cluster topology cache. This connection parameter is not required and thus should only be set if desired. <br/><br/>**Default value:** If unspecified, the driver will automatically acquire a cluster id for AWS RDS clusters. |
-|`clusterTopologyRefreshRateMs` | Integer | No | Cluster topology refresh rate in milliseconds. The cached topology for the cluster will be invalidated after the specified time, after which it will be updated during the next interaction with the connection.<br/><br/>**Default value:** `30000` |
-|`failoverTimeoutMs` | Integer | No | Maximum allowed time in milliseconds to attempt reconnecting to a new writer or reader instance after a cluster failover is initiated.<br/><br/>**Default value:** `60000` |
-|`failoverClusterTopologyRefreshRateMs` | Integer | No | Cluster topology refresh rate in milliseconds during a writer failover process. During the writer failover process, cluster topology may be refreshed at a faster pace than normal to speed up discovery of the newly promoted writer.<br/><br/>**Default value:** `5000` |
-|`failoverWriterReconnectIntervalMs` | Integer | No | Interval of time in milliseconds to wait between attempts to reconnect to a failed writer during a writer failover process.<br/><br/>**Default value:** `5000` |
-|`failoverReaderConnectTimeoutMs` | Integer | No | Maximum allowed time in milliseconds to attempt to connect to a reader instance during a reader failover process. <br/><br/>**Default value:** `5000`
-|`acceptAwsProtocolOnly` | Boolean | If using simultaneously with another MySQL driver that supports the same protocols: Yes<br/>Otherwise: No | Set to true to only accept connections for URLs with the jdbc:mysql:aws:// protocol. This setting should be set to true when running an application that uses this driver simultaneously with another MySQL driver that supports the same protocols (eg the MySQL JDBC Driver), to ensure the driver protocols do not clash. This behavior can also be set at the driver level for every connection via the Driver.setAcceptAwsProtocolOnly method; however, this connection parameter will take priority when present.<br/><br/>**Default value:** `false`
-|`gatherPerfMetrics` | Boolean | No | Set to true if you would like the driver to record failover-associated metrics, which will then be logged upon closing the connection. This behavior can also be set at the driver level for every connection via the Driver.setAcceptAwsProtocolOnly method; however, this connection parameter will take priority when present.<br/><br/>**Default value:** `false` | 
-|`allowXmlUnsafeExternalEntity` | Boolean | No | Set to true if you would like to use XML inputs that refer to external entities. WARNING: Setting this to true is unsafe since your system to be prone to XXE attacks.<br/><br/>**Default value:** `false` |
+| Parameter       | Value           | Required      | Description  | Default Value |
+| ------------- |:-------------:|:-------------:|:-------------:| --------- |
+|`enableClusterAwareFailover` | Boolean | No | Set to true to enable the fast failover behavior offered by the AWS JDBC Driver. Set to false for simple JDBC connections that do not require fast failover functionality. | `true` |
+|`clusterInstanceHostPattern` | String | If connecting using an IP address or custom domain URL: Yes<br/>Otherwise: No | This parameter is not required unless connecting to an AWS RDS cluster via an IP address or custom domain URL. In those cases, this parameter specifies the cluster instance DNS pattern that will be used to build a complete instance endpoint. A "?" character in this pattern should be used as a placeholder for the DB instance identifiers of the instances in the cluster. <br/><br/>Example: `?.my-domain.com`, `any-subdomain.?.my-domain.com:9999`<br/><br/>Usecase Example: If your cluster instance endpoints followed this pattern:`instanceIdentifier1.customHost`, `instanceIdentifier2.customHost`, etc. and you wanted your initial connection to be to `customHost:1234`, then your connection string should look something like this: `jdbc:mysql:aws://customHost:1234/test?clusterInstanceHostPattern=?.customHost` | If unspecified, and the provided connection string is not an IP address or custom domain, the driver will automatically acquire the cluster instance host pattern from the customer-provided connection string. |
+|`clusterId` | String | No | A unique identifier for the cluster. Connections with the same cluster id share a cluster topology cache. This connection parameter is not required and thus should only be set if desired. | If unspecified, the driver will automatically acquire a cluster id for AWS RDS clusters. |
+|`clusterTopologyRefreshRateMs` | Integer | No | Cluster topology refresh rate in milliseconds. The cached topology for the cluster will be invalidated after the specified time, after which it will be updated during the next interaction with the connection. | `30000` |
+|`failoverTimeoutMs` | Integer | No | Maximum allowed time in milliseconds to attempt reconnecting to a new writer or reader instance after a cluster failover is initiated. | `60000` |
+|`failoverClusterTopologyRefreshRateMs` | Integer | No | Cluster topology refresh rate in milliseconds during a writer failover process. During the writer failover process, cluster topology may be refreshed at a faster pace than normal to speed up discovery of the newly promoted writer. | `5000` |
+|`failoverWriterReconnectIntervalMs` | Integer | No | Interval of time in milliseconds to wait between attempts to reconnect to a failed writer during a writer failover process. | `5000` |
+|`failoverReaderConnectTimeoutMs` | Integer | No | Maximum allowed time in milliseconds to attempt to connect to a reader instance during a reader failover process. | `5000` |
+|`acceptAwsProtocolOnly` | Boolean | If using simultaneously with another MySQL driver that supports the same protocols: Yes<br/>Otherwise: No | Set to true to only accept connections for URLs with the jdbc:mysql:aws:// protocol. This setting should be set to true when running an application that uses this driver simultaneously with another MySQL driver that supports the same protocols (eg the MySQL JDBC Driver), to ensure the driver protocols do not clash. This behavior can also be set at the driver level for every connection via the Driver.setAcceptAwsProtocolOnly method; however, this connection parameter will take priority when present. | `false` |
+|`gatherPerfMetrics` | Boolean | No | Set to true if you would like the driver to record failover-associated metrics, which will then be logged upon closing the connection. This behavior can also be set at the driver level for every connection via the Driver.setAcceptAwsProtocolOnly method; however, this connection parameter will take priority when present. | `false` | 
+|`allowXmlUnsafeExternalEntity` | Boolean | No | Set to true if you would like to use XML inputs that refer to external entities. WARNING: Setting this to true is unsafe since your system to be prone to XXE attacks. | `false` |
 
 #### Failover Exception Codes
 ##### 08001 - Unable to Establish SQL Connection
@@ -305,9 +305,9 @@ By default, `NodeMonitoringConnectionPlugin` is loaded. Additional custom plugin
 To learn how to write custom plugins, refer to examples located inside [Custom Plugins Demo](https://github.com/awslabs/aws-mysql-jdbc/tree/main/src/demo/java/customplugins).
 
 #### Connection Plugin Manager Parameters
-| Parameter       | Value           | Required      | Description  |
-| ------------- |:-------------:|:-------------:| ----- |
-|`connectionPluginFactories` | String | No | String of fully-qualified class name of plugin factories. <br/><br/>Each factory in the string should be comma-separated `,`<br/><br/>**NOTE: The order of factories declared matters.**  <br/><br/>Example: `MyPluginAFactory`, `MyPluginAFactory,NodeMonitoringConnectionPluginFactory,MyPluginBFactory` <br/><br/>**Default value:** If unspecified or blank, `NodeMonitoringConnectionPluginFactory` will be loaded. for [Enhanced Failure Monitoring](https://github.com/awslabs/aws-mysql-jdbc#enhanced-failure-monitoring).|
+| Parameter       | Value           | Required      | Description  | Default Value |
+| ------------- |:-------------:|:-------------:|:-------------:| --------- |
+|`connectionPluginFactories` | String | No | String of fully-qualified class name of plugin factories. <br/><br/>Each factory in the string should be comma-separated `,`<br/><br/>**NOTE: The order of factories declared matters.**  <br/><br/>Example: `MyPluginAFactory`, `MyPluginAFactory,NodeMonitoringConnectionPluginFactory,MyPluginBFactory` | If unspecified or blank, `NodeMonitoringConnectionPluginFactory` will be loaded.|
 
 ### Enhanced Failure Monitoring
 
@@ -320,13 +320,13 @@ The figure above shows a simplified workflow of enhanced failure monitoring. Enh
 
 Additional monitoring configurations can be included by adding the prefix `monitoring-` to the configuration key.
 
-| Parameter       | Value           | Required      | Description  |
-| ------------- |:-------------:|:-------------:| ----- |
-|`failureDetectionEnabled` | Boolean | No | Set to false if you would like to disable enhanced failure monitoring feature. <br/><br/>**Default value:** `true` |
-|`failureDetectionTime` | Integer | No | Interval in milliseconds between sending a SQL query to the server and the first probe to the database node. <br/><br/>**Default value:** `30000` |
-|`failureDetectionInterval` | Integer | No | Interval in milliseconds between probes to database node. <br/><br/>**Default value:** `5000` |
-|`failureDetectionCount` | Integer | No | Number of failed connection checks before considering database node as unhealthy. <br/><br/>**Default value:** `3` |
-|`monitorDisposalTime` | Integer | No | Interval in milliseconds for a monitor to be considered inactive and to be disposed. <br/><br/>**Default value:** `60000` |
+| Parameter       | Value           | Required      | Description  | Default Value |
+| ------------- |:-------------:|:-------------:|:-------------:| --------- |
+|`failureDetectionEnabled` | Boolean | No | Set to false if you would like to disable enhanced failure monitoring feature. | `true` |
+|`failureDetectionTime` | Integer | No | Interval in milliseconds between sending a SQL query to the server and the first probe to the database node. | `30000` |
+|`failureDetectionInterval` | Integer | No | Interval in milliseconds between probes to database node. | `5000` |
+|`failureDetectionCount` | Integer | No | Number of failed connection checks before considering database node as unhealthy. | `3` |
+|`monitorDisposalTime` | Integer | No | Interval in milliseconds for a monitor to be considered inactive and to be disposed. | `60000` |
 
 ## Extra Additions
 
@@ -334,9 +334,9 @@ Additional monitoring configurations can be included by adding the prefix `monit
 
 The default XML parser contained a security risk which made the driver prone to XXE (XML Entity Injection) attacks. To solve this issue, we disabled DTDs (Document type definition) in the XML parser. If you require this restriction to be lifted in your application, you can set the `allowXmlUnsafeExternalEntity` parameter in the connection string to true. Please see table below for a definition of this parameter. 
 
-| Parameter       | Value           | Required      | Description  |
-| ------------- |:-------------:|:-------------:| ----- |
-|`allowXmlUnsafeExternalEntity` | Boolean | No | Set to true if you would like to use XML inputs that refer to external entities. WARNING: Setting this to true is unsafe since your system to be prone to XXE attacks.<br/><br/>**Default value:** `false` |
+| Parameter       | Value           | Required      | Description  | Default Value |
+| ------------- |:-------------:|:-------------:|:-------------:| --------- |
+|`allowXmlUnsafeExternalEntity` | Boolean | No | Set to true if you would like to use XML inputs that refer to external entities. WARNING: Setting this to true is unsafe since your system to be prone to XXE attacks. | `false` |
 
 ### AWS IAM Database Authentication
 
@@ -357,9 +357,9 @@ For more information on limitations and recommendations, please [read](https://d
    1. Connect to MySQL database using master logins and create a new user with the following<br>
    `CREATE USER example_user_name IDENTIFIED WITH AWSAuthenticationPlugin AS 'RDS';`
 
-| Parameter       | Value           | Required      | Description  |
-| ------------- |:-------------:|:-------------:| ----- |
-|`useAwsIam` | Boolean | No | Set to true if you would like to use AWS IAM database authentication<br/><br/>**Default value:** `false` |
+| Parameter       | Value           | Required      | Description  | Default Value |
+| ------------- |:-------------:|:-------------:|:-------------:| --------- |
+|`useAwsIam` | Boolean | No | Set to true if you would like to use AWS IAM database authentication | `false` |
 
 ###### Sample Code
 ```java
