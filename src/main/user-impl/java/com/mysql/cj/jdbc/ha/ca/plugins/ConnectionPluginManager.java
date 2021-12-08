@@ -33,7 +33,9 @@ import com.mysql.cj.log.Log;
 import com.mysql.cj.util.StringUtils;
 import com.mysql.cj.util.Util;
 
+import java.util.Queue;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class ConnectionPluginManager {
 
@@ -42,12 +44,16 @@ public class ConnectionPluginManager {
 
   protected static final String DEFAULT_PLUGIN_FACTORIES =
       NodeMonitoringConnectionPluginFactory.class.getName();
+  protected static final Queue<ConnectionPluginManager> instances = new ConcurrentLinkedQueue<>();
 
   protected Log logger;
   protected PropertySet propertySet = null;
   protected IConnectionPlugin headPlugin = null;
   ClusterAwareConnectionProxy proxy;
-  private final Thread shutdownHook = new Thread(this::releaseResources);
+
+  static {
+    Runtime.getRuntime().addShutdownHook(new Thread(ConnectionPluginManager::releaseAllResources));
+  }
 
   public ConnectionPluginManager(Log logger) {
     if (logger == null) {
@@ -55,10 +61,10 @@ public class ConnectionPluginManager {
     }
 
     this.logger = logger;
-    Runtime.getRuntime().addShutdownHook(shutdownHook);
   }
 
   public void init(ClusterAwareConnectionProxy proxy, PropertySet propertySet) {
+    instances.add(this);
     this.proxy = proxy;
     this.propertySet = propertySet;
 
@@ -104,12 +110,12 @@ public class ConnectionPluginManager {
   }
 
   public void releaseResources() {
+    instances.remove(this);
     this.logger.logTrace("[ConnectionPluginManager.releaseResources]");
     this.headPlugin.releaseResources();
-    try {
-      Runtime.getRuntime().removeShutdownHook(shutdownHook);
-    } catch (Exception e) {
-      // Ignore as JVM is already closing
-    }
+  }
+
+  public static void releaseAllResources() {
+    instances.forEach(ConnectionPluginManager::releaseResources);
   }
 }
