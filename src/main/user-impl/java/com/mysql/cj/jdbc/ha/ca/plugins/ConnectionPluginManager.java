@@ -71,8 +71,8 @@ public class ConnectionPluginManager {
    * If {@code PropertyKey.connectionPluginFactories} is provided by the user, initialize
    * the chain with the given connection plugins in the order they are specified. Otherwise,
    * initialize the {@link NodeMonitoringConnectionPlugin} instead.
-   * <p>
-   * The {@link DefaultConnectionPlugin} will always be initialized and attached as the
+   *
+   * <p>The {@link DefaultConnectionPlugin} will always be initialized and attached as the
    * last connection plugin in the chain.
    *
    * @param proxy The connection the plugins are associated with.
