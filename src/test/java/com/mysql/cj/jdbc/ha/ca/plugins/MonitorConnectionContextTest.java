@@ -67,14 +67,14 @@ class MonitorConnectionContextTest {
 
   @Test
   public void test_1_isNodeUnhealthyWithConnection_returnFalse() {
-    context.setConnectionValid(true, System.currentTimeMillis(), VALIDATION_INTERVAL_MILLIS);
+    context.setConnectionValid(true, System.currentTimeMillis());
     Assertions.assertFalse(context.isNodeUnhealthy());
     Assertions.assertEquals(0, this.context.getFailureCount());
   }
 
   @Test
   public void test_2_isNodeUnhealthyWithInvalidConnection_returnFalse() {
-    context.setConnectionValid(false, System.currentTimeMillis(), VALIDATION_INTERVAL_MILLIS);
+    context.setConnectionValid(false, System.currentTimeMillis());
     Assertions.assertFalse(context.isNodeUnhealthy());
     Assertions.assertEquals(1, this.context.getFailureCount());
   }
@@ -85,7 +85,7 @@ class MonitorConnectionContextTest {
     context.setFailureCount(FAILURE_DETECTION_COUNT);
     context.resetInvalidNodeStartTime();
 
-    context.setConnectionValid(false, System.currentTimeMillis(), VALIDATION_INTERVAL_MILLIS);
+    context.setConnectionValid(false, System.currentTimeMillis());
 
     Assertions.assertFalse(context.isNodeUnhealthy());
     Assertions.assertEquals(expectedFailureCount, context.getFailureCount());
@@ -100,13 +100,13 @@ class MonitorConnectionContextTest {
 
     // Simulate monitor loop that reports invalid connection for 6 times with interval 50 msec
     for (int i = 0; i < 6; i++) {
-      context.setConnectionValid(false, currentTimeMillis, VALIDATION_INTERVAL_MILLIS);
+      context.setConnectionValid(false, currentTimeMillis);
       Assertions.assertFalse(context.isNodeUnhealthy());
 
       currentTimeMillis += VALIDATION_INTERVAL_MILLIS;
     }
 
-    context.setConnectionValid(false, currentTimeMillis, VALIDATION_INTERVAL_MILLIS);
+    context.setConnectionValid(false, currentTimeMillis);
     Assertions.assertTrue(context.isNodeUnhealthy());
   }
 }

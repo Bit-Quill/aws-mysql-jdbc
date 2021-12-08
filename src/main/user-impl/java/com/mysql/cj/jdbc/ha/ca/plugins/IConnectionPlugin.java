@@ -28,6 +28,10 @@ package com.mysql.cj.jdbc.ha.ca.plugins;
 
 import java.util.concurrent.Callable;
 
+/**
+ * Interface for connection plugins. This class implements ways to execute a JDBC method
+ * and to clean up resources used before closing the plugin.
+ */
 public interface IConnectionPlugin {
   Object execute(Class<?> methodInvokeOn, String methodName, Callable<?> executeSqlFunc)
       throws Exception;

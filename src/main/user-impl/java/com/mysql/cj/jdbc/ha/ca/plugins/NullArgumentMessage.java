@@ -28,9 +28,18 @@ package com.mysql.cj.jdbc.ha.ca.plugins;
 
 import com.mysql.cj.Messages;
 
+/**
+ * Utility class constructing messages for null arguments.
+ */
 public class NullArgumentMessage {
   private static final String ERROR_MESSAGE_KEY = "IllegalArgumentException.NullParameter";
 
+  /**
+   * Return a message indicating the given {@code param} is null.
+   *
+   * @param param The name of the parameter that is null.
+   * @return a message the parameter passed to the caller method is null.
+   */
   public static String getMessage(String param) {
     return Messages.getString(ERROR_MESSAGE_KEY, new String[] { param });
   }

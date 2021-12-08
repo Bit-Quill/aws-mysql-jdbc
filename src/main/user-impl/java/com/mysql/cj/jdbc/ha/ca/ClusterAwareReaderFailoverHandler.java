@@ -78,6 +78,7 @@ public class ClusterAwareReaderFailoverHandler implements ReaderFailoverHandler 
   protected final ConnectionProvider connProvider;
   protected final TopologyService topologyService;
 
+  /** ClusterAwareReaderFailoverHandler constructor. */
   public ClusterAwareReaderFailoverHandler(
       TopologyService topologyService,
       ConnectionProvider connProvider,

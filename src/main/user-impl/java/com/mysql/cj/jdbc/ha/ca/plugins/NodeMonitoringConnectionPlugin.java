@@ -45,9 +45,14 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.function.Supplier;
 
+/**
+ * Monitor the server while the connection is executing methods for more flexible
+ * failure detection.
+ */
 public class NodeMonitoringConnectionPlugin implements IConnectionPlugin {
 
-  private static final String RETRIEVE_HOST_PORT_SQL = "SELECT CONCAT(@@hostname, ':', @@port)";
+  private static final String RETRIEVE_HOST_PORT_SQL =
+      "SELECT CONCAT(@@hostname, ':', @@port)";
   private static final List<String> METHODS_STARTING_WITH = Arrays.asList("get", "abort");
   private static final List<String> METHODS_EQUAL_TO = Arrays.asList("close", "next");
 
@@ -60,6 +65,15 @@ public class NodeMonitoringConnectionPlugin implements IConnectionPlugin {
   private final ICurrentConnectionProvider currentConnectionProvider;
   private JdbcConnection connection;
 
+  /**
+   * Initialize the node monitoring plugin.
+   *
+   * @param currentConnectionProvider A provider allowing the plugin to retrieve the
+   *                                  current active connection and its connection settings.
+   * @param propertySet The property set used to initialize the active connection.
+   * @param nextPlugin The next connection plugin in the chain.
+   * @param logger An implementation of {@link Log}.
+   */
   public NodeMonitoringConnectionPlugin(
       ICurrentConnectionProvider currentConnectionProvider,
       PropertySet propertySet,
@@ -105,7 +119,10 @@ public class NodeMonitoringConnectionPlugin implements IConnectionPlugin {
    * @throws Exception if an error occurs.
    */
   @Override
-  public Object execute(Class<?> methodInvokeOn, String methodName, Callable<?> executeSqlFunc) throws Exception {
+  public Object execute(
+      Class<?> methodInvokeOn,
+      String methodName,
+      Callable<?> executeSqlFunc) throws Exception {
     // update config settings since they may change
     final boolean isEnabled = this.propertySet
         .getBooleanProperty(PropertyKey.nativeFailureDetectionEnabled)
@@ -135,7 +152,8 @@ public class NodeMonitoringConnectionPlugin implements IConnectionPlugin {
     try {
       this.logger.logTrace(String.format(
           "[NodeMonitoringConnectionPlugin.execute]: method=%s.%s, monitoring is activated",
-              methodInvokeOn.getName(), methodName));
+          methodInvokeOn.getName(),
+          methodName));
 
       this.checkIfChanged(this.currentConnectionProvider.getCurrentConnection());
 
@@ -162,7 +180,8 @@ public class NodeMonitoringConnectionPlugin implements IConnectionPlugin {
       }
       this.logger.logTrace(String.format(
           "[NodeMonitoringConnectionPlugin.execute]: method=%s.%s, monitoring is deactivated",
-              methodInvokeOn.getName(), methodName));
+          methodInvokeOn.getName(),
+          methodName));
     }
 
     return result;
@@ -258,7 +277,8 @@ public class NodeMonitoringConnectionPlugin implements IConnectionPlugin {
     }
 
     this.nodeKeys.add(
-        String.format("%s:%s",
+        String.format(
+            "%s:%s",
             hostInfo.getHost(),
             hostInfo.getPort()
         ));

@@ -38,6 +38,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
+/**
+ * Utility class for copying {@link HostInfo} objects.
+ */
 public class ClusterAwareUtils {
   /**
    * Create a copy of the given {@link HostInfo} object where all details are the same except for the host properties,

@@ -58,6 +58,9 @@ public class ConnectionPluginManager {
     Runtime.getRuntime().addShutdownHook(new Thread(ConnectionPluginManager::releaseAllResources));
   }
 
+  /**
+   * Constructor.
+   */
   public ConnectionPluginManager(Log logger) {
     if (logger == null) {
       throw new IllegalArgumentException(NullArgumentMessage.getMessage("logger"));
@@ -120,6 +123,15 @@ public class ConnectionPluginManager {
 
   }
 
+  /**
+   * Execute a JDBC method with the connection plugin chain.
+   *
+   * @param methodInvokeOn The Java Class invoking the JDBC method.
+   * @param methodName The name of the method being invoked.
+   * @param executeSqlFunc A lambda executing the method.
+   * @return the result from the execution.
+   * @throws Exception if errors occurred during the execution.
+   */
   public Object execute(
       Class<?> methodInvokeOn,
       String methodName,
@@ -127,12 +139,19 @@ public class ConnectionPluginManager {
     return this.headPlugin.execute(methodInvokeOn, methodName, executeSqlFunc);
   }
 
+  /**
+   * Release all dangling resources held by the connection plugins associated with
+   * a single connection.
+   */
   public void releaseResources() {
     instances.remove(this);
     this.logger.logTrace("[ConnectionPluginManager.releaseResources]");
     this.headPlugin.releaseResources();
   }
 
+  /**
+   * Release all dangling resources for all connection plugin managers.
+   */
   public static void releaseAllResources() {
     instances.forEach(ConnectionPluginManager::releaseResources);
   }
