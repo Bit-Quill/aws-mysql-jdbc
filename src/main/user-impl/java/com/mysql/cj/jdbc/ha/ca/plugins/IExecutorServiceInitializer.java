@@ -28,6 +28,9 @@ package com.mysql.cj.jdbc.ha.ca.plugins;
 
 import java.util.concurrent.ExecutorService;
 
+/**
+ * Interface for passing a specific {@link ExecutorService} to use by the {@link MonitorThreadContainer}.
+ */
 @FunctionalInterface
 public interface IExecutorServiceInitializer {
   ExecutorService createExecutorService();

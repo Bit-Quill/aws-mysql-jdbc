@@ -29,6 +29,10 @@ package com.mysql.cj.jdbc.ha.ca.plugins;
 import com.mysql.cj.conf.PropertySet;
 import com.mysql.cj.log.Log;
 
+/**
+ * Interface for connection plugin factories. This class implements ways to initialize a
+ * connection plugin.
+ */
 public interface IConnectionPluginFactory {
   IConnectionPlugin getInstance(ICurrentConnectionProvider currentConnectionProvider, PropertySet propertySet, IConnectionPlugin nextPlugin, Log logger);
 }

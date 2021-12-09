@@ -29,6 +29,9 @@ package com.mysql.cj.jdbc.ha.ca.plugins;
 import com.mysql.cj.conf.HostInfo;
 import com.mysql.cj.conf.PropertySet;
 
+/**
+ * Interface for initialize a new {@link Monitor}.
+ */
 @FunctionalInterface
 public interface IMonitorInitializer {
   IMonitor createMonitor(HostInfo hostInfo, PropertySet propertySet, IMonitorService monitorService);

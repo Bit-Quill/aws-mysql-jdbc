@@ -26,6 +26,10 @@
 
 package com.mysql.cj.jdbc.ha.ca.plugins;
 
+/**
+ * Interface for monitors. This class uses background threads to monitor servers with one
+ * or more connections for more efficient failure detection during method execution.
+ */
 public interface IMonitor extends Runnable {
   void startMonitoring(MonitorConnectionContext context);
 

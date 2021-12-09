@@ -32,6 +32,10 @@ import com.mysql.cj.jdbc.JdbcConnection;
 
 import java.util.Set;
 
+/**
+ * Interface for monitor services. This class implements ways to start and stop monitoring
+ * servers when connections are created.
+ */
 public interface IMonitorService {
   MonitorConnectionContext startMonitoring(
       JdbcConnection connectionToAbort,
@@ -53,7 +57,7 @@ public interface IMonitorService {
   /**
    * Stop monitoring the node for all connections represented by the given set of node keys.
    *
-   * @param nodeKeys All known references to an Aurora node.
+   * @param nodeKeys All known references to a server.
    */
   void stopMonitoringForAllConnections(Set<String> nodeKeys);
 

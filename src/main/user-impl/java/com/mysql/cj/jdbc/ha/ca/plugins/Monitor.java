@@ -43,6 +43,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
+/**
+ * This class uses a background thread to monitor a particular server with one or more
+ * active {@link Connection}.
+ */
 public class Monitor implements IMonitor {
   static class ConnectionStatus {
     boolean isValid;
@@ -69,6 +73,20 @@ public class Monitor implements IMonitor {
   private final IMonitorService monitorService;
   private final AtomicBoolean stopped = new AtomicBoolean(true);
 
+  /**
+   * Store the monitoring configuration for a connection.
+   *
+   * @param connectionProvider A provider for creating new connections.
+   * @param hostInfo The {@link HostInfo} of the server this {@link Monitor} instance is
+   *                 monitoring.
+   * @param propertySet The {@link PropertySet} containing additional monitoring configuration.
+   * @param monitorDisposalTime Time before stopping the monitoring thread where there are
+   *                            no active connection to the server this {@link Monitor}
+   *                            instance is monitoring.
+   * @param monitorService A reference to the {@link DefaultMonitorService} implementation
+   *                       that initialized this class.
+   * @param logger A {@link Log} implementation.
+   */
   public Monitor(
       ConnectionProvider connectionProvider,
       HostInfo hostInfo,
@@ -128,8 +146,7 @@ public class Monitor implements IMonitor {
           for (MonitorConnectionContext monitorContext : this.contexts) {
             monitorContext.updateConnectionStatus(
                 currentTime,
-                status.isValid,
-                this.connectionCheckIntervalMillis);
+                status.isValid);
           }
 
           TimeUnit.MILLISECONDS.sleep(Math.max(
