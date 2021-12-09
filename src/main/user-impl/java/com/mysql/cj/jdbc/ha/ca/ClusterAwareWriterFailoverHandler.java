@@ -78,7 +78,7 @@ public class ClusterAwareWriterFailoverHandler implements WriterFailoverHandler 
 
   /**
    * ClusterAwareWriterFailoverHandler constructor.
-   * */
+   */
   public ClusterAwareWriterFailoverHandler(
       TopologyService topologyService,
       ConnectionProvider connectionProvider,
@@ -97,7 +97,7 @@ public class ClusterAwareWriterFailoverHandler implements WriterFailoverHandler 
 
   /**
    * ClusterAwareWriterFailoverHandler constructor.
-   * */
+   */
   public ClusterAwareWriterFailoverHandler(
       TopologyService topologyService,
       ConnectionProvider connectionProvider,

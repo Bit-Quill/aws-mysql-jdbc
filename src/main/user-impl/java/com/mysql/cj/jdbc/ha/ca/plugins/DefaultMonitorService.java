@@ -151,6 +151,14 @@ public class DefaultMonitorService implements IMonitorService {
     this.threadContainer.releaseResource(monitor);
   }
 
+  /**
+   * Get or create a {@link Monitor} for a server.
+   *
+   * @param nodeKeys All references to the server requiring monitoring.
+   * @param hostInfo Information such as hostname of the server.
+   * @param propertySet The user configuration for the current connection.
+   * @return A {@link Monitor} object associated with a specific server.
+   */
   protected IMonitor getMonitor(Set<String> nodeKeys, HostInfo hostInfo, PropertySet propertySet) {
     return this.threadContainer.getOrCreateMonitor(nodeKeys, () -> monitorInitializer.createMonitor(hostInfo, propertySet, this));
   }
