@@ -44,8 +44,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * This class uses a background thread to monitor each server with one or more active
- * {@link Connection}.
+ * This class uses a background thread to monitor a particular server with one or more
+ * active {@link Connection}.
  */
 public class Monitor implements IMonitor {
   static class ConnectionStatus {

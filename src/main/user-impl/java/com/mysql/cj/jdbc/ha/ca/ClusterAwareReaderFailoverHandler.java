@@ -78,7 +78,15 @@ public class ClusterAwareReaderFailoverHandler implements ReaderFailoverHandler 
   protected final ConnectionProvider connProvider;
   protected final TopologyService topologyService;
 
-  /** ClusterAwareReaderFailoverHandler constructor. */
+  /**
+   * ClusterAwareReaderFailoverHandler constructor.
+   *
+   * @param topologyService An implementation of {@link TopologyService} that obtains and
+   *                        caches a cluster's topology.
+   * @param connProvider A provider for creating new connections.
+   * @param initialConnectionProps The initial connection properties to copy over to the
+   *                               new reader.
+   */
   public ClusterAwareReaderFailoverHandler(
       TopologyService topologyService,
       ConnectionProvider connProvider,
@@ -93,10 +101,19 @@ public class ClusterAwareReaderFailoverHandler implements ReaderFailoverHandler 
         log);
   }
 
-
   /**
    * ClusterAwareReaderFailoverHandler constructor.
-   * */
+   *
+   * @param topologyService An implementation of {@link TopologyService} that obtains and
+   *                        caches a cluster's topology.
+   * @param connProvider A provider for creating new connections.
+   * @param initialConnectionProps The initial connection properties to copy over to the
+   *                               new reader.
+   * @param failoverTimeoutMs Maximum allowed time in milliseconds to attempt reconnecting
+   *                         to a new reader instance after a cluster failover is initiated.
+   * @param timeoutMs Maximum allowed time for the entire reader failover process.
+   * @param log An implementation of {@link Log}.
+   */
   public ClusterAwareReaderFailoverHandler(
       TopologyService topologyService,
       ConnectionProvider connProvider,

@@ -46,7 +46,7 @@ import java.util.concurrent.Callable;
 import java.util.function.Supplier;
 
 /**
- * Monitor the server while the connection is executing methods for more flexible
+ * Monitor the server while the connection is executing methods for more sophisticated
  * failure detection.
  */
 public class NodeMonitoringConnectionPlugin implements IConnectionPlugin {

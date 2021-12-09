@@ -58,9 +58,10 @@ public class MonitorConnectionContext {
    *                          that will be aborted in case of server failure.
    * @param nodeKeys All valid references to the server.
    * @param log A {@link Log} implementation.
-   * @param failureDetectionTimeMillis Grace period during which failures are ignored.
-   * @param failureDetectionIntervalMillis How often failures are checked.
-   * @param failureDetectionCount Number of failures before considering the connection dead.
+   * @param failureDetectionTimeMillis Grace period after which node monitoring starts.
+   * @param failureDetectionIntervalMillis Interval between each failed connection check.
+   * @param failureDetectionCount Number of failed connection checks before considering
+   *                              database node as unhealthy.
    */
   public MonitorConnectionContext(
       JdbcConnection connectionToAbort,
@@ -184,8 +185,7 @@ public class MonitorConnectionContext {
 
       final long invalidNodeDurationMillis = currentTime - this.getInvalidNodeStartTime();
       final long maxInvalidNodeDurationMillis =
-          (long) this.getFailureDetectionIntervalMillis()
-              * this.getFailureDetectionCount();
+          (long) this.getFailureDetectionIntervalMillis() * this.getFailureDetectionCount();
 
       if (invalidNodeDurationMillis >= maxInvalidNodeDurationMillis) {
         this.log.logTrace(
