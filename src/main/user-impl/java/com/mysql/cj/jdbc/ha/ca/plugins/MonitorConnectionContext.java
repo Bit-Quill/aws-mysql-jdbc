@@ -154,7 +154,8 @@ public class MonitorConnectionContext {
   }
 
   /**
-   * Update whether the connection is still valid.
+   * Update whether the connection is still valid if the total elapsed time has passed the
+   * grace period.
    *
    * @param currentTime The time when this method is called.
    * @param isValid Whether the connection is valid.
@@ -173,6 +174,20 @@ public class MonitorConnectionContext {
     }
   }
 
+  /**
+   * Set whether the connection to the server is still valid based on the monitoring
+   * settings set in the {@link JdbcConnection}.
+   *
+   * <p>These monitoring settings include:
+   * <ul>
+   *   <li>{@code failureDetectionInterval}</li>
+   *   <li>{@code failureDetectionTime}</li>
+   *   <li>{@code failureDetectionCount}</li>
+   * </ul>
+   *
+   * @param connectionValid Boolean indicating whether the server is still responsive.
+   * @param currentTime The time when this method is invoked in milliseconds.
+   */
   void setConnectionValid(
       boolean connectionValid,
       long currentTime) {

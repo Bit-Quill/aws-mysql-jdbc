@@ -35,7 +35,14 @@ public interface IMonitor extends Runnable {
 
   void stopMonitoring(MonitorConnectionContext context);
 
+  /**
+   * Clear all {@link MonitorConnectionContext} associated with this {@link IMonitor} instance.
+   */
   void clearContexts();
 
+  /**
+   * Whether this {@link IMonitor} has stopped monitoring a particular server.
+   * @return true if the monitoring has stopped; false otherwise.
+   */
   boolean isStopped();
 }

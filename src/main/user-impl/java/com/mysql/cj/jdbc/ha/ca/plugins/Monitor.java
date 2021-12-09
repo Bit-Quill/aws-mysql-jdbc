@@ -175,6 +175,15 @@ public class Monitor implements IMonitor {
     }
   }
 
+  /**
+   * Check the status of the monitored server by sending a ping.
+   *
+   * @param shortestFailureDetectionIntervalMillis The shortest failure detection interval
+   *                                               used by all the connections to this server.
+   *                                               This value is used as the maximum time
+   *                                               to wait for a response from the server.
+   * @return whether the server is still alive and the elapsed time spent checking.
+   */
   ConnectionStatus checkConnectionStatus(final int shortestFailureDetectionIntervalMillis) {
     long start = this.getCurrentTimeMillis();
     try {
