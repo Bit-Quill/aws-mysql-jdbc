@@ -36,12 +36,12 @@ The AWS JDBC Driver for MySQL can be installed from pre-compiled packages that c
 
 **Example - Direct Download via wget**
 ```bash
-wget https://github.com/awslabs/aws-mysql-jdbc/releases/download/0.2.0/aws-mysql-jdbc-0.2.0.jar
+wget https://github.com/awslabs/aws-mysql-jdbc/releases/download/0.4.0/aws-mysql-jdbc-0.4.0.jar
 ```
 
 **Example - Adding the Driver to the CLASSPATH**
 ```bash
-export CLASSPATH=$CLASSPATH:/home/userx/libs/aws-mysql-jdbc-0.2.0.jar
+export CLASSPATH=$CLASSPATH:/home/userx/libs/aws-mysql-jdbc-0.4.0.jar
 ```
 
 #### As a Maven Dependency
@@ -53,7 +53,7 @@ Alternatively, the driver can be obtained automatically via [Maven's dependency 
   <dependency>
     <groupId>software.aws.rds</groupId>
     <artifactId>aws-mysql-jdbc</artifactId>
-    <version>0.2.0</version>
+    <version>0.4.0</version>
   </dependency>
 </dependencies>
 ```
@@ -287,13 +287,13 @@ public class FailoverSampleApp2 {
 >2. It is highly recommended that you use the cluster and read-only cluster endpoints instead of the direct instance endpoints of your Aurora cluster, unless you are confident about your application's usage of instance endpoints. Although the Driver will correctly failover to the new writer instance when using instance endpoints, usage of these endpoints are discouraged because individual instances can spontaneously change reader/writer status when failover occurs. The driver will always connect directly to the instance specified if an instance endpoint is provided, so a write-safe connection cannot be assumed if the application uses instance endpoints.
 
 ### Connection Plugin Manager
+Connection plugin manager initializes, triggers, and cleans up connection plugins. Connection plugins are widgets attached to each `Connection` objects to help execute additional or supplementary logic related to that `Connection`. [Enhanced Failure Monitoring](https://github.com/awslabs/aws-mysql-jdbc#enhanced-failure-monitoring) is one example of a connection plugin. 
 <div style="text-align:center"><img src="./docs/files/images/connection_plugin_manager_diagram.png" /></div>
 
-The figure above shows a simplified workflow of the connection plugin manager which initializes, triggers, and cleans up connection plugins. 
-Connection plugins are widgets attached to each `Connection` objects to help execute additional or supplementary logic related to that `Connection`.  
+The figure above shows a simplified workflow of the connection plugin manager.  
 Starting at the top, when a JDBC method is executed by the driver, it is passed to the connection plugin manager. From the connection plugin manager, the JDBC method is passed in order of plugins loaded like a chain. In this figure, `Custom Plugin A` to `Custom Plugin B` and finally to `Default Plugin` which executes the JDBC method and returns the result back up the chain.
 
-By default, [Enhanced Failure Monitoring](https://github.com/awslabs/aws-mysql-jdbc#enhanced-failure-monitoring) is loaded. Additional custom plugins can be implemented and used alongside existing ones. Plugins can be chained together in a desired order. Loading custom plugins will not include Enhanced Failure Monitoring unless explicitly stated through the `connectionPluginFactories` parameter.
+By default, Enhanced Failure Monitoring is loaded. Additional custom plugins can be implemented and used alongside existing ones. Plugins can be chained together in a desired order. Loading custom plugins will not include Enhanced Failure Monitoring unless explicitly stated through the `connectionPluginFactories` parameter.
 
 The AWS JDBC Driver for MySQL attaches the `DefaultConnectionPlugin` to the tail of the connection plugin chain 
 and actually executes the given JDBC method.
@@ -309,6 +309,9 @@ To learn how to write custom plugins, refer to examples located inside [Custom P
 | Parameter       | Value           | Required      | Description  | Default Value |
 | ------------- |:-------------:|:-------------:|:-------------:| --------- |
 |`connectionPluginFactories` | String | No | String of fully-qualified class name of plugin factories. <br/><br/>Each factory in the string should be comma-separated `,`<br/><br/>**NOTE: The order of factories declared matters.**  <br/><br/>Example: `customplugins.MethodCountConnectionPluginFactory`, `customplugins.MethodCountConnectionPluginFactory,customplugins.ExecutionTimeConnectionPluginFactory,com.mysql.cj.jdbc.ha.ca.plugins.NodeMonitoringConnectionPluginFactory` | `com.mysql.cj.jdbc.ha.ca.plugins.NodeMonitoringConnectionPluginFactory` |
+
+>### :warning: Warnings About Connection Plugin Manager
+>If application is unable to close, it may be due to connection plugin manager not being able to release resources properly. User can manually release resources by calling `software.aws.rds.jdbc.mysql.Driver.releasePluginManagers()`.
 
 ### Enhanced Failure Monitoring
 <div style="text-align:center"><img src="./docs/files/images/enhanced_failure_monitoring_diagram.png" /></div>
