@@ -47,7 +47,6 @@ public class DefaultMonitorService implements IMonitorService {
   private final Log logger;
   final IMonitorInitializer monitorInitializer;
 
-  /** Constructor. */
   public DefaultMonitorService(Log logger) {
     this(
         (hostInfo, propertySet, monitorService) -> new Monitor(

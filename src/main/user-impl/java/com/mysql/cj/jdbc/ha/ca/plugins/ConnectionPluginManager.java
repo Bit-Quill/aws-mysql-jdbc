@@ -58,9 +58,6 @@ public class ConnectionPluginManager {
     Runtime.getRuntime().addShutdownHook(new Thread(ConnectionPluginManager::releaseAllResources));
   }
 
-  /**
-   * Constructor.
-   */
   public ConnectionPluginManager(Log logger) {
     if (logger == null) {
       throw new IllegalArgumentException(NullArgumentMessage.getMessage("logger"));

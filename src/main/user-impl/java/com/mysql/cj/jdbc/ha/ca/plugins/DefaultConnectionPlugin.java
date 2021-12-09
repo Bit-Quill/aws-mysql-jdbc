@@ -39,7 +39,6 @@ public class DefaultConnectionPlugin implements IConnectionPlugin {
 
   protected Log logger;
 
-  /** Constructor. */
   public DefaultConnectionPlugin(Log logger) {
     if (logger == null) {
       throw new IllegalArgumentException(NullArgumentMessage.getMessage("logger"));
