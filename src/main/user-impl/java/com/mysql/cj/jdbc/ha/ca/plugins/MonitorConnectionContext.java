@@ -32,6 +32,10 @@ import com.mysql.cj.log.Log;
 import java.sql.SQLException;
 import java.util.Set;
 
+/**
+ * Monitoring context for each connection. This contains each connection's criteria for
+ * whether a server should be considered unhealthy.
+ */
 public class MonitorConnectionContext {
   private final int failureDetectionIntervalMillis;
   private final int failureDetectionTimeMillis;
@@ -47,6 +51,18 @@ public class MonitorConnectionContext {
   private boolean nodeUnhealthy;
   private boolean activeContext = true;
 
+  /**
+   * Constructor.
+   *
+   * @param connectionToAbort A reference to the connection associated with this context
+   *                          that will be aborted in case of server failure.
+   * @param nodeKeys All valid references to the server.
+   * @param log A {@link Log} implementation.
+   * @param failureDetectionTimeMillis Grace period after which node monitoring starts.
+   * @param failureDetectionIntervalMillis Interval between each failed connection check.
+   * @param failureDetectionCount Number of failed connection checks before considering
+   *                              database node as unhealthy.
+   */
   public MonitorConnectionContext(
       JdbcConnection connectionToAbort,
       Set<String> nodeKeys,
@@ -137,10 +153,15 @@ public class MonitorConnectionContext {
     }
   }
 
+  /**
+   * Update whether the connection is still valid.
+   *
+   * @param currentTime The time when this method is called.
+   * @param isValid Whether the connection is valid.
+   */
   public void updateConnectionStatus(
       long currentTime,
-      boolean isValid,
-      long validationIntervalTimeMillis) {
+      boolean isValid) {
     if (!this.activeContext) {
       return;
     }
@@ -148,14 +169,13 @@ public class MonitorConnectionContext {
     final long totalElapsedTimeMillis = currentTime - this.startMonitorTime;
 
     if (totalElapsedTimeMillis > this.failureDetectionTimeMillis) {
-      this.setConnectionValid(isValid, currentTime, validationIntervalTimeMillis);
+      this.setConnectionValid(isValid, currentTime);
     }
   }
 
   void setConnectionValid(
       boolean connectionValid,
-      long currentTime,
-      long validationIntervalTimeMillis) {
+      long currentTime) {
     if (!connectionValid) {
       this.failureCount++;
 
@@ -165,8 +185,7 @@ public class MonitorConnectionContext {
 
       final long invalidNodeDurationMillis = currentTime - this.getInvalidNodeStartTime();
       final long maxInvalidNodeDurationMillis =
-          (long) this.getFailureDetectionIntervalMillis()
-              * this.getFailureDetectionCount();
+          (long) this.getFailureDetectionIntervalMillis() * this.getFailureDetectionCount();
 
       if (invalidNodeDurationMillis >= maxInvalidNodeDurationMillis) {
         this.log.logTrace(

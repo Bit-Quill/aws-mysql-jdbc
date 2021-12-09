@@ -31,6 +31,10 @@ import com.mysql.cj.log.Log;
 import java.lang.reflect.InvocationTargetException;
 import java.util.concurrent.Callable;
 
+/**
+ * This connection plugin will always be the last plugin in the connection plugin chain,
+ * and will invoke the JDBC method passed down the chain.
+ */
 public class DefaultConnectionPlugin implements IConnectionPlugin {
 
   protected Log logger;

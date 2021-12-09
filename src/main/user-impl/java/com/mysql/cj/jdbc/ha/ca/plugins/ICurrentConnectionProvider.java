@@ -31,6 +31,9 @@ import com.mysql.cj.jdbc.JdbcConnection;
 
 import java.sql.Connection;
 
+/**
+ * Interface for retrieving the current active {@link JdbcConnection} and its {@link HostInfo}.
+ */
 public interface ICurrentConnectionProvider {
   JdbcConnection getCurrentConnection();
 

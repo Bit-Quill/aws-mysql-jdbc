@@ -888,7 +888,7 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
       throws SQLException {
     HostInfo hostInfoWithInitialProps = ClusterAwareUtils.copyWithAdditionalProps(
         baseHostInfo,
-        this.initialConnectionProps);
+        this.connectionUrl);
     ConnectionImpl conn = this.connectionProvider.connect(hostInfoWithInitialProps);
     setConnectionProxy(conn);
     return conn;

@@ -39,6 +39,10 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
+/**
+ * This singleton class keeps track of all the monitoring threads and handles the creation
+ * and clean up of each monitoring thread.
+ */
 public class MonitorThreadContainer {
   private static MonitorThreadContainer singleton = null;
   private static final AtomicInteger CLASS_USAGE_COUNT = new AtomicInteger();
@@ -48,6 +52,11 @@ public class MonitorThreadContainer {
   private final ExecutorService threadPool;
   private static final Object LOCK_OBJECT = new Object();
 
+  /**
+   * Create an instance of the {@link MonitorThreadContainer}.
+   *
+   * @return a singleton instance of the {@link MonitorThreadContainer}.
+   */
   public static MonitorThreadContainer getInstance() {
     return getInstance(Executors::newCachedThreadPool);
   }
@@ -63,6 +72,10 @@ public class MonitorThreadContainer {
     return singleton;
   }
 
+  /**
+   * Release resources held in the {@link MonitorThreadContainer} and clear references
+   * to the container.
+   */
   public static void releaseInstance() {
     if (singleton == null) {
       return;
@@ -154,6 +167,12 @@ public class MonitorThreadContainer {
     availableMonitors.add(monitor);
   }
 
+  /**
+   * Remove references to the given {@link Monitor} object and stop the background monitoring
+   * thread.
+   *
+   * @param monitor The {@link Monitor} representing a monitoring thread.
+   */
   public void releaseResource(IMonitor monitor) {
     if (monitor == null) {
       return;

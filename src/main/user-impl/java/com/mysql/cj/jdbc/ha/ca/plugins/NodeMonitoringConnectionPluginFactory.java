@@ -29,6 +29,9 @@ package com.mysql.cj.jdbc.ha.ca.plugins;
 import com.mysql.cj.conf.PropertySet;
 import com.mysql.cj.log.Log;
 
+/**
+ * Class initializing a {@link NodeMonitoringConnectionPlugin}.
+ */
 public class NodeMonitoringConnectionPluginFactory implements IConnectionPluginFactory {
   @Override
   public IConnectionPlugin getInstance(

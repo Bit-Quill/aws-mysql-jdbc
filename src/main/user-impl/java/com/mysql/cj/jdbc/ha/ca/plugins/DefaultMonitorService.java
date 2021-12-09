@@ -37,6 +37,10 @@ import com.mysql.cj.log.Log;
 import java.util.Set;
 import java.util.concurrent.Executors;
 
+/**
+ * This class handles the creation and clean up of monitoring threads to servers with one
+ * or more active connections.
+ */
 public class DefaultMonitorService implements IMonitorService {
   MonitorThreadContainer threadContainer;
 
