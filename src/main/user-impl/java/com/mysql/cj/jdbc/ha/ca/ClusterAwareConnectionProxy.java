@@ -1194,6 +1194,8 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
       dealWithInvocationException(e);
     } catch (IllegalStateException e) {
       dealWithIllegalStateException(e);
+    } catch (Exception e) {
+      dealWithOriginalException(e, null);
     }
 
     performSpecialMethodHandlingIfRequired(args, methodName);
