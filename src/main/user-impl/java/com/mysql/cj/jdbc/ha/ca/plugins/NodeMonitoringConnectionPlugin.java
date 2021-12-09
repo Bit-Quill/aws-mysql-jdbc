@@ -195,6 +195,13 @@ public class NodeMonitoringConnectionPlugin implements IConnectionPlugin {
     }
   }
 
+  /**
+   * Checks whether the JDBC method passed to this connection plugin requires monitoring.
+   *
+   * @param methodInvokeOn The class of the JDBC method.
+   * @param methodName Name of the JDBC method.
+   * @return true if the method requires monitoring; false otherwise.
+   */
   protected boolean doesNeedMonitoring(Class<?> methodInvokeOn, String methodName) {
     // It's possible to use the following, or similar, expressions to verify method invocation class
     //
@@ -214,7 +221,7 @@ public class NodeMonitoringConnectionPlugin implements IConnectionPlugin {
       }
     }
 
-    // Monitor all other methods
+    // Monitor all the other methods
     return true;
   }
 
@@ -224,6 +231,10 @@ public class NodeMonitoringConnectionPlugin implements IConnectionPlugin {
     }
   }
 
+  /**
+   * Call this plugin's monitor service to release all resources associated with this
+   * plugin.
+   */
   @Override
   public void releaseResources() {
     if (this.monitorService != null) {
@@ -243,7 +254,7 @@ public class NodeMonitoringConnectionPlugin implements IConnectionPlugin {
   /**
    * Check if the connection has changed.
    * If so, remove monitor's references to that node and
-   * regenerate the set of node keys referencing the node we need to monitor.
+   * regenerate the set of node keys referencing the node that requires monitoring.
    *
    * @param newConnection The connection used by {@link ClusterAwareConnectionProxy}.
    */
@@ -259,7 +270,7 @@ public class NodeMonitoringConnectionPlugin implements IConnectionPlugin {
   /**
    * Generate a set of node keys representing the node to monitor.
    *
-   * @param connection the connection to a specific Aurora node.
+   * @param connection the connection to a specific node.
    */
   private void generateNodeKeys(Connection connection) {
     this.nodeKeys.clear();
