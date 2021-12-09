@@ -133,6 +133,7 @@ import java.sql.*;
  * Scenario 1: Failover happens when autocommit is set to true - Catch SQLException with code 08S02.
  */
 public class FailoverSampleApp1 {
+
    private static final String CONNECTION_STRING = "jdbc:mysql:aws://database-mysql.cluster-XYZ.us-east-2.rds.amazonaws.com:3306/employees";
    private static final String USERNAME = "username";
    private static final String PASSWORD = "password";
@@ -182,7 +183,7 @@ public class FailoverSampleApp1 {
                setInitialSessionState(conn);
                // Re-execute that query again.
                retries++;
-               
+
             } else {
                // If some other exception occurs, throw the exception.
                throw e;
@@ -210,6 +211,7 @@ import java.sql.*;
  * Scenario 2: Failover happens when autocommit is set to false - Catch SQLException with code 08007.
  */
 public class FailoverSampleApp2 {
+
    private static final String CONNECTION_STRING = "jdbc:mysql:aws://database-mysql.cluster-XYZ.us-east-2.rds.amazonaws.com:3306/employees";
    private static final String USERNAME = "username";
    private static final String PASSWORD = "password";
@@ -340,8 +342,7 @@ The default XML parser contained a security risk which made the driver prone to 
 |`allowXmlUnsafeExternalEntity` | Boolean | No | Set to true if you would like to use XML inputs that refer to external entities. WARNING: Setting this to true is unsafe since your system to be prone to XXE attacks. | `false` |
 
 ### AWS IAM Database Authentication
-
-An optional authentication method is to use Amazon AWS Identity and Access Management (IAM). Use of IAM requires RDS SDK to be added to the classpath.
+An optional authentication method is to use Amazon AWS Identity and Access Management (IAM).
 When using AWS IAM database authentication, host URL must be a valid Amazon endpoint, and not a custom domain or an IP address.
 <br>ie. `database-mysql-name.cluster-XYZ.us-east-2.rds.amazonaws.com`
 
@@ -368,6 +369,7 @@ import java.sql.*;
 import java.util.Properties;
 
 public class AwsIamAuthenticationSample {
+
    private static final String CONNECTION_STRING = "jdbc:mysql:aws://database-mysql-name.cluster-XYZ.us-east-2.rds.amazonaws.com:3306/employees";
    private static final String USER = "username";
 
