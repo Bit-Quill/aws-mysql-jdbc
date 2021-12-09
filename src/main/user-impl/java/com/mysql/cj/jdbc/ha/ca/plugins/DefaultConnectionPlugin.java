@@ -54,7 +54,8 @@ public class DefaultConnectionPlugin implements IConnectionPlugin {
     } catch (InvocationTargetException invocationTargetException) {
       Throwable targetException = invocationTargetException.getTargetException();
       this.logger.logTrace(
-              String.format("[DefaultConnectionPlugin.execute]: method=%s.%s, exception: ", methodInvokeOn.getName(), methodName), targetException);
+          String.format("[DefaultConnectionPlugin.execute]: method=%s.%s, exception: ",
+              methodInvokeOn.getName(), methodName), targetException);
       if (targetException instanceof Error) {
         throw (Error) targetException;
       }
