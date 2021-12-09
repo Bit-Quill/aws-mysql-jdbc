@@ -192,12 +192,6 @@ tasks.named<Test>("test") {
 
     passProperty("com.mysql.cj.testsuite.url")
     passProperty("com.mysql.cj.testsuite.url.openssl")
-
-    passProperty("com.mysql.cj.testsuite.failover.networkFailures.clusterEndpointBase")
-    passProperty("com.mysql.cj.testsuite.failover.networkFailures.clusterName")
-    passProperty("com.mysql.cj.testsuite.failover.networkFailures.database")
-    passProperty("com.mysql.cj.testsuite.failover.networkFailures.user")
-    passProperty("com.mysql.cj.testsuite.failover.networkFailures.password")
 }
 
 tasks.named<Checkstyle>("checkstyleMain") {
