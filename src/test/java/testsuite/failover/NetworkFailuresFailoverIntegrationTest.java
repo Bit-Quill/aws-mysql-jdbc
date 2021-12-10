@@ -64,7 +64,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
  * mysql-instance-5
  */
 
-//@Disabled
+@Disabled
 @TestMethodOrder(MethodOrderer.Alphanumeric.class)
 public class NetworkFailuresFailoverIntegrationTest {
 
