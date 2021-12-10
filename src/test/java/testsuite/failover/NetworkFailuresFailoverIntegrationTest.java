@@ -64,7 +64,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
  * mysql-instance-5
  */
 
-@Disabled
+//@Disabled
 @TestMethodOrder(MethodOrderer.Alphanumeric.class)
 public class NetworkFailuresFailoverIntegrationTest {
 
@@ -113,6 +113,7 @@ public class NetworkFailuresFailoverIntegrationTest {
     props.setProperty(PropertyKey.socketFactory.getKeyName(), testsuite.UnreliableSocketFactory.class.getName());
     props.setProperty(PropertyKey.socketTimeout.getKeyName(), "1000");
     props.setProperty(PropertyKey.connectTimeout.getKeyName(), "3000");
+    props.setProperty(PropertyKey.failoverTimeoutMs.getKeyName(), "10000");
     final Connection testConnection = DriverManager.getConnection(DB_CONN_CLUSTER, props);
 
     String currentWriter = selectSingleRow(testConnection, "SELECT @@aurora_server_id");

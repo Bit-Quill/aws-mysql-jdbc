@@ -752,7 +752,6 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
     synchronized (this.lockObject) {
       if (this.isClosed && this.closedExplicitly) {
         this.log.logDebug(Messages.getString("ClusterAwareConnectionProxy.14"));
-        releasePluginManager();
         return;
       }
 
@@ -982,7 +981,6 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
     }
 
     this.log.logError(message);
-    releasePluginManager();
     throw new SQLException(
         message,
         MysqlErrorNumbers.SQL_STATE_UNABLE_TO_CONNECT_TO_DATASOURCE);
