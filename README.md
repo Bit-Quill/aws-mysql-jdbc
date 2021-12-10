@@ -83,7 +83,7 @@ Note: The connection string follows standard URL parameters. In order to add par
  
 
 | URL Type        | Example           | Required Parameters  | Driver Behavior |
-| ------------- |-------------| :-----:| --- |
+| --------------- |-------------------| :-------------------:| --------------- |
 | Cluster Endpoint      | `jdbc:mysql:aws://db-identifier.cluster-XYZ.us-east-2.rds.amazonaws.com:3306` | None | *Initial connection:* primary DB instance<br/>*Failover behavior:* connect to the new primary DB instance |
 | Read-Only Cluster Endpoint      | `jdbc:mysql:aws://db-identifier.cluster-ro-XYZ.us-east-2.rds.amazonaws.com:3306`      |   None |  *Initial connection:* any Aurora Replica<br/>*Failover behavior:* prioritize connecting to any active Aurora Replica but might connect to the primary DB instance if it provides a faster connection|
 | Instance Endpoint | `jdbc:mysql:aws://instance-1.XYZ.us-east-2.rds.amazonaws.com:3306`      |    None | *Initial connection:* the instance specified (DB instance 1)<br/>*Failover behavior:* connect to the primary DB instance|
@@ -101,7 +101,7 @@ For more information about parameters that can be configured with the AWS JDBC D
 In addition to [the parameters that can be configured for the MySQL Connector/J driver](https://dev.mysql.com/doc/connector-j/8.0/en/connector-j-reference-configuration-properties.html), the following parameters can also be passed to the AWS JDBC Driver through the connection URL to configure additional driver behavior.
 
 | Parameter       | Value           | Required      | Description  | Default Value |
-| ------------- |:-------------:|:-------------:|:-------------:| --------- |
+| --------------- |:---------------:|:-------------:|:------------ | ------------- |
 |`enableClusterAwareFailover` | Boolean | No | Set to true to enable the fast failover behavior offered by the AWS JDBC Driver. Set to false for simple JDBC connections that do not require fast failover functionality. | `true` |
 |`clusterInstanceHostPattern` | String | If connecting using an IP address or custom domain URL: Yes<br/>Otherwise: No | This parameter is not required unless connecting to an AWS RDS cluster via an IP address or custom domain URL. In those cases, this parameter specifies the cluster instance DNS pattern that will be used to build a complete instance endpoint. A "?" character in this pattern should be used as a placeholder for the DB instance identifiers of the instances in the cluster. <br/><br/>Example: `?.my-domain.com`, `any-subdomain.?.my-domain.com:9999`<br/><br/>Usecase Example: If your cluster instance endpoints followed this pattern:`instanceIdentifier1.customHost`, `instanceIdentifier2.customHost`, etc. and you wanted your initial connection to be to `customHost:1234`, then your connection string should look something like this: `jdbc:mysql:aws://customHost:1234/test?clusterInstanceHostPattern=?.customHost` | If the provided connection string is not an IP address or custom domain, the driver will automatically acquire the cluster instance host pattern from the customer-provided connection string. |
 |`clusterId` | String | No | A unique identifier for the cluster. Connections with the same cluster ID share a cluster topology cache. This connection parameter is not required and thus should only be set if desired. | The driver will automatically acquire a cluster id for AWS RDS clusters. |
@@ -110,7 +110,7 @@ In addition to [the parameters that can be configured for the MySQL Connector/J 
 |`failoverClusterTopologyRefreshRateMs` | Integer | No | Cluster topology refresh rate in milliseconds during a writer failover process. During the writer failover process, cluster topology may be refreshed at a faster pace than normal to speed up discovery of the newly promoted writer. | `5000` |
 |`failoverWriterReconnectIntervalMs` | Integer | No | Interval of time in milliseconds to wait between attempts to reconnect to a failed writer during a writer failover process. | `5000` |
 |`failoverReaderConnectTimeoutMs` | Integer | No | Maximum allowed time in milliseconds to attempt to connect to a reader instance during a reader failover process. | `5000` |
-|`acceptAwsProtocolOnly` | Boolean | If using simultaneously with another MySQL driver that supports the same protocols: Yes<br/>Otherwise: No | Set to true to only accept connections for URLs with the jdbc:mysql:aws:// protocol. This setting should be set to true when running an application that uses this driver simultaneously with another MySQL driver that supports the same protocols (eg the MySQL JDBC Driver), to ensure the driver protocols do not clash. This behavior can also be set at the driver level for every connection via the Driver.setAcceptAwsProtocolOnly method; however, this connection parameter will take priority when present. | `false` |
+|`acceptAwsProtocolOnly` | Boolean | If using simultaneously with another MySQL driver that supports the same protocols: Yes<br/>Otherwise: No | Set to true to only accept connections for URLs with the jdbc:mysql:aws:// protocol. This setting should be set to true when running an application that uses this driver simultaneously with another MySQL driver that supports the same protocols (e.g. the MySQL JDBC Driver), to ensure the driver protocols do not clash. This behavior can also be set at the driver level for every connection via the Driver.setAcceptAwsProtocolOnly method; however, this connection parameter will take priority when present. | `false` |
 |`gatherPerfMetrics` | Boolean | No | Set to true if you would like the driver to record failover-associated metrics, which will then be logged upon closing the connection. | `false` | 
 |`allowXmlUnsafeExternalEntity` | Boolean | No | Set to true if you would like to use XML inputs that refer to external entities. WARNING: Setting this to true is unsafe since your system to be prone to XXE attacks. | `false` |
 
@@ -287,7 +287,7 @@ public class FailoverSampleApp2 {
 >2. It is highly recommended that you use the cluster and read-only cluster endpoints instead of the direct instance endpoints of your Aurora cluster, unless you are confident about your application's usage of instance endpoints. Although the Driver will correctly failover to the new writer instance when using instance endpoints, usage of these endpoints are discouraged because individual instances can spontaneously change reader/writer status when failover occurs. The driver will always connect directly to the instance specified if an instance endpoint is provided, so a write-safe connection cannot be assumed if the application uses instance endpoints.
 
 ### Connection Plugin Manager
-Connection plugin manager initializes, triggers, and cleans up connection plugins. Connection plugins are widgets attached to each `Connection` objects to help execute additional or supplementary logic related to that `Connection`. [Enhanced Failure Monitoring](https://github.com/awslabs/aws-mysql-jdbc#enhanced-failure-monitoring) is one example of a connection plugin. 
+Connection plugin manager initializes, triggers, and cleans up a chain of connection plugins. Connection plugins are widgets attached to each `Connection` objects to help execute additional or supplementary logic related to that `Connection`. [Enhanced Failure Monitoring](https://github.com/awslabs/aws-mysql-jdbc#enhanced-failure-monitoring) is one example of a connection plugin. 
 <div style="text-align:center"><img src="./docs/files/images/connection_plugin_manager_diagram.png" /></div>
 
 The figure above shows a simplified workflow of the connection plugin manager.  
@@ -307,15 +307,15 @@ To learn how to write custom plugins, refer to examples located inside [Custom P
 
 #### Connection Plugin Manager Parameters
 | Parameter       | Value           | Required      | Description  | Default Value |
-| ------------- |:-------------:|:-------------:|:-------------:| --------- |
-|`connectionPluginFactories` | String | No | String of fully-qualified class name of plugin factories. <br/><br/>Each factory in the string should be comma-separated `,`<br/><br/>**NOTE: The order of factories declared matters.**  <br/><br/>Example: `customplugins.MethodCountConnectionPluginFactory`, `customplugins.MethodCountConnectionPluginFactory,customplugins.ExecutionTimeConnectionPluginFactory,com.mysql.cj.jdbc.ha.ca.plugins.NodeMonitoringConnectionPluginFactory` | `com.mysql.cj.jdbc.ha.ca.plugins.NodeMonitoringConnectionPluginFactory` |
+| --------------- |:---------------:|:-------------:|:------------ | ------------- |
+|`connectionPluginFactories` | String | No | String of fully-qualified class name of plugin factories. <br/><br/>Each factory in the string should be comma-separated `,`<br/><br/>**NOTE: The order of factories declared matters.**  <br/><br/>Example: `customplugins.MethodCountConnectionPluginFactory`, `customplugins.ExecutionTimeConnectionPluginFactory,com.mysql.cj.jdbc.ha.ca.plugins.NodeMonitoringConnectionPluginFactory` | `com.mysql.cj.jdbc.ha.ca.plugins.NodeMonitoringConnectionPluginFactory` |
 
->### :warning: Warnings About Connection Plugin Manager
->If application is unable to close, it may be due to connection plugin manager not being able to release resources properly. User can manually release resources by calling `software.aws.rds.jdbc.mysql.Driver.releasePluginManagers()`.
+>### :warning: Warnings About Resource Usage in Connection Plugin Manager
+>If the application is unable to close, it may be due to connection plugin manager not being able to release resources properly. User can manually release resources by calling `software.aws.rds.jdbc.mysql.Driver.releasePluginManagers()`.
 
 ### Enhanced Failure Monitoring
 <div style="text-align:center"><img src="./docs/files/images/enhanced_failure_monitoring_diagram.png" /></div>
-The figure above shows a simplified workflow of enhanced failure monitoring. Enhanced failure monitoring, is a connection plugin implemented by using a monitor thread. The monitor will periodically check the connected database node's health. In the case of the database node showing up as unhealthy, the query will be retried with a new database node and the monitor is restarted. 
+The figure above shows a simplified workflow of Enhanced Failure Monitoring. Enhanced Failure Monitoring, is a connection plugin implemented by using a monitor thread. The monitor will periodically check the connected database node's health. In the case of the database node showing up as unhealthy, the query will be retried with a new database node and the monitor is restarted. 
 
 Enhanced Failure Monitoring is loaded in by default and can be disabled by setting parameter `failureDetectionEnabled` to `false`. 
 
@@ -327,8 +327,8 @@ If custom connection plugins are loaded, Enhanced Failure Monitoring will NOT be
 Additional monitoring configurations can be included by adding the prefix `monitoring-` to the configuration key.
 
 | Parameter       | Value           | Required      | Description  | Default Value |
-| ------------- |:-------------:|:-------------:|:-------------:| --------- |
-|`failureDetectionEnabled` | Boolean | No | Set to false to disable enhanced failure monitoring feature. | `true` |
+| --------------- |:---------------:|:-------------:|:------------ | ------------- |
+|`failureDetectionEnabled` | Boolean | No | Set to false to disable Enhanced Failure Monitoring. | `true` |
 |`failureDetectionTime` | Integer | No | Interval in milliseconds between sending a SQL query to the server and the first probe to the database node. | `30000` |
 |`failureDetectionInterval` | Integer | No | Interval in milliseconds between probes to database node. | `5000` |
 |`failureDetectionCount` | Integer | No | Number of failed connection checks before considering database node as unhealthy. | `3` |
@@ -341,7 +341,7 @@ Additional monitoring configurations can be included by adding the prefix `monit
 The default XML parser contained a security risk which made the driver prone to XXE (XML Entity Injection) attacks. To solve this issue, we disabled DTDs (Document type definition) in the XML parser. If you require this restriction to be lifted in your application, you can set the `allowXmlUnsafeExternalEntity` parameter in the connection string to true. Please see table below for a definition of this parameter. 
 
 | Parameter       | Value           | Required      | Description  | Default Value |
-| ------------- |:-------------:|:-------------:|:-------------:| --------- |
+| --------------- |:---------------:|:-------------:|:------------ | ------------- |
 |`allowXmlUnsafeExternalEntity` | Boolean | No | Set to true if you would like to use XML inputs that refer to external entities. WARNING: Setting this to true is unsafe since your system to be prone to XXE attacks. | `false` |
 
 ### AWS IAM Database Authentication
@@ -363,7 +363,7 @@ For more information on limitations and recommendations, please [read](https://d
    `CREATE USER example_user_name IDENTIFIED WITH AWSAuthenticationPlugin AS 'RDS';`
 
 | Parameter       | Value           | Required      | Description  | Default Value |
-| ------------- |:-------------:|:-------------:|:-------------:| --------- |
+| --------------- |:---------------:|:-------------:|:------------ | ------------- |
 |`useAwsIam` | Boolean | No | Set to true to enable AWS IAM database authentication | `false` |
 
 ###### Sample Code
