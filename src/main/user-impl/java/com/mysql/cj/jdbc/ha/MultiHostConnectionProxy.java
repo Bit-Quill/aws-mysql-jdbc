@@ -85,8 +85,6 @@ public abstract class MultiHostConnectionProxy implements InvocationHandler {
     // exception is caught in every proxy instance belonging to the same call stack.
     protected Throwable lastExceptionDealtWith = null;
 
-    protected final Object lockObject = new Object();
-
     /**
      * Proxy class to intercept and deal with errors that may occur in any object bound to the current connection.
      */
@@ -103,7 +101,7 @@ public abstract class MultiHostConnectionProxy implements InvocationHandler {
                 return args[0].equals(this);
             }
 
-            synchronized (MultiHostConnectionProxy.this.lockObject) {
+            synchronized (MultiHostConnectionProxy.this) {
                 Object result = null;
 
                 try {
@@ -316,10 +314,8 @@ public abstract class MultiHostConnectionProxy implements InvocationHandler {
      * @throws SQLException
      *             if an error occurs
      */
-    protected void invalidateCurrentConnection() throws SQLException {
-        synchronized (this.lockObject) {
-            invalidateConnection(this.currentConnection);
-        }
+    protected synchronized void invalidateCurrentConnection() throws SQLException {
+        invalidateConnection(this.currentConnection);
     }
 
     /**
@@ -330,17 +326,16 @@ public abstract class MultiHostConnectionProxy implements InvocationHandler {
      * @throws SQLException
      *             if an error occurs
      */
-    protected void invalidateConnection(JdbcConnection conn) throws SQLException {
-        synchronized (this.lockObject) {
-            try {
-                if (conn != null && !conn.isClosed()) {
-                    conn.realClose(true, !conn.getAutoCommit(), true, null);
-                }
-            } catch (SQLException e) {
-                // swallow this exception, current connection should be useless anyway.
+    protected synchronized void invalidateConnection(JdbcConnection conn) throws SQLException {
+        try {
+            if (conn != null && !conn.isClosed()) {
+                conn.realClose(true, !conn.getAutoCommit(), true, null);
             }
+        } catch (SQLException e) {
+            // swallow this exception, current connection should be useless anyway.
         }
     }
+
 
     /**
      * Picks the "best" connection to use from now on. Each subclass needs to implement its connection switch strategy on it.
@@ -360,16 +355,14 @@ public abstract class MultiHostConnectionProxy implements InvocationHandler {
      * @throws SQLException
      *             if an error occurs
      */
-    protected ConnectionImpl createConnectionForHost(HostInfo hostInfo) throws SQLException {
-        synchronized (this.lockObject) {
-            ConnectionImpl conn = (ConnectionImpl) ConnectionImpl.getInstance(hostInfo);
-            JdbcConnection topmostProxy = getProxy();
-            if (topmostProxy != this.thisAsConnection) {
-                conn.setProxy(this.thisAsConnection); // First call sets this connection as underlying connection parent proxy (its creator).
-            }
-            conn.setProxy(topmostProxy); // Set the topmost proxy in the underlying connection.
-            return conn;
+    protected synchronized ConnectionImpl createConnectionForHost(HostInfo hostInfo) throws SQLException {
+        ConnectionImpl conn = (ConnectionImpl) ConnectionImpl.getInstance(hostInfo);
+        JdbcConnection topmostProxy = getProxy();
+        if (topmostProxy != this.thisAsConnection) {
+            conn.setProxy(this.thisAsConnection); // First call sets this connection as underlying connection parent proxy (its creator).
         }
+        conn.setProxy(topmostProxy); // Set the topmost proxy in the underlying connection.
+        return conn;
     }
 
     /**
@@ -474,64 +467,62 @@ public abstract class MultiHostConnectionProxy implements InvocationHandler {
      *             if an error occurs
      */
     @Override
-    public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-        synchronized (this.lockObject) {
-            String methodName = method.getName();
+    public synchronized Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+        String methodName = method.getName();
 
-            if (METHOD_GET_MULTI_HOST_SAFE_PROXY.equals(methodName)) {
-                return this.thisAsConnection;
-            }
+        if (METHOD_GET_MULTI_HOST_SAFE_PROXY.equals(methodName)) {
+            return this.thisAsConnection;
+        }
 
-            if (METHOD_EQUALS.equals(methodName)) {
-                // Let args[0] "unwrap" to its InvocationHandler if it is a proxy.
-                return args[0].equals(this);
-            }
+        if (METHOD_EQUALS.equals(methodName)) {
+            // Let args[0] "unwrap" to its InvocationHandler if it is a proxy.
+            return args[0].equals(this);
+        }
 
-            if (METHOD_HASH_CODE.equals(methodName)) {
-                return this.hashCode();
-            }
+        if (METHOD_HASH_CODE.equals(methodName)) {
+            return this.hashCode();
+        }
 
-            if (METHOD_CLOSE.equals(methodName)) {
-                doClose();
-                this.isClosed = true;
-                this.closedReason = "Connection explicitly closed.";
-                this.closedExplicitly = true;
-                return null;
-            }
+        if (METHOD_CLOSE.equals(methodName)) {
+            doClose();
+            this.isClosed = true;
+            this.closedReason = "Connection explicitly closed.";
+            this.closedExplicitly = true;
+            return null;
+        }
 
-            if (METHOD_ABORT_INTERNAL.equals(methodName)) {
-                doAbortInternal();
-                this.currentConnection.abortInternal();
-                this.isClosed = true;
-                this.closedReason = "Connection explicitly closed.";
-                return null;
-            }
+        if (METHOD_ABORT_INTERNAL.equals(methodName)) {
+            doAbortInternal();
+            this.currentConnection.abortInternal();
+            this.isClosed = true;
+            this.closedReason = "Connection explicitly closed.";
+            return null;
+        }
 
-            if (METHOD_ABORT.equals(methodName) && args.length == 1) {
-                doAbort((Executor) args[0]);
-                this.isClosed = true;
-                this.closedReason = "Connection explicitly closed.";
-                return null;
-            }
+        if (METHOD_ABORT.equals(methodName) && args.length == 1) {
+            doAbort((Executor) args[0]);
+            this.isClosed = true;
+            this.closedReason = "Connection explicitly closed.";
+            return null;
+        }
 
-            if (METHOD_IS_CLOSED.equals(methodName)) {
-                return this.isClosed;
-            }
+        if (METHOD_IS_CLOSED.equals(methodName)) {
+            return this.isClosed;
+        }
 
-            try {
-                return invokeMore(proxy, method, args);
-            } catch (InvocationTargetException e) {
-                throw e.getCause() != null ? e.getCause() : e;
-            } catch (Exception e) {
-                // Check if the captured exception must be wrapped by an unchecked exception.
-                Class<?>[] declaredException = method.getExceptionTypes();
-                for (Class<?> declEx : declaredException) {
-                    if (declEx.isAssignableFrom(e.getClass())) {
-                        throw e;
-                    }
+        try {
+            return invokeMore(proxy, method, args);
+        } catch (InvocationTargetException e) {
+            throw e.getCause() != null ? e.getCause() : e;
+        } catch (Exception e) {
+            // Check if the captured exception must be wrapped by an unchecked exception.
+            Class<?>[] declaredException = method.getExceptionTypes();
+            for (Class<?> declEx : declaredException) {
+                if (declEx.isAssignableFrom(e.getClass())) {
+                    throw e;
                 }
-                throw new IllegalStateException(e.getMessage(), e);
             }
+            throw new IllegalStateException(e.getMessage(), e);
         }
     }
 
