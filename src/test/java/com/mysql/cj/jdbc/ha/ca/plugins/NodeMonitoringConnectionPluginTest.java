@@ -86,7 +86,7 @@ class NodeMonitoringConnectionPluginTest extends NodeMonitoringConnectionPluginB
 
   @Test
   void test_2_executeWithFailoverDisabled() throws Exception {
-    when(nativeFailureDetectionEnabledProperty.getValue())
+    when(failureDetectionEnabledProperty.getValue())
         .thenReturn(Boolean.FALSE);
 
     initializePlugin();
@@ -98,7 +98,7 @@ class NodeMonitoringConnectionPluginTest extends NodeMonitoringConnectionPluginB
 
   @Test
   void test_3_executeWithNoNeedToMonitor() throws Exception {
-    when(nativeFailureDetectionEnabledProperty.getValue())
+    when(failureDetectionEnabledProperty.getValue())
         .thenReturn(Boolean.TRUE);
 
     initializePlugin();
@@ -110,7 +110,7 @@ class NodeMonitoringConnectionPluginTest extends NodeMonitoringConnectionPluginB
 
   @Test
   void test_4_executeThrowsExecutionException() {
-    when(nativeFailureDetectionEnabledProperty.getValue())
+    when(failureDetectionEnabledProperty.getValue())
         .thenReturn(Boolean.TRUE);
 
     initializePlugin();

@@ -42,7 +42,6 @@ import com.mysql.cj.log.Log;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 
-import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.concurrent.Callable;
@@ -64,7 +63,7 @@ public class NodeMonitoringConnectionPluginBaseTest {
   @Mock MonitorConnectionContext context;
   @Mock IMonitorService monitorService;
   @Mock Callable sqlFunction;
-  @Mock RuntimeProperty<Boolean> nativeFailureDetectionEnabledProperty;
+  @Mock RuntimeProperty<Boolean> failureDetectionEnabledProperty;
   @Mock RuntimeProperty<Integer> failureDetectionTimeProperty;
   @Mock RuntimeProperty<Integer> failureDetectionIntervalProperty;
   @Mock RuntimeProperty<Integer> failureDetectionCountProperty;
@@ -102,8 +101,8 @@ public class NodeMonitoringConnectionPluginBaseTest {
     when(hostInfo.getHost()).thenReturn("host");
     when(hostInfo.getHost()).thenReturn("port");
 
-    when(propertySet.getBooleanProperty(Mockito.eq(PropertyKey.nativeFailureDetectionEnabled)))
-        .thenReturn(nativeFailureDetectionEnabledProperty);
+    when(propertySet.getBooleanProperty(Mockito.eq(PropertyKey.failureDetectionEnabled)))
+        .thenReturn(failureDetectionEnabledProperty);
     when(propertySet.getIntegerProperty(Mockito.eq(PropertyKey.failureDetectionTime)))
         .thenReturn(failureDetectionTimeProperty);
     when(propertySet.getIntegerProperty(Mockito.eq(PropertyKey.failureDetectionInterval)))
@@ -111,7 +110,7 @@ public class NodeMonitoringConnectionPluginBaseTest {
     when(propertySet.getIntegerProperty(Mockito.eq(PropertyKey.failureDetectionCount)))
         .thenReturn(failureDetectionCountProperty);
 
-    when(nativeFailureDetectionEnabledProperty.getValue())
+    when(failureDetectionEnabledProperty.getValue())
         .thenReturn(Boolean.TRUE);
     when(failureDetectionTimeProperty.getValue())
         .thenReturn(FAILURE_DETECTION_TIME);
