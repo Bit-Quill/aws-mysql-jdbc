@@ -161,7 +161,6 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
         return args[0].equals(this);
       }
 
-//      synchronized (ClusterAwareConnectionProxy.this) {
       Object result = null;
 
       try {
@@ -216,7 +215,7 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
    *
    * @return true if cluster-aware failover is enabled
    */
-  public synchronized boolean isFailoverEnabled() {
+  public boolean isFailoverEnabled() {
     return this.enableFailoverSetting
         && !this.isRdsProxy
         && this.isClusterTopologyAvailable
@@ -310,7 +309,7 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
     initProxy(connectionUrl, connectionPluginManagerInitializer);
   }
 
-  protected synchronized void initSettings(ConnectionUrl connectionUrl) throws SQLException {
+  protected void initSettings(ConnectionUrl connectionUrl) throws SQLException {
     JdbcPropertySetImpl connProps = new JdbcPropertySetImpl();
     try {
       connProps.initializeProperties(connectionUrl.getMainHost().exposeAsProperties());
@@ -348,7 +347,7 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
         connProps.getIntegerProperty(PropertyKey.socketTimeout).getValue();
   }
 
-  protected synchronized void initLogger(ConnectionUrl connUrl) {
+  protected void initLogger(ConnectionUrl connUrl) {
     String loggerClassName =
         connUrl.getOriginalProperties().get(PropertyKey.logger.getKeyName());
     if (!StringUtils.isNullOrEmpty(loggerClassName)) {
@@ -356,7 +355,7 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
     }
   }
 
-  protected synchronized void initProxy(ConnectionUrl connUrl) throws SQLException {
+  protected void initProxy(ConnectionUrl connUrl) throws SQLException {
     this.initProxy(connUrl, ConnectionPluginManager::new);
   }
 
@@ -433,7 +432,7 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
     return pair;
   }
 
-  private synchronized void validateHostPatternSetting(String hostPattern) throws SQLException {
+  private void validateHostPatternSetting(String hostPattern) throws SQLException {
     if (!isDnsPatternValid(hostPattern)) {
       // "Invalid value for the 'clusterInstanceHostPattern' configuration setting - the host pattern must contain a '?'
       // character as a placeholder for the DB instance identifiers of the instances in the cluster"
@@ -521,7 +520,7 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
     }
   }
 
-  private  synchronized HostInfo createClusterInstanceTemplate(
+  private synchronized HostInfo createClusterInstanceTemplate(
       HostInfo mainHost,
       String host,
       int port) {
@@ -598,7 +597,7 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
    *
    * @return true if there is a connection
    */
-  synchronized boolean isConnected() {
+  boolean isConnected() {
     return this.currentHostIndex != NO_CONNECTION_INDEX;
   }
 
@@ -828,7 +827,7 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
    * @param hostIndex The host index in the global hosts list.
    * @return true if so
    */
-  private synchronized boolean isWriterHostIndex(int hostIndex) {
+  private boolean isWriterHostIndex(int hostIndex) {
     return hostIndex == WRITER_CONNECTION_INDEX;
   }
 
@@ -1080,7 +1079,7 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
    *
    * @return true if the proxy is connected to a cluster using RDS proxy
    */
-  public synchronized boolean isRdsProxy() {
+  public boolean isRdsProxy() {
     return this.isRdsProxy;
   }
 
@@ -1229,12 +1228,12 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
    * @throws InvocationTargetException if an error occurs
    */
   @Override
-  protected synchronized void dealWithInvocationException(InvocationTargetException e)
+  protected void dealWithInvocationException(InvocationTargetException e)
       throws SQLException, Throwable, InvocationTargetException {
     dealWithOriginalException(e.getTargetException(), e);
   }
 
-  protected synchronized void dealWithIllegalStateException(IllegalStateException e) throws Throwable {
+  protected void dealWithIllegalStateException(IllegalStateException e) throws Throwable {
     dealWithOriginalException(e.getCause(), e);
   }
 
@@ -1417,7 +1416,7 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
 
   /** Checks if current connection is to a master (writer) host. */
   @Override
-  protected synchronized boolean isSourceConnection() {
+  protected boolean isSourceConnection() {
     return isWriterHostIndex(this.currentHostIndex);
   }
 
@@ -1426,11 +1425,11 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
     return new ClusterAwareConnectionLifecycleInterceptor(this);
   }
 
-  protected synchronized boolean isCurrentConnectionReadOnly() {
+  protected boolean isCurrentConnectionReadOnly() {
     return isConnected() && !isWriterHostIndex(this.currentHostIndex);
   }
 
-  protected synchronized boolean isCurrentConnectionWriter() {
+  protected boolean isCurrentConnectionWriter() {
     return isWriterHostIndex(this.currentHostIndex);
   }
 
@@ -1443,7 +1442,7 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
    *
    * @return true if proxy is connected to cluster that can report its topology
    */
-  public synchronized boolean isClusterTopologyAvailable() {
+  public boolean isClusterTopologyAvailable() {
     return this.isClusterTopologyAvailable;
   }
 
