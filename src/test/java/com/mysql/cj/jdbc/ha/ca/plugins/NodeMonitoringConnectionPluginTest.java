@@ -31,7 +31,6 @@ import com.mysql.cj.conf.PropertySet;
 import com.mysql.cj.jdbc.ha.ca.ClusterAwareConnectionProxy;
 import com.mysql.cj.log.Log;
 import com.mysql.cj.log.NullLogger;
-import org.jboss.invocation.InvocationException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -40,7 +39,6 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.MockitoAnnotations;
 
-import java.util.concurrent.ExecutionException;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -53,10 +51,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class NodeMonitoringConnectionPluginTest extends NodeMonitoringConnectionPluginBaseTest {
-  private static final ExecutionException EXECUTION_EXCEPTION = new ExecutionException(
-      "exception",
-      new InvocationException("exception", new Throwable()));
-
   private NodeMonitoringConnectionPlugin plugin;
   private AutoCloseable closeable;
 
@@ -106,23 +100,6 @@ class NodeMonitoringConnectionPluginTest extends NodeMonitoringConnectionPluginB
 
     verify(supplier, atMostOnce()).get();
     verify(mockPlugin).execute(any(Class.class), eq(NO_MONITOR_METHOD_NAME), eq(sqlFunction));
-  }
-
-  @Test
-  void test_4_executeThrowsExecutionException() {
-    when(failureDetectionEnabledProperty.getValue())
-        .thenReturn(Boolean.TRUE);
-
-    initializePlugin();
-
-    assertThrows(Exception.class, () -> {
-      when(mockPlugin.execute(any(Class.class), any(), any()))
-          .thenThrow(EXECUTION_EXCEPTION);
-
-      plugin.execute(MONITOR_METHOD_INVOKE_ON, MONITOR_METHOD_NAME, sqlFunction);
-    });
-
-    verify(monitorService).stopMonitoring(eq(context));
   }
 
   /**
