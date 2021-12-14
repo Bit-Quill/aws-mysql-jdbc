@@ -569,7 +569,7 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
     return this.explicitlyReadOnly != null && this.explicitlyReadOnly;
   }
 
-  private synchronized void createInitialConnection(ConnectionUrl connUrl) throws SQLException {
+  private void createInitialConnection(ConnectionUrl connUrl) throws SQLException {
     String host = connUrl.getMainHost().getHost();
     if (isRdsClusterDns(host)) {
       this.explicitlyReadOnly = isReaderClusterDns(host);
@@ -794,7 +794,7 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
    * @param hostIndex The host index in the global hosts list.
    * @throws SQLException if an error occurs
    */
-  private synchronized void connectTo(int hostIndex) throws SQLException {
+  private void connectTo(int hostIndex) throws SQLException {
     try {
       switchCurrentConnectionTo(hostIndex, createConnectionForHostIndex(hostIndex));
       this.log.logDebug(
