@@ -314,7 +314,7 @@ public abstract class MultiHostConnectionProxy implements InvocationHandler {
      * @throws SQLException
      *             if an error occurs
      */
-    protected synchronized void invalidateCurrentConnection() throws SQLException {
+    protected void invalidateCurrentConnection() throws SQLException {
         invalidateConnection(this.currentConnection);
     }
 

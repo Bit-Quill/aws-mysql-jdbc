@@ -359,7 +359,7 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
     this.initProxy(connUrl, ConnectionPluginManager::new);
   }
 
-  private synchronized void initProxy(
+  private void initProxy(
       ConnectionUrl connUrl,
       Function<Log, ConnectionPluginManager> connectionPluginManagerInitializer)
       throws SQLException {
@@ -520,7 +520,7 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
     }
   }
 
-  private synchronized HostInfo createClusterInstanceTemplate(
+  private HostInfo createClusterInstanceTemplate(
       HostInfo mainHost,
       String host,
       int port) {
@@ -542,7 +542,7 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
         properties);
   }
 
-  protected synchronized void createConnectionAndInitializeTopology(ConnectionUrl connUrl)
+  protected void createConnectionAndInitializeTopology(ConnectionUrl connUrl)
       throws SQLException {
     createInitialConnection(connUrl);
     initTopology();
@@ -677,7 +677,7 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
     return (int) (Math.random() * ((max - min) + 1)) + min;
   }
 
-  private synchronized void initTopology() {
+  private void initTopology() {
     if (this.currentConnection != null) {
       List<HostInfo> topology =
           this.topologyService.getTopology(this.currentConnection, false);
@@ -698,7 +698,7 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
     }
   }
 
-  private synchronized void validateInitialConnection() throws SQLException {
+  private void validateInitialConnection() throws SQLException {
     this.currentHostIndex =
         getHostIndex(topologyService.getHostByName(this.currentConnection));
     if (!isConnected()) {
@@ -839,7 +839,7 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
    * @param connection The connection instance to switch to.
    * @throws SQLException if an error occurs
    */
-  private synchronized void switchCurrentConnectionTo(int hostIndex, JdbcConnection connection)
+  private void switchCurrentConnectionTo(int hostIndex, JdbcConnection connection)
       throws SQLException {
     invalidateCurrentConnection();
 
@@ -866,7 +866,7 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
    * @return The new connection instance.
    * @throws SQLException if an error occurs
    */
-  private synchronized ConnectionImpl createConnectionForHostIndex(int hostIndex)
+  private ConnectionImpl createConnectionForHostIndex(int hostIndex)
       throws SQLException {
     return createConnectionForHost(this.hosts.get(hostIndex));
   }
@@ -879,7 +879,7 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
    * @throws SQLException if an error occurs
    */
   @Override
-  protected synchronized ConnectionImpl createConnectionForHost(HostInfo baseHostInfo)
+  protected ConnectionImpl createConnectionForHost(HostInfo baseHostInfo)
       throws SQLException {
     HostInfo hostInfoWithInitialProps = ClusterAwareUtils.copyWithAdditionalProps(
         baseHostInfo,
@@ -967,7 +967,7 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
             new Object[] {this.hosts.get(this.currentHostIndex)}));
   }
 
-  private synchronized void processFailoverFailure(String message) throws SQLException {
+  private void processFailoverFailure(String message) throws SQLException {
     if (this.gatherPerfMetricsSetting) {
       this.metrics.registerFailoverConnects(false);
     }
@@ -1192,7 +1192,7 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
     return result;
   }
 
-  private synchronized void invalidInvocationOnClosedConnection() throws SQLException {
+  private void invalidInvocationOnClosedConnection() throws SQLException {
     if (this.autoReconnect && !this.closedExplicitly) {
       this.currentHostIndex =
           NO_CONNECTION_INDEX; // Act as if this is the first connection but let it sync with the previous one.
@@ -1237,7 +1237,7 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
     dealWithOriginalException(e.getCause(), e);
   }
 
-  private synchronized void dealWithOriginalException(
+  private void dealWithOriginalException(
       Throwable originalException,
       Exception wrapperException) throws Throwable {
     if (originalException != null) {
@@ -1302,7 +1302,7 @@ public class ClusterAwareConnectionProxy extends MultiHostConnectionProxy
    * @throws SQLException if an error occurs
    */
   @Override
-  protected synchronized void invalidateCurrentConnection() throws SQLException {
+  protected void invalidateCurrentConnection() throws SQLException {
     if (this.inTransaction) {
       try {
         this.currentConnection.rollback();
