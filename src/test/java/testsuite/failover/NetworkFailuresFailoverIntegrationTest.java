@@ -95,7 +95,7 @@ public class NetworkFailuresFailoverIntegrationTest {
   private static final String DB_PASS = System.getenv("TEST_PASSWORD");
 
   public NetworkFailuresFailoverIntegrationTest() throws ClassNotFoundException {
-    Class.forName("com.mysql.cj.jdbc.Driver");
+    Class.forName("software.aws.rds.jdbc.mysql.Driver");
     this.log = LogFactory.getLogger(StandardLogger.class.getName(), Log.LOGGER_INSTANCE_NAME);
   }
 
