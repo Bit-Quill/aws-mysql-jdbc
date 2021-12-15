@@ -43,10 +43,10 @@ plugins {
     `maven-publish`
     signing
     // Release
-    id("com.github.vlsi.crlf")
-    id("com.github.vlsi.gradle-extensions")
-    id("com.github.vlsi.license-gather") apply false
-    id("com.github.vlsi.stage-vote-release")
+    id("com.github.vlsi.crlf") version "1.77"
+    id("com.github.vlsi.gradle-extensions") version "1.77"
+    id("com.github.vlsi.license-gather") version "1.77" apply false
+    id("com.github.vlsi.stage-vote-release") version "1.77"
     id("com.github.johnrengelman.shadow") version "6.1.0"
 }
 
@@ -220,14 +220,20 @@ tasks.withType<Checkstyle>().configureEach {
 dependencies {
     testImplementation("org.apache.commons:commons-dbcp2:2.8.0")
     testImplementation("com.amazonaws:aws-java-sdk-rds:1.12.70")
-    testImplementation("org.junit.jupiter:junit-jupiter-api:5.6.2")
-    testImplementation("org.junit.jupiter:junit-jupiter-engine:5.6.2")
-    testImplementation("org.junit.jupiter:junit-jupiter-params:5.6.2")
-    testImplementation("org.junit.platform:junit-platform-commons:1.6.2")
-    testImplementation("org.junit.platform:junit-platform-engine:1.6.2")
-    testImplementation("org.junit.platform:junit-platform-launcher:1.6.2")
+    testImplementation("org.junit.jupiter:junit-jupiter-api:5.8.2")
+    testImplementation("org.junit.jupiter:junit-jupiter-engine:5.8.2")
+    testImplementation("org.junit.jupiter:junit-jupiter-params:5.8.2")
+    testImplementation("org.junit.platform:junit-platform-commons:1.8.2")
+    testImplementation("org.junit.platform:junit-platform-engine:1.8.2")
+    testImplementation("org.junit.platform:junit-platform-launcher:1.8.2")
     testImplementation("org.mockito:mockito-inline:3.6.28")
     testImplementation("org.hamcrest:hamcrest:2.2")
+    testImplementation("org.testcontainers:testcontainers:1.16.2")
+    testImplementation("org.testcontainers:junit-jupiter:1.16.2")
+    testImplementation("org.testcontainers:toxiproxy:1.16.2")
+    //testImplementation("org.slf4j:slf4j-simple:1.7.32")
+    //testImplementation("org.slf4j:slf4j-log4j12:1.7.32")
+    testImplementation("redis.clients:jedis:3.7.0")
 
     implementation("com.amazonaws:aws-java-sdk-rds:1.11.875")
     implementation("com.google.protobuf:protobuf-java:3.11.4")
@@ -333,4 +339,29 @@ signing {
             && project.property("signing.secretKeyRingFile") != "") {
         sign(publishing.publications["maven"])
     }
+}
+
+// Run integrations tests for test host
+// Environment is being configured and started
+tasks.register<Test>("test-integration-host") {
+    useJUnitPlatform()
+    setGroup("verification")
+    filter.includeTestsMatching("testsuite.integration.host.*")
+}
+
+// Run integration tests in container
+// Environment (like supplementary containers) should be up and running!
+tasks.register<Test>("test-integration-container") {
+    useJUnitPlatform()
+    setGroup("verification")
+    //filter.excludeTestsMatching("*")
+    filter.includeTestsMatching("testsuite.integration.container.*")
+}
+
+// Run all tests excluding integration tests
+tasks.register<Test>("test-non-integration") {
+    useJUnitPlatform()
+    setGroup("verification")
+    //filter.includeTestsMatching("*")
+    filter.excludeTestsMatching("testsuite.integration.*")
 }
