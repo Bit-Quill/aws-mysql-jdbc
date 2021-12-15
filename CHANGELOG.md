@@ -1,5 +1,18 @@
 # Changelog
 
+## [Version 0.4.0 (Public Preview)](https://github.com/awslabs/aws-mysql-jdbc/releases/tag/0.4.0) - 2021-12-14
+
+### Added
+* Connection plugin support through Connection Plugin Manager. More details can be found [here](https://github.com/awslabs/aws-mysql-jdbc#connection-plugin-manager).
+* Connection plugin, [Enhanced Failure Monitoring](https://github.com/awslabs/aws-mysql-jdbc/#enhanced-failure-monitoring), to reduce the time required to detect connection failure.
+* Tutorial on writing custom connection plugin can be found [here](https://github.com/awslabs/aws-mysql-jdbc/tree/main/src/demo/java/customplugins).
+
+### Improvements
+* NetworkFailuresFailoverIntegrationTest now uses environment variables to match FailoverIntegrationTest and ReplicationFailoverIntegrationTest.
+* Updated all dependencies.
+* Replaced jboss-as-connector with more up-to-date javassist.
+* Fixed checkstyle warnings.
+
 ## [Version 0.3.0 (Public Preview)](https://github.com/awslabs/aws-mysql-jdbc/releases/tag/0.3.0) - 2021-11-18
 
 ### Added
