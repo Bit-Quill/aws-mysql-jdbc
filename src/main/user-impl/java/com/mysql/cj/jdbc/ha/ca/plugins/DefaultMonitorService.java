@@ -61,7 +61,6 @@ public class DefaultMonitorService implements IMonitorService {
         () -> Executors.newCachedThreadPool(r -> {
           final Thread monitoringThread = new Thread(r);
           monitoringThread.setDaemon(true);
-          monitoringThread.setPriority(Thread.NORM_PRIORITY);
           return monitoringThread;
         }),
         logger
