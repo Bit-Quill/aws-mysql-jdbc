@@ -231,8 +231,6 @@ dependencies {
     testImplementation("org.testcontainers:testcontainers:1.16.2")
     testImplementation("org.testcontainers:junit-jupiter:1.16.2")
     testImplementation("org.testcontainers:toxiproxy:1.16.2")
-    //testImplementation("org.slf4j:slf4j-simple:1.7.32")
-    //testImplementation("org.slf4j:slf4j-log4j12:1.7.32")
     testImplementation("redis.clients:jedis:3.7.0")
 
     implementation("com.amazonaws:aws-java-sdk-rds:1.11.875")
@@ -347,21 +345,29 @@ tasks.register<Test>("test-integration-host") {
     useJUnitPlatform()
     setGroup("verification")
     filter.includeTestsMatching("testsuite.integration.host.*")
+    //filter.includeTestsMatching("testsuite.integration.host.RedisIntegrationEnvTest")
+    //filter.includeTestsMatching("testsuite.integration.host.AuroraMySqlIntegrationEnvTest")
 }
 
 // Run integration tests in container
 // Environment (like supplementary containers) should be up and running!
-tasks.register<Test>("test-integration-container") {
+tasks.register<Test>("test-integration-container-redis") {
     useJUnitPlatform()
     setGroup("verification")
-    //filter.excludeTestsMatching("*")
-    filter.includeTestsMatching("testsuite.integration.container.*")
+    filter.includeTestsMatching("testsuite.integration.container.RedisIntegrationTest")
+}
+
+// Run integration tests in container
+// Environment (like supplementary containers) should be up and running!
+tasks.register<Test>("test-integration-container-aurora") {
+    useJUnitPlatform()
+    setGroup("verification")
+    filter.includeTestsMatching("testsuite.integration.container.AuroraMySqlIntegrationTest")
 }
 
 // Run all tests excluding integration tests
 tasks.register<Test>("test-non-integration") {
     useJUnitPlatform()
     setGroup("verification")
-    //filter.includeTestsMatching("*")
     filter.excludeTestsMatching("testsuite.integration.*")
 }
