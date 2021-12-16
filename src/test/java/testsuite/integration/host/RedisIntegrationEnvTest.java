@@ -1,27 +1,22 @@
 package testsuite.integration.host;
 
-import org.apache.log4j.ConsoleAppender;
-import org.apache.log4j.LogManager;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.*;
-import org.testcontainers.containers.output.Slf4jLogConsumer;
+import org.testcontainers.containers.output.OutputFrame;
 import org.testcontainers.images.builder.ImageFromDockerfile;
 import org.testcontainers.utility.DockerImageName;
 import org.testcontainers.utility.MountableFile;
-import testsuite.integration.utility.ContainerFeedLogger;
+import testsuite.integration.utility.ConsoleConsumer;
 import testsuite.integration.utility.ExecInContainerUtility;
 
 import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class RedisIntegrationEnvironmentTest {
+public class RedisIntegrationEnvTest {
 
   //private static final String TEST_CONTAINER_IMAGE_NAME = "gradle:4.7.0-jdk8-alpine";
   private static final String TEST_CONTAINER_IMAGE_NAME = "openjdk:8-jdk-alpine";
@@ -73,7 +68,7 @@ public class RedisIntegrationEnvironmentTest {
     REDIS_PROXY_PORT = proxy_a.getOriginalProxyPort();
 
     testContainer = new GenericContainer<>(
-      new ImageFromDockerfile("bq/rds-test-container", false)
+      new ImageFromDockerfile("bq/rds-test-container", true)
         .withDockerfileFromBuilder(builder ->
           builder
             .from(TEST_CONTAINER_IMAGE_NAME)
@@ -112,17 +107,15 @@ public class RedisIntegrationEnvironmentTest {
 
   @Test
   public void testRunTestInContainer() throws UnsupportedOperationException, IOException, InterruptedException {
-    //Logger logger = LoggerFactory.getLogger(RedisIntegrationEnvironmentTest.class);
-    Logger logger = new ContainerFeedLogger();
-    Slf4jLogConsumer logConsumer = new Slf4jLogConsumer(logger);
-    testContainer.followOutput(logConsumer);
-
-    Integer exitCode = ExecInContainerUtility.execInContainer(testContainer, logConsumer, "./gradlew", "test-integration-container");
+    System.out.println("==== Container console feed ==== >>>>");
+    Consumer<OutputFrame> consumer = new ConsoleConsumer();
+    Integer exitCode = ExecInContainerUtility.execInContainer(testContainer, consumer, "./gradlew", "test-integration-container-redis");
+    System.out.println("==== Container console feed ==== <<<<");
     assertEquals(0, exitCode, "Some tests failed.");
 
-    //Container.ExecResult results = testContainer.execInContainer("./gradlew", "test-integration-container");
-    //System.out.println("==================\n" + results.getStdout() + "\n===============================");
-    //assertEquals(0, results.getExitCode(), "Some tests failed.");
+//    Container.ExecResult results = testContainer.execInContainer("./gradlew", "test-integration-container");
+//    System.out.println("==================\n" + results.getStdout() + "\n===============================");
+//    assertEquals(0, results.getExitCode(), "Some tests failed.");
   }
 
 }

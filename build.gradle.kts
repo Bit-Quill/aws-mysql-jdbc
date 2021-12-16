@@ -347,21 +347,29 @@ tasks.register<Test>("test-integration-host") {
     useJUnitPlatform()
     setGroup("verification")
     filter.includeTestsMatching("testsuite.integration.host.*")
+    //filter.includeTestsMatching("testsuite.integration.host.RedisIntegrationEnvTest")
+    //filter.includeTestsMatching("testsuite.integration.host.AuroraMySqlIntegrationEnvTest")
 }
 
 // Run integration tests in container
 // Environment (like supplementary containers) should be up and running!
-tasks.register<Test>("test-integration-container") {
+tasks.register<Test>("test-integration-container-redis") {
     useJUnitPlatform()
     setGroup("verification")
-    //filter.excludeTestsMatching("*")
-    filter.includeTestsMatching("testsuite.integration.container.*")
+    filter.includeTestsMatching("testsuite.integration.container.RedisIntegrationTest")
+}
+
+// Run integration tests in container
+// Environment (like supplementary containers) should be up and running!
+tasks.register<Test>("test-integration-container-aurora") {
+    useJUnitPlatform()
+    setGroup("verification")
+    filter.includeTestsMatching("testsuite.integration.container.AuroraMySqlIntegrationTest")
 }
 
 // Run all tests excluding integration tests
 tasks.register<Test>("test-non-integration") {
     useJUnitPlatform()
     setGroup("verification")
-    //filter.includeTestsMatching("*")
     filter.excludeTestsMatching("testsuite.integration.*")
 }
