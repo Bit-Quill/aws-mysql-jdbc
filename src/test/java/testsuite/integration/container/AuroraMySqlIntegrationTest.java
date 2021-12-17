@@ -1,5 +1,7 @@
 package testsuite.integration.container;
 
+import com.mysql.cj.conf.PropertyKey;
+
 import eu.rekawek.toxiproxy.Proxy;
 import eu.rekawek.toxiproxy.ToxiproxyClient;
 import eu.rekawek.toxiproxy.model.ToxicDirection;
@@ -13,13 +15,14 @@ import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.Properties;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 public class AuroraMySqlIntegrationTest {
 
-  private static final String TEST_USERNAME = "admin";
-  private static final String TEST_PASSWORD = "my_password_2020";
+  private static final String TEST_USERNAME = System.getenv("TEST_USERNAME");
+  private static final String TEST_PASSWORD = System.getenv("TEST_PASSWORD");
 
   private static String PROXIED_DOMAIN_NAME_PREFIX = System.getenv("PROXIED_DOMAIN_NAME_PREFIX");
 
@@ -66,10 +69,6 @@ public class AuroraMySqlIntegrationTest {
     proxyInstance_5 = getProxy(toxyproxyClientInstance_5, MYSQL_INSTANCE_5_URL, MYSQL_PORT);
 
     DriverManager.registerDriver(new Driver());
-  }
-
-  private static Connection connectoToInstance(String instanceUrl, int port) throws SQLException {
-    return DriverManager.getConnection("jdbc:mysql:aws://" + instanceUrl + ":" + port + "/test?connectTimeout=5000&socketTimeout=5000", TEST_USERNAME, TEST_PASSWORD);
   }
 
   private static Proxy getProxy(ToxiproxyClient proxyClient, String host, int port) throws IOException {
@@ -123,5 +122,18 @@ public class AuroraMySqlIntegrationTest {
 
     Connection conn = connectoToInstance(MYSQL_INSTANCE_1_URL + PROXIED_DOMAIN_NAME_PREFIX, MYSQL_PROXY_PORT);
     conn.close();
+  }
+
+  private static Connection connectoToInstance(String instanceUrl, int port) throws SQLException {
+    final Properties props = new Properties();
+    props.setProperty(PropertyKey.USER.getKeyName(), TEST_USERNAME);
+    props.setProperty(PropertyKey.PASSWORD.getKeyName(), TEST_PASSWORD);
+    props.setProperty(PropertyKey.connectTimeout.getKeyName(), Integer.toString(5000));
+    props.setProperty(PropertyKey.socketTimeout.getKeyName(), Integer.toString(5000));
+    return connectoToInstance(instanceUrl, port, props);
+  }
+
+  private static Connection connectoToInstance(String instanceUrl, int port, Properties props) throws SQLException {
+    return DriverManager.getConnection("jdbc:mysql:aws://" + instanceUrl + ":" + port + "/test", props);
   }
 }
