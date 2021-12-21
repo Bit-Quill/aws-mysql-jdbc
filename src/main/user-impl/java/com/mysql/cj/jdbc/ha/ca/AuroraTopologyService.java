@@ -34,6 +34,8 @@ import com.mysql.cj.Messages;
 import com.mysql.cj.conf.ConnectionUrl;
 import com.mysql.cj.conf.HostInfo;
 import com.mysql.cj.jdbc.JdbcConnection;
+import com.mysql.cj.jdbc.ha.ca.plugins.failover.ClusterAwareTimeMetricsHolder;
+import com.mysql.cj.jdbc.ha.ca.plugins.failover.FailoverConnectionPlugin;
 import com.mysql.cj.log.Log;
 import com.mysql.cj.log.NullLogger;
 import com.mysql.cj.util.ExpiringCache;
@@ -254,7 +256,7 @@ public class AuroraTopologyService
       if (writerCount == 0) {
         // store the first writer to its expected position [0]
         hosts.add(
-            ClusterAwareConnectionProxy.WRITER_CONNECTION_INDEX,
+            FailoverConnectionPlugin.WRITER_CONNECTION_INDEX,
             createHost(resultSet));
       } else {
         // append other writers, if any, to the end of the host list

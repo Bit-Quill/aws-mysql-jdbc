@@ -24,19 +24,24 @@
  *
  */
 
-package com.mysql.cj.jdbc.ha.ca.plugins;
+package com.mysql.cj.jdbc.ha.ca.plugins.failover;
 
 import com.mysql.cj.conf.HostInfo;
-import com.mysql.cj.jdbc.JdbcConnection;
-import com.mysql.cj.jdbc.ha.ca.ConnectionProvider;
+
+import java.sql.SQLException;
+import java.util.List;
 
 /**
- * Interface for retrieving the current active {@link JdbcConnection} and its {@link HostInfo}.
+ * Interface for Writer Failover Process handler. This handler implements all necessary logic to try
+ * to reconnect to a current writer host or to a newly elected writer.
  */
-public interface ICurrentConnectionProvider {
-  JdbcConnection getCurrentConnection();
+public interface WriterFailoverHandler {
 
-  HostInfo getCurrentHostInfo();
-
-  void setCurrentConnection(JdbcConnection connection, HostInfo info);
+  /**
+   * Called to start Writer Failover Process.
+   *
+   * @param currentTopology Cluster current topology
+   * @return {@link WriterFailoverResult} The results of this process.
+   */
+  WriterFailoverResult failover(List<HostInfo> currentTopology) throws SQLException;
 }

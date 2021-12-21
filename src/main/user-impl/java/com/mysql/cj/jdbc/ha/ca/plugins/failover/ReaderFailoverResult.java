@@ -24,19 +24,52 @@
  *
  */
 
-package com.mysql.cj.jdbc.ha.ca.plugins;
+package com.mysql.cj.jdbc.ha.ca.plugins.failover;
 
-import com.mysql.cj.conf.HostInfo;
 import com.mysql.cj.jdbc.JdbcConnection;
-import com.mysql.cj.jdbc.ha.ca.ConnectionProvider;
 
-/**
- * Interface for retrieving the current active {@link JdbcConnection} and its {@link HostInfo}.
- */
-public interface ICurrentConnectionProvider {
-  JdbcConnection getCurrentConnection();
+/** This class holds results of Reader Failover Process. */
+public class ReaderFailoverResult {
+  private final JdbcConnection newConnection;
+  private final int newConnectionIndex;
+  private final boolean isConnected;
 
-  HostInfo getCurrentHostInfo();
+  /**
+   * ConnectionAttemptResult constructor.
+   */
+  public ReaderFailoverResult(
+      JdbcConnection newConnection, int newConnectionIndex, boolean isConnected) {
+    this.newConnection = newConnection;
+    this.newConnectionIndex = newConnectionIndex;
+    this.isConnected = isConnected;
+  }
 
-  void setCurrentConnection(JdbcConnection connection, HostInfo info);
+  /**
+   * Get new connection to a host.
+   *
+   * @return {@link JdbcConnection} New connection to a host. Returns null if no connection is
+   *     established.
+   */
+  public JdbcConnection getConnection() {
+    return newConnection;
+  }
+
+  /**
+   * Get index of newly connected host.
+   *
+   * @return Index of connected host in topology Returns -1 (NO_CONNECTION_INDEX) if no connection
+   *     is established.
+   */
+  public int getConnectionIndex() {
+    return newConnectionIndex;
+  }
+
+  /**
+   * Checks if process result is successful and new connection to host is established.
+   *
+   * @return True, if process successfully connected to a host.
+   */
+  public boolean isConnected() {
+    return isConnected;
+  }
 }

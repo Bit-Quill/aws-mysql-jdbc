@@ -24,19 +24,36 @@
  *
  */
 
-package com.mysql.cj.jdbc.ha.ca.plugins;
+package com.mysql.cj.jdbc.ha.ca.plugins.failover;
 
 import com.mysql.cj.conf.HostInfo;
-import com.mysql.cj.jdbc.JdbcConnection;
-import com.mysql.cj.jdbc.ha.ca.ConnectionProvider;
+
+import java.sql.SQLException;
+import java.util.List;
 
 /**
- * Interface for retrieving the current active {@link JdbcConnection} and its {@link HostInfo}.
+ * Interface for Reader Failover Process handler. This handler implements all necessary logic to try
+ * to reconnect to another reader host.
  */
-public interface ICurrentConnectionProvider {
-  JdbcConnection getCurrentConnection();
+public interface ReaderFailoverHandler {
 
-  HostInfo getCurrentHostInfo();
+  /**
+   * Called to start Reader Failover Process. This process tries to connect to any reader. If no
+   * reader is available then driver may also try to connect to a writer host, down hosts, and the
+   * current reader host.
+   *
+   * @param hosts Cluster current topology.
+   * @param currentHost The currently connected host that has failed.
+   * @return {@link ReaderFailoverResult} The results of this process.
+   */
+  ReaderFailoverResult failover(List<HostInfo> hosts, HostInfo currentHost) throws SQLException;
 
-  void setCurrentConnection(JdbcConnection connection, HostInfo info);
+  /**
+   * Called to get any available reader connection. If no reader is available then result of process
+   * is unsuccessful. This process will not attempt to connect to the writer host.
+   *
+   * @param hostList Cluster current topology.
+   * @return {@link ReaderFailoverResult} The results of this process.
+   */
+  ReaderFailoverResult getReaderConnection(List<HostInfo> hostList) throws SQLException;
 }

@@ -33,6 +33,10 @@ package com.mysql.cj.jdbc.ha.ca;
 import com.mysql.cj.conf.HostInfo;
 import com.mysql.cj.conf.PropertyKey;
 import com.mysql.cj.jdbc.ConnectionImpl;
+import com.mysql.cj.jdbc.ha.ca.plugins.failover.ClusterAwareReaderFailoverHandler;
+import com.mysql.cj.jdbc.ha.ca.plugins.failover.FailoverConnectionPlugin;
+import com.mysql.cj.jdbc.ha.ca.plugins.failover.ReaderFailoverHandler;
+import com.mysql.cj.jdbc.ha.ca.plugins.failover.ReaderFailoverResult;
 import com.mysql.cj.log.Log;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -193,7 +197,7 @@ public class ClusterAwareReaderFailoverHandlerTest {
     assertFalse(result.isConnected());
     assertNull(result.getConnection());
     assertEquals(
-        ClusterAwareConnectionProxy.NO_CONNECTION_INDEX,
+        FailoverConnectionPlugin.WRITER_CONNECTION_INDEX,
         result.getConnectionIndex());
   }
 
@@ -212,7 +216,7 @@ public class ClusterAwareReaderFailoverHandlerTest {
     assertFalse(result.isConnected());
     assertNull(result.getConnection());
     assertEquals(
-        ClusterAwareConnectionProxy.NO_CONNECTION_INDEX,
+        FailoverConnectionPlugin.WRITER_CONNECTION_INDEX,
         result.getConnectionIndex());
 
     final List<HostInfo> hosts = new ArrayList<>();
@@ -220,7 +224,7 @@ public class ClusterAwareReaderFailoverHandlerTest {
     assertFalse(result.isConnected());
     assertNull(result.getConnection());
     assertEquals(
-        ClusterAwareConnectionProxy.NO_CONNECTION_INDEX,
+        FailoverConnectionPlugin.WRITER_CONNECTION_INDEX,
         result.getConnectionIndex());
   }
 
@@ -287,14 +291,14 @@ public class ClusterAwareReaderFailoverHandlerTest {
     assertFalse(result.isConnected());
     assertNull(result.getConnection());
     assertEquals(
-        ClusterAwareConnectionProxy.NO_CONNECTION_INDEX,
+        FailoverConnectionPlugin.WRITER_CONNECTION_INDEX,
         result.getConnectionIndex());
 
     final HostInfo currentHost = hosts.get(currentHostIndex);
     verify(mockTopologyService, atLeastOnce()).addToDownHostList(eq(currentHost));
     verify(mockTopologyService, never())
         .addToDownHostList(
-            eq(hosts.get(ClusterAwareConnectionProxy.WRITER_CONNECTION_INDEX)));
+            eq(hosts.get(FailoverConnectionPlugin.WRITER_CONNECTION_INDEX)));
   }
 
   @Test
@@ -333,7 +337,7 @@ public class ClusterAwareReaderFailoverHandlerTest {
     assertFalse(result.isConnected());
     assertNull(result.getConnection());
     assertEquals(
-        ClusterAwareConnectionProxy.NO_CONNECTION_INDEX,
+        FailoverConnectionPlugin.WRITER_CONNECTION_INDEX,
         result.getConnectionIndex());
 
     verify(mockTopologyService, never()).addToDownHostList(any());
@@ -366,7 +370,7 @@ public class ClusterAwareReaderFailoverHandlerTest {
         getHostTupleIndexFromOriginalIndex(activeReaderOriginalIndex, tuplesByPriority);
     final int writerTupleIndex =
         getHostTupleIndexFromOriginalIndex(
-            ClusterAwareConnectionProxy.WRITER_CONNECTION_INDEX, tuplesByPriority);
+            FailoverConnectionPlugin.WRITER_CONNECTION_INDEX, tuplesByPriority);
     final int downReaderTupleIndex =
         getHostTupleIndexFromOriginalIndex(downReaderOriginalIndex, tuplesByPriority);
 
@@ -421,8 +425,8 @@ public class ClusterAwareReaderFailoverHandlerTest {
     final int numActiveReaders = 2;
     final ClusterAwareReaderFailoverHandler.HostTuple writerTuple =
         new ClusterAwareReaderFailoverHandler.HostTuple(
-            originalHosts.get(ClusterAwareConnectionProxy.WRITER_CONNECTION_INDEX),
-            ClusterAwareConnectionProxy.WRITER_CONNECTION_INDEX);
+            originalHosts.get(FailoverConnectionPlugin.WRITER_CONNECTION_INDEX),
+            FailoverConnectionPlugin.WRITER_CONNECTION_INDEX);
     assertTrue(downReaderTupleIndex > activeReaderTupleIndex);
     assertTrue(downReaderTupleIndex >= numActiveReaders);
     assertFalse(readerTuples.contains(writerTuple));

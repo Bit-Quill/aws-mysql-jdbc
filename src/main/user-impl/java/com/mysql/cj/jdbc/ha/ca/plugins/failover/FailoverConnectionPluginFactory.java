@@ -24,19 +24,21 @@
  *
  */
 
-package com.mysql.cj.jdbc.ha.ca.plugins;
+package com.mysql.cj.jdbc.ha.ca.plugins.failover;
 
-import com.mysql.cj.conf.HostInfo;
-import com.mysql.cj.jdbc.JdbcConnection;
-import com.mysql.cj.jdbc.ha.ca.ConnectionProvider;
+import com.mysql.cj.conf.PropertySet;
+import com.mysql.cj.jdbc.ha.ca.plugins.IConnectionPlugin;
+import com.mysql.cj.jdbc.ha.ca.plugins.IConnectionPluginFactory;
+import com.mysql.cj.jdbc.ha.ca.plugins.ICurrentConnectionProvider;
+import com.mysql.cj.log.Log;
 
-/**
- * Interface for retrieving the current active {@link JdbcConnection} and its {@link HostInfo}.
- */
-public interface ICurrentConnectionProvider {
-  JdbcConnection getCurrentConnection();
-
-  HostInfo getCurrentHostInfo();
-
-  void setCurrentConnection(JdbcConnection connection, HostInfo info);
+public class FailoverConnectionPluginFactory implements IConnectionPluginFactory {
+  @Override
+  public IConnectionPlugin getInstance(
+      ICurrentConnectionProvider currentConnectionProvider,
+      PropertySet propertySet,
+      IConnectionPlugin nextPlugin,
+      Log logger) {
+    return new FailoverConnectionPlugin(currentConnectionProvider, propertySet, nextPlugin, logger);
+  }
 }

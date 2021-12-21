@@ -98,16 +98,22 @@ public class ClusterAwareUtils {
       return mainHost;
     }
 
+    return copyWithAdditionalProps(baseHostInfo, mainHost);
+  }
+
+  public static HostInfo copyWithAdditionalProps(
+      HostInfo baseHostInfo,
+      HostInfo newHostInfo) {
     DatabaseUrlContainer urlContainer = ConnectionUrl.getConnectionUrlInstance(
         baseHostInfo.getDatabaseUrl(),
         new Properties());
     Map<String, String> originalProps = baseHostInfo.getHostProperties();
     Map<String, String> mergedProps = new HashMap<>();
     mergedProps.putAll(originalProps);
-    mergedProps.putAll(mainHost.getHostProperties());
+    mergedProps.putAll(newHostInfo.getHostProperties());
 
     return new HostInfo(urlContainer, baseHostInfo.getHost(), baseHostInfo.getPort(),
-        mainHost.getUser(), mainHost.getPassword(),
+        newHostInfo.getUser(), newHostInfo.getPassword(),
         mergedProps);
   }
 }

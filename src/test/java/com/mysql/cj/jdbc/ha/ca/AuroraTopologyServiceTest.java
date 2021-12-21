@@ -35,6 +35,7 @@ import com.mysql.cj.conf.HostInfo;
 import com.mysql.cj.jdbc.ConnectionImpl;
 import com.mysql.cj.jdbc.JdbcConnection;
 import com.mysql.cj.jdbc.StatementImpl;
+import com.mysql.cj.jdbc.ha.ca.plugins.failover.FailoverConnectionPlugin;
 import com.mysql.cj.jdbc.result.ResultSetImpl;
 import com.mysql.cj.log.Log;
 import org.junit.jupiter.api.BeforeEach;
@@ -98,9 +99,9 @@ public class AuroraTopologyServiceTest {
 
     final List<HostInfo> topology = spyProvider.getTopology(mockConn, false);
 
-    final HostInfo master = topology.get(ClusterAwareConnectionProxy.WRITER_CONNECTION_INDEX);
+    final HostInfo master = topology.get(FailoverConnectionPlugin.WRITER_CONNECTION_INDEX);
     final List<HostInfo> slaves =
-        topology.subList(ClusterAwareConnectionProxy.WRITER_CONNECTION_INDEX + 1, topology.size());
+        topology.subList(FailoverConnectionPlugin.WRITER_CONNECTION_INDEX + 1, topology.size());
 
     assertEquals("writer-instance.XYZ.us-east-2.rds.amazonaws.com", master.getHost());
     assertEquals(1234, master.getPort());
@@ -144,13 +145,13 @@ public class AuroraTopologyServiceTest {
 
     final List<HostInfo> topology = spyProvider.getTopology(mockConn, false);
     final List<HostInfo> readers =
-        topology.subList(ClusterAwareConnectionProxy.WRITER_CONNECTION_INDEX + 1, topology.size());
+        topology.subList(FailoverConnectionPlugin.WRITER_CONNECTION_INDEX + 1, topology.size());
 
     assertTrue(spyProvider.isMultiWriterCluster());
     assertEquals(3, topology.size());
     assertEquals(2, readers.size());
 
-    final HostInfo master1 = topology.get(ClusterAwareConnectionProxy.WRITER_CONNECTION_INDEX);
+    final HostInfo master1 = topology.get(FailoverConnectionPlugin.WRITER_CONNECTION_INDEX);
     final HostInfo master2 = topology.get(1);
     final HostInfo master3 = topology.get(2);
 

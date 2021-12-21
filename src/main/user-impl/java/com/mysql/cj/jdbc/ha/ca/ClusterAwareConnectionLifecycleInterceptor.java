@@ -45,6 +45,7 @@ import java.util.Properties;
  */
 public class ClusterAwareConnectionLifecycleInterceptor implements ConnectionLifecycleInterceptor {
 
+  // TODO: check this
   private final ClusterAwareConnectionProxy proxy;
 
   /**

@@ -29,6 +29,7 @@ package com.mysql.cj.jdbc.ha.ca.plugins;
 import com.mysql.cj.conf.PropertyKey;
 import com.mysql.cj.conf.PropertySet;
 import com.mysql.cj.jdbc.ha.ca.ClusterAwareConnectionProxy;
+import com.mysql.cj.jdbc.ha.ca.plugins.failover.FailoverConnectionPluginFactory;
 import com.mysql.cj.log.Log;
 import com.mysql.cj.util.StringUtils;
 import com.mysql.cj.util.Util;
@@ -43,8 +44,13 @@ public class ConnectionPluginManager {
   /* THIS CLASS IS NOT MULTI-THREADING SAFE */
   /* IT'S EXPECTED TO HAVE ONE INSTANCE OF THIS MANAGER PER JDBC CONNECTION */
 
-  protected static final String DEFAULT_PLUGIN_FACTORIES =
-      NodeMonitoringConnectionPluginFactory.class.getName();
+  // protected static final String DEFAULT_PLUGIN_FACTORIES =
+  //     NodeMonitoringConnectionPluginFactory.class.getName();
+  //
+
+  protected static final String DEFAULT_PLUGIN_FACTORIES = String.format("%s,%s",
+      NodeMonitoringConnectionPluginFactory.class.getName(),
+      FailoverConnectionPluginFactory.class.getName());
 
   protected Log logger;
   protected PropertySet propertySet = null;
@@ -109,7 +115,6 @@ public class ConnectionPluginManager {
                 this.logger);
       }
     }
-
   }
 
   /**
