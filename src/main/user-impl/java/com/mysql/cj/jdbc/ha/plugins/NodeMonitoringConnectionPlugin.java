@@ -231,6 +231,16 @@ public class NodeMonitoringConnectionPlugin implements IConnectionPlugin {
     }
   }
 
+  @Override
+  public void transactionBegun() {
+    this.nextPlugin.transactionBegun();
+  }
+
+  @Override
+  public void transactionCompleted() {
+    this.nextPlugin.transactionCompleted();
+  }
+
   /**
    * Call this plugin's monitor service to release all resources associated with this
    * plugin.

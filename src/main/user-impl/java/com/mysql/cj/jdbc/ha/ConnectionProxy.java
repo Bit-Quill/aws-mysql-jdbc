@@ -68,7 +68,6 @@ public class ConnectionProxy
   protected transient Log log = NULL_LOGGER;
   // writer host is always stored at index 0
   protected Map<String, String> initialConnectionProps;
-  protected boolean inTransaction = false;
   protected ConnectionPluginManager pluginManager = null;
   // Configuration settings
   protected boolean pluginsEnabled = true;
@@ -135,7 +134,7 @@ public class ConnectionProxy
 
   @Override
   public com.mysql.cj.jdbc.interceptors.ConnectionLifecycleInterceptor getConnectionLifecycleInterceptor() {
-    return new ConnectionProxyLifecycleInterceptor(this);
+    return new ConnectionProxyLifecycleInterceptor(this.pluginManager);
   }
 
   @Override

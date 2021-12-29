@@ -77,6 +77,16 @@ public class ExecutionTimeConnectionPlugin implements IConnectionPlugin {
   }
 
   @Override
+  public void transactionBegun() {
+    this.nextPlugin.transactionBegun();
+  }
+
+  @Override
+  public void transactionCompleted() {
+    this.nextPlugin.transactionCompleted();
+  }
+
+  @Override
   public void releaseResources() {
     // Output the aggregated information from all methods called throughout the lifespan
     // of the current connection.
