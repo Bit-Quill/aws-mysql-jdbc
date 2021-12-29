@@ -80,8 +80,6 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
   private static final String METHOD_GET_TRANSACTION_ISOLATION =
       "getTransactionIsolation";
   private static final String METHOD_GET_SESSION_MAX_ROWS = "getSessionMaxRows";
-  protected WriterFailoverHandler writerFailoverHandler = null;
-  protected ReaderFailoverHandler readerFailoverHandler = null;
   protected final ConnectionProvider connectionProvider;
   protected final ClusterAwareMetrics metrics = new ClusterAwareMetrics();
   private final ICurrentConnectionProvider currentConnectionProvider;
@@ -101,6 +99,8 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
           "(.+)\\.(proxy-[a-zA-Z0-9]+\\.[a-zA-Z0-9\\-]+\\.rds\\.amazonaws\\.com)",
           Pattern.CASE_INSENSITIVE);
   private final HostInfo mainHost;
+  protected WriterFailoverHandler writerFailoverHandler = null;
+  protected ReaderFailoverHandler readerFailoverHandler = null;
   // writer host is always stored at index 0
   protected int currentHostIndex = NO_CONNECTION_INDEX;
   protected Map<String, String> initialConnectionProps;
@@ -113,6 +113,7 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
   protected boolean isRds = false;
   protected TopologyService topologyService;
   protected List<HostInfo> hosts = new ArrayList<>();
+
   // Configuration settings
   protected boolean enableFailoverSetting = true;
   protected int clusterTopologyRefreshRateMsSetting;
@@ -226,7 +227,7 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
     }
 
     // TODO: review
-    performSpecialMethodHandlingIfRequired(new Object[]{Boolean.TRUE}, methodName);
+    performSpecialMethodHandlingIfRequired(new Object[] {Boolean.TRUE}, methodName);
 
     if (METHOD_CLOSE.equals(methodName)) {
       if (this.gatherPerfMetricsSetting) {
@@ -238,6 +239,18 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
     }
 
     return result;
+  }
+
+  @Override
+  public void transactionBegun() {
+    this.inTransaction = true;
+    this.nextPlugin.transactionBegun();
+  }
+
+  @Override
+  public void transactionCompleted() {
+    this.inTransaction = false;
+    this.nextPlugin.transactionCompleted();
   }
 
   @Override
@@ -1172,20 +1185,19 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
     this.inTransaction = false;
   }
 
-  private JdbcConnection updateCurrentConnection(
+  private void updateCurrentConnection(
       JdbcConnection connection,
       int hostIndex) {
     this.currentHostIndex = hostIndex;
-    return updateCurrentConnection(connection, this.hosts.get(this.currentHostIndex));
+    updateCurrentConnection(connection, this.hosts.get(this.currentHostIndex));
   }
 
-  private JdbcConnection updateCurrentConnection(
+  private void updateCurrentConnection(
       JdbcConnection connection,
       HostInfo hostInfo) {
     this.currentConnectionProvider.setCurrentConnection(
         connection,
         hostInfo);
-    return connection;
   }
 
   private void updateHostIndex(List<HostInfo> latestTopology) throws SQLException {

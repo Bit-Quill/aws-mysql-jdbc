@@ -141,4 +141,12 @@ public class ConnectionPluginManager {
     this.logger.logTrace("[ConnectionPluginManager.releaseResources]");
     this.headPlugin.releaseResources();
   }
+
+  public void transactionBegun() {
+    this.headPlugin.transactionBegun();
+  }
+
+  public void transactionCompleted() {
+    this.headPlugin.transactionCompleted();
+  }
 }

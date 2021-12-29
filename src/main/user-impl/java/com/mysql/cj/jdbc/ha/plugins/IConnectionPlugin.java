@@ -36,5 +36,17 @@ public interface IConnectionPlugin {
   Object execute(Class<?> methodInvokeOn, String methodName, Callable<?> executeSqlFunc)
       throws Exception;
 
+  /**
+   * Called when the driver has been told by the server that a transaction is now in progress (when
+   * one has not been currently in progress).
+   */
+  void transactionBegun();
+
+  /**
+   * Called when the driver has been told by the server that a transaction has completed, and no
+   * transaction is currently in progress.
+   */
+  void transactionCompleted();
+
   void releaseResources();
 }

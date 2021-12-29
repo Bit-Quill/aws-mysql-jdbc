@@ -74,6 +74,16 @@ public class MethodCountConnectionPlugin implements IConnectionPlugin {
     return this.nextPlugin.execute(methodInvokeOn, methodName, executeJdbcMethod);
   }
 
+  @Override
+  public void transactionBegun() {
+    this.nextPlugin.transactionBegun();
+  }
+
+  @Override
+  public void transactionCompleted() {
+    this.nextPlugin.transactionCompleted();
+  }
+
   /**
    * This method is called when the connection closes.
    * If this connection plugin has any background threads this is the time to clean up

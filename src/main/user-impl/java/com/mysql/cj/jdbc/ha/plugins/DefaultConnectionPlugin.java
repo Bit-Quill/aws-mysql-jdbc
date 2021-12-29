@@ -68,6 +68,16 @@ public class DefaultConnectionPlugin implements IConnectionPlugin {
   }
 
   @Override
+  public void transactionBegun() {
+    // do nothing
+  }
+
+  @Override
+  public void transactionCompleted() {
+    // do nothing
+  }
+
+  @Override
   public void releaseResources() {
     // do nothing
   }
