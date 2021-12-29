@@ -132,18 +132,17 @@ The next custom plugin is the `ExecutionTimeConnectionPlugin`, which tracks the 
 the given method in the remaining plugins.
 
 ```java
-import com.mysql.cj.jdbc.ha.ca.plugins.IConnectionPlugin;
+import com.mysql.cj.jdbc.ha.plugins.IConnectionPlugin;
 import com.mysql.cj.log.Log;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Callable;
-import java.util.concurrent.TimeUnit;
 
 /**
  * This connection plugin tracks the execution time of all the given JDBC method throughout
  * the lifespan of the current connection.
- * 
+ *
  * <p>During the cleanup phase when {@link ExecutionTimeConnectionPlugin#releaseResources()}
  * is called, this plugin logs all the methods executed and time spent on each execution
  * in milliseconds.
@@ -231,9 +230,9 @@ First is the `MethodCountConnectionPluginFactory`.
 
 ```java
 import com.mysql.cj.conf.PropertySet;
-import com.mysql.cj.jdbc.ha.ca.plugins.IConnectionPlugin;
-import com.mysql.cj.jdbc.ha.ca.plugins.IConnectionPluginFactory;
-import com.mysql.cj.jdbc.ha.ca.plugins.ICurrentConnectionProvider;
+import com.mysql.cj.jdbc.ha.plugins.IConnectionPlugin;
+import com.mysql.cj.jdbc.ha.plugins.IConnectionPluginFactory;
+import com.mysql.cj.jdbc.ha.plugins.ICurrentConnectionProvider;
 import com.mysql.cj.log.Log;
 
 /**
@@ -246,7 +245,8 @@ public class MethodCountConnectionPluginFactory implements IConnectionPluginFact
       PropertySet propertySet,
       IConnectionPlugin nextPlugin,
       Log logger) {
-    logger.logInfo("[MethodCountConnectionPluginFactory] ::: Creating a method count connection plugin");
+    logger.logInfo(
+        "[MethodCountConnectionPluginFactory] ::: Creating a method count connection plugin");
     return new MethodCountConnectionPlugin(nextPlugin, logger);
   }
 }
@@ -256,9 +256,9 @@ Next is the `ExecutionTimeConnectionPluginFactory`.
 
 ```java
 import com.mysql.cj.conf.PropertySet;
-import com.mysql.cj.jdbc.ha.ca.plugins.IConnectionPlugin;
-import com.mysql.cj.jdbc.ha.ca.plugins.IConnectionPluginFactory;
-import com.mysql.cj.jdbc.ha.ca.plugins.ICurrentConnectionProvider;
+import com.mysql.cj.jdbc.ha.plugins.IConnectionPlugin;
+import com.mysql.cj.jdbc.ha.plugins.IConnectionPluginFactory;
+import com.mysql.cj.jdbc.ha.plugins.ICurrentConnectionProvider;
 import com.mysql.cj.log.Log;
 
 /**
@@ -272,7 +272,8 @@ public class ExecutionTimeConnectionPluginFactory implements
       PropertySet propertySet,
       IConnectionPlugin nextPlugin,
       Log logger) {
-    logger.logInfo("[ExecutionTimeConnectionPluginFactory] ::: Creating an execution time connection plugin");
+    logger.logInfo(
+        "[ExecutionTimeConnectionPluginFactory] ::: Creating an execution time connection plugin");
     return new ExecutionTimeConnectionPlugin(nextPlugin, logger);
   }
 }

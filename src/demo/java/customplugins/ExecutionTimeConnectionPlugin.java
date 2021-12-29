@@ -26,7 +26,7 @@
 
 package customplugins;
 
-import com.mysql.cj.jdbc.ha.ca.plugins.IConnectionPlugin;
+import com.mysql.cj.jdbc.ha.plugins.IConnectionPlugin;
 import com.mysql.cj.log.Log;
 
 import java.util.HashMap;

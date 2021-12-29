@@ -308,7 +308,7 @@ To learn how to write custom plugins, refer to examples located inside [Custom P
 #### Connection Plugin Manager Parameters
 | Parameter       | Value           | Required      | Description  | Default Value |
 | --------------- |:---------------:|:-------------:|:------------ | ------------- |
-|`connectionPluginFactories` | String | No | String of fully-qualified class name of plugin factories. <br/><br/>Each factory in the string should be comma-separated `,`<br/><br/>**NOTE: The order of factories declared matters.**  <br/><br/>Example: `customplugins.MethodCountConnectionPluginFactory`, `customplugins.ExecutionTimeConnectionPluginFactory,com.mysql.cj.jdbc.ha.ca.plugins.NodeMonitoringConnectionPluginFactory` | `com.mysql.cj.jdbc.ha.ca.plugins.NodeMonitoringConnectionPluginFactory` |
+|`connectionPluginFactories` | String | No | String of fully-qualified class name of plugin factories. <br/><br/>Each factory in the string should be comma-separated `,`<br/><br/>**NOTE: The order of factories declared matters.**  <br/><br/>Example: `customplugins.MethodCountConnectionPluginFactory`, `customplugins.ExecutionTimeConnectionPluginFactory,com.mysql.cj.jdbc.ha.plugins.NodeMonitoringConnectionPluginFactory` | `com.mysql.cj.jdbc.ha.plugins.NodeMonitoringConnectionPluginFactory` |
 
 ### Enhanced Failure Monitoring
 <div style="text-align:center"><img src="./docs/files/images/enhanced_failure_monitoring_diagram.png" /></div>
@@ -316,7 +316,7 @@ The figure above shows a simplified workflow of Enhanced Failure Monitoring. Enh
 
 Enhanced Failure Monitoring is loaded in by default and can be disabled by setting parameter `failureDetectionEnabled` to `false`. 
 
-If custom connection plugins are loaded, Enhanced Failure Monitoring will NOT be loaded unless explicitly included by adding `com.mysql.cj.jdbc.ha.ca.plugins.NodeMonitoringConnectionPluginFactory` to `connectionPluginFactories`. 
+If custom connection plugins are loaded, Enhanced Failure Monitoring will NOT be loaded unless explicitly included by adding `com.mysql.cj.jdbc.ha.plugins.NodeMonitoringConnectionPluginFactory` to `connectionPluginFactories`. 
 
 #### Enhanced Failure Monitoring Parameters
 `failureDetectionTime`, `failureDetectionInterval`, and `failureDetectionCount` are similar to TCP Keep Alive parameters.
