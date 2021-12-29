@@ -49,6 +49,7 @@ import com.mysql.cj.log.StandardLogger;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
@@ -70,7 +71,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /** Integration testing with Aurora MySQL failover logic. */
-// @Disabled
+@Disabled
 @TestMethodOrder(MethodOrderer.MethodName.class)
 public class FailoverIntegrationTest {
 
@@ -950,13 +951,9 @@ public class FailoverIntegrationTest {
     this.log.logDebug(
             "Assert that the first read query throws, "
                     + "this should kick off the driver failover process..");
-    try {
-      executeInstanceIdQuery(stmt);
-    } catch (SQLException e) {
-      e.printStackTrace();
-    }
-    // SQLException exception = assertThrows(SQLException.class, () -> executeInstanceIdQuery(stmt));
-    // assertEquals(expectedSQLErrorCoderrorCode, exception.getSQLState());
+
+    SQLException exception = assertThrows(SQLException.class, () -> executeInstanceIdQuery(stmt));
+    assertEquals(expectedSQLErrorCode, exception.getSQLState());
   }
 
   @BeforeEach

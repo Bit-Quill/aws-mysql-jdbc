@@ -602,7 +602,9 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
 
     List<HostInfo> latestTopology =
         this.topologyService.getTopology(connection, forceUpdate);
-    if (Util.isNullOrEmpty(latestTopology)) {
+
+    if (Util.isNullOrEmpty(latestTopology) || connection.isClosed()) {
+      pickNewConnection();
       return;
     }
 
