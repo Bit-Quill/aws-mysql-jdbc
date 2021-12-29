@@ -27,7 +27,7 @@
 package com.mysql.cj.jdbc.ha;
 
 import com.mysql.cj.MysqlConnection;
-import com.mysql.cj.jdbc.ha.plugins.ConnectionPluginManager;
+import com.mysql.cj.jdbc.ha.plugins.ITransactionContextHandler;
 import com.mysql.cj.log.Log;
 
 import java.sql.SQLException;
@@ -42,8 +42,7 @@ import java.util.Properties;
 public class ConnectionProxyLifecycleInterceptor
     implements com.mysql.cj.jdbc.interceptors.ConnectionLifecycleInterceptor {
 
-  private final ConnectionProxy proxy;
-  private final ConnectionPluginManager pluginManager;
+  private final ITransactionContextHandler handler;
 
   /**
    * Creates a new instance of ClusterAwareConnectionLifecycleInterceptor and initialize it with an
@@ -52,9 +51,8 @@ public class ConnectionProxyLifecycleInterceptor
    * @param proxy A connection proxy representing a logical connection. This proxy's internal state
    *     may be changed by this class.
    */
-  public ConnectionProxyLifecycleInterceptor(ConnectionProxy proxy, ConnectionPluginManager pluginManager) {
-    this.proxy = proxy;
-    this.pluginManager = pluginManager;
+  public ConnectionProxyLifecycleInterceptor(ITransactionContextHandler handler) {
+    this.handler = handler;
   }
 
   @Override
@@ -111,10 +109,8 @@ public class ConnectionProxyLifecycleInterceptor
    */
   @Override
   public boolean transactionBegun() {
-    synchronized (this.proxy) {
-      this.pluginManager.transactionBegun();
-      return true;
-    }
+    handler.transactionBegun();
+    return true;
   }
 
   /**
@@ -125,9 +121,7 @@ public class ConnectionProxyLifecycleInterceptor
    */
   @Override
   public boolean transactionCompleted() {
-    synchronized (this.proxy) {
-      this.pluginManager.transactionCompleted();
-      return true;
-    }
+    handler.transactionCompleted();
+    return true;
   }
 }

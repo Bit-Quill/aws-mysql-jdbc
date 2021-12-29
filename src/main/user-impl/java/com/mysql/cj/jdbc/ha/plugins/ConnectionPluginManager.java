@@ -28,7 +28,6 @@ package com.mysql.cj.jdbc.ha.plugins;
 
 import com.mysql.cj.conf.PropertyKey;
 import com.mysql.cj.conf.PropertySet;
-import com.mysql.cj.jdbc.ha.ConnectionProxy;
 import com.mysql.cj.jdbc.ha.plugins.failover.FailoverConnectionPluginFactory;
 import com.mysql.cj.log.Log;
 import com.mysql.cj.util.StringUtils;
@@ -39,7 +38,7 @@ import java.util.concurrent.Callable;
 /**
  * This class creates and handles a chain of {@link IConnectionPlugin} for each connection.
  */
-public class ConnectionPluginManager {
+public class ConnectionPluginManager implements ITransactionContextHandler {
 
   /* THIS CLASS IS NOT MULTI-THREADING SAFE */
   /* IT'S EXPECTED TO HAVE ONE INSTANCE OF THIS MANAGER PER JDBC CONNECTION */
@@ -55,7 +54,7 @@ public class ConnectionPluginManager {
   protected Log logger;
   protected PropertySet propertySet = null;
   protected IConnectionPlugin headPlugin = null;
-  ConnectionProxy proxy;
+  ICurrentConnectionProvider currentConnectionProvider;
 
   public ConnectionPluginManager(Log logger) {
     if (logger == null) {
@@ -74,11 +73,13 @@ public class ConnectionPluginManager {
    * <p>The {@link DefaultConnectionPlugin} will always be initialized and attached as the
    * last connection plugin in the chain.
    *
-   * @param proxy The connection the plugins are associated with.
+   * @param currentConnectionProvider The connection the plugins are associated with.
    * @param propertySet The configuration of the connection.
    */
-  public void init(ConnectionProxy proxy, PropertySet propertySet) {
-    this.proxy = proxy;
+  public void init(
+      ICurrentConnectionProvider currentConnectionProvider,
+      PropertySet propertySet) {
+    this.currentConnectionProvider = currentConnectionProvider;
     this.propertySet = propertySet;
 
     String factoryClazzNames = propertySet
@@ -91,7 +92,7 @@ public class ConnectionPluginManager {
 
     this.headPlugin = new DefaultConnectionPluginFactory()
         .getInstance(
-            this.proxy,
+            this.currentConnectionProvider,
             this.propertySet,
             null,
             this.logger);
@@ -109,7 +110,7 @@ public class ConnectionPluginManager {
       for (int i = factories.length - 1; i >= 0; i--) {
         this.headPlugin = factories[i]
             .getInstance(
-                this.proxy,
+                this.currentConnectionProvider,
                 this.propertySet,
                 this.headPlugin,
                 this.logger);
@@ -142,11 +143,17 @@ public class ConnectionPluginManager {
     this.headPlugin.releaseResources();
   }
 
+  @Override
   public void transactionBegun() {
-    this.headPlugin.transactionBegun();
+    synchronized (this.currentConnectionProvider.getCurrentConnection()) {
+      this.headPlugin.transactionBegun();
+    }
   }
 
+  @Override
   public void transactionCompleted() {
-    this.headPlugin.transactionCompleted();
+    synchronized (this.currentConnectionProvider.getCurrentConnection()) {
+      this.headPlugin.transactionCompleted();
+    }
   }
 }

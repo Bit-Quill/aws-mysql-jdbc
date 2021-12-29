@@ -26,14 +26,16 @@
 
 package com.mysql.cj.jdbc.ha.plugins;
 
-import java.util.concurrent.Callable;
+public interface ITransactionContextHandler {
+  /**
+   * Called when the driver has been told by the server that a transaction is now in progress (when
+   * one has not been currently in progress).
+   */
+  void transactionBegun();
 
-/**
- * Interface for connection plugins. This class implements ways to execute a JDBC method
- * and to clean up resources used before closing the plugin.
- */
-public interface IConnectionPlugin extends ITransactionContextHandler {
-  Object execute(Class<?> methodInvokeOn, String methodName, Callable<?> executeSqlFunc)
-      throws Exception;
-  void releaseResources();
+  /**
+   * Called when the driver has been told by the server that a transaction has completed, and no
+   * transaction is currently in progress.
+   */
+  void transactionCompleted();
 }

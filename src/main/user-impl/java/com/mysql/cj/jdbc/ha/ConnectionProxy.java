@@ -134,7 +134,7 @@ public class ConnectionProxy
 
   @Override
   public com.mysql.cj.jdbc.interceptors.ConnectionLifecycleInterceptor getConnectionLifecycleInterceptor() {
-    return new ConnectionProxyLifecycleInterceptor(this, this.pluginManager);
+    return new ConnectionProxyLifecycleInterceptor(this.pluginManager);
   }
 
   @Override
