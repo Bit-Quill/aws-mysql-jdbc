@@ -33,9 +33,7 @@ import com.mysql.cj.exceptions.CJException;
 import com.mysql.cj.jdbc.JdbcConnection;
 import com.mysql.cj.jdbc.JdbcPropertySetImpl;
 import com.mysql.cj.jdbc.exceptions.SQLExceptionsMapping;
-import com.mysql.cj.jdbc.ha.plugins.BasicConnectionProvider;
 import com.mysql.cj.jdbc.ha.plugins.ConnectionPluginManager;
-import com.mysql.cj.jdbc.ha.plugins.ConnectionProvider;
 import com.mysql.cj.jdbc.ha.plugins.ICurrentConnectionProvider;
 import com.mysql.cj.jdbc.interceptors.ConnectionLifecycleInterceptorProvider;
 import com.mysql.cj.log.Log;
@@ -71,7 +69,6 @@ public class ConnectionProxy
   // writer host is always stored at index 0
   protected Map<String, String> initialConnectionProps;
   protected boolean inTransaction = false;
-  protected ConnectionProvider connectionProvider;
   protected ConnectionPluginManager pluginManager = null;
   // Configuration settings
   protected boolean pluginsEnabled = true;
@@ -88,12 +85,9 @@ public class ConnectionProxy
   public ConnectionProxy(ConnectionUrl connectionUrl) throws SQLException {
     this.currentHostInfo = connectionUrl.getMainHost();
 
-    initSettings(connectionUrl);
     initLogger(connectionUrl);
-
-    this.connectionProvider = new BasicConnectionProvider();
-
-    initProxy(connectionUrl);
+    initSettings(connectionUrl);
+    initProxy();
   }
 
   /**
@@ -107,8 +101,7 @@ public class ConnectionProxy
   public static JdbcConnection autodetectClusterAndCreateProxyInstance(ConnectionUrl connectionUrl)
       throws SQLException {
 
-    ConnectionProxy connProxy =
-        new ConnectionProxy(connectionUrl);
+    final ConnectionProxy connProxy = new ConnectionProxy(connectionUrl);
     if (connProxy.isPluginEnabled()) {
       return (JdbcConnection)
           java.lang.reflect.Proxy.newProxyInstance(
@@ -131,8 +124,7 @@ public class ConnectionProxy
    */
   public static JdbcConnection createProxyInstance(ConnectionUrl connectionUrl)
       throws SQLException {
-    ConnectionProxy connProxy =
-        new ConnectionProxy(connectionUrl);
+    final ConnectionProxy connProxy = new ConnectionProxy(connectionUrl);
 
     return (JdbcConnection)
         java.lang.reflect.Proxy.newProxyInstance(
@@ -165,15 +157,10 @@ public class ConnectionProxy
   @Override
   public synchronized Object invoke(Object proxy, Method method, Object[] args)
       throws Throwable {
-    String methodName = method.getName();
+    final String methodName = method.getName();
 
-    if (METHOD_EQUALS.equals(methodName)) {
-      // Let args[0] "unwrap" to its InvocationHandler if it is a proxy.
-      return args[0].equals(this);
-    }
-
-    if (METHOD_HASH_CODE.equals(methodName)) {
-      return this.hashCode();
+    if (isDirectExecute(methodName, args)) {
+      return executeMethodDirectly(methodName, args);
     }
 
     try {
@@ -184,9 +171,9 @@ public class ConnectionProxy
       return proxyIfReturnTypeIsJdbcInterface(method.getReturnType(), result);
     } catch (Exception e) {
       // Check if the captured exception must be wrapped by an unchecked exception.
-      Class<?>[] declaredException = method.getExceptionTypes();
-      for (Class<?> declEx : declaredException) {
-        if (declEx.isAssignableFrom(e.getClass())) {
+      Class<?>[] declaredExceptions = method.getExceptionTypes();
+      for (Class<?> declaredException : declaredExceptions) {
+        if (declaredException.isAssignableFrom(e.getClass())) {
           throw e;
         }
       }
@@ -210,12 +197,12 @@ public class ConnectionProxy
     }
   }
 
-  protected void initProxy(ConnectionUrl connUrl) throws SQLException {
-    this.initProxy(connUrl, ConnectionPluginManager::new);
+  protected void initProxy() {
+    this.initProxy(ConnectionPluginManager::new);
   }
 
   protected void initSettings(ConnectionUrl connectionUrl) throws SQLException {
-    JdbcPropertySetImpl connProps = new JdbcPropertySetImpl();
+    final JdbcPropertySetImpl connProps = new JdbcPropertySetImpl();
     try {
       connProps.initializeProperties(connectionUrl.getMainHost().exposeAsProperties());
       this.pluginsEnabled =
@@ -238,7 +225,7 @@ public class ConnectionProxy
   protected Object proxyIfReturnTypeIsJdbcInterface(Class<?> returnType, Object toProxy) {
     if (toProxy != null) {
       if (Util.isJdbcInterface(returnType)) {
-        Class<?> toProxyClass = toProxy.getClass();
+        final Class<?> toProxyClass = toProxy.getClass();
         return Proxy.newProxyInstance(
             toProxyClass.getClassLoader(),
             Util.getImplementedInterfaces(toProxyClass),
@@ -248,17 +235,52 @@ public class ConnectionProxy
     return toProxy;
   }
 
-  private void initProxy(
-      ConnectionUrl connUrl,
-      Function<Log, ConnectionPluginManager> connectionPluginManagerInitializer) {
-    this.currentHostInfo = connUrl.getMainHost();
+  /**
+   * Special handling of method calls that can be handled without making an explicit invocation against the connection
+   * underlying this proxy. See {@link #isDirectExecute(String, Object[])}
+   *
+   * @param methodName The name of the method being called
+   * @param args The argument parameters of the method that is being called
+   * @return The results of the special method handling, according to which method was called
+   */
+  private Object executeMethodDirectly(String methodName, Object[] args) {
+    if (METHOD_EQUALS.equals(methodName)) {
+      return args[0].equals(this);
+    }
 
+    if (METHOD_HASH_CODE.equals(methodName)) {
+      return this.hashCode();
+    }
+
+    // should never reach this statement, as the conditions in this method were previously checked in the method
+    // calling this class using the isForwardingRequired method
+    return null;
+  }
+
+  private void initProxy(
+      Function<Log, ConnectionPluginManager> connectionPluginManagerInitializer) {
     if (this.pluginManager == null) {
       this.pluginManager = connectionPluginManagerInitializer.apply(log);
       this.pluginManager.init(
           this,
           connProps);
     }
+  }
+
+  /**
+   * Check if the method that is about to be invoked requires forwarding to the connection underlying this proxy. The
+   * methods indicated below can be handled without needing to perform an invocation against the underlying connection,
+   * provided the arguments are valid when required (eg for METHOD_EQUALS and METHOD_ABORT)
+   *
+   * @param methodName The name of the method that is being called
+   * @param args The argument parameters of the method that is being called
+   * @return true if we need to explicitly invoke the method indicated by methodName on the underlying connection
+   */
+  private boolean isDirectExecute(String methodName, Object[] args) {
+
+    return (METHOD_EQUALS.equals(methodName)
+        || METHOD_HASH_CODE.equals(methodName)
+        && (args == null || args.length <= 0 || args[0] == null));
   }
 
   private boolean isPluginEnabled() {
@@ -294,8 +316,7 @@ public class ConnectionProxy
               this.invokeOn.getClass(),
               method.getName(),
               () -> method.invoke(this.invokeOn, args));
-      result = proxyIfReturnTypeIsJdbcInterface(method.getReturnType(), result);
-      return result;
+      return proxyIfReturnTypeIsJdbcInterface(method.getReturnType(), result);
     }
   }
 }
