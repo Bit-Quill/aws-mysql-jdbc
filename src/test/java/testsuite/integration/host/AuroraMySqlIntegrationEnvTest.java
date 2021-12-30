@@ -33,8 +33,7 @@ public class AuroraMySqlIntegrationEnvTest {
   private static final String DB_CONN_STR_PREFIX = "jdbc:mysql://";
   private static final String DB_CONN_STR_SUFFIX = System.getenv("DB_CONN_STR_SUFFIX");
   private static final String DB_CONN_PROP = "?enabledTLSProtocols=TLSv1.2"; // Encounters SSL errors without it on GH Actions
-  private static final String TEST_DB_CLUSTER_IDENTIFIER =
-      System.getenv("TEST_DB_CLUSTER_IDENTIFIER");
+  private static final String TEST_DB_CLUSTER_IDENTIFIER = System.getenv("TEST_DB_CLUSTER_IDENTIFIER");
 
   private static final String TEST_USERNAME = System.getenv("TEST_USERNAME");
   private static final String TEST_PASSWORD = System.getenv("TEST_PASSWORD");
@@ -86,7 +85,6 @@ public class AuroraMySqlIntegrationEnvTest {
   private static void setUpToxiProxy(Network network) {
     try {
       DriverManager.registerDriver(new Driver());
-      System.out.println(getClusterEndpoint());
       try (Connection conn = DriverManager.getConnection(getClusterEndpoint(), TEST_USERNAME, TEST_PASSWORD)) {
         try (Statement stmt = conn.createStatement()) {
           // Get instances
@@ -105,8 +103,9 @@ public class AuroraMySqlIntegrationEnvTest {
                       hostEndpoint + PROXIED_DOMAIN_NAME_PREFIX);
               toxiProxy.start();
               System.out.println("Toxi Proxy Container Name: " + toxiProxy.getContainerName());
-              ToxiproxyContainer.ContainerProxy mysqlInstanceProxy  = toxiProxy.getProxy(hostEndpoint, MYSQL_PORT);
+              ToxiproxyContainer.ContainerProxy mysqlInstanceProxy = toxiProxy.getProxy(hostEndpoint, MYSQL_PORT);
               MYSQL_PROXY_PORT = mysqlInstanceProxy.getOriginalProxyPort();
+
               toxiproxyContainerList.add(toxiProxy);
             }
           }
@@ -144,7 +143,8 @@ public class AuroraMySqlIntegrationEnvTest {
         .withCopyFileToContainer(MountableFile.forHostPath("./gradle.properties"), "app/gradle.properties")
         .withCopyFileToContainer(MountableFile.forHostPath("./build.gradle.kts"), "app/build.gradle.kts")
         .withEnv("TEST_USERNAME", TEST_USERNAME)
-        .withEnv("TEST_PASSWORD", TEST_PASSWORD);
+        .withEnv("TEST_PASSWORD", TEST_PASSWORD)
+        .withEnv("PROXIED_CLUSTER_TEMPLATE", "?" + DB_CONN_STR_SUFFIX + PROXIED_DOMAIN_NAME_PREFIX);
 
     // Add mysql instances & proxies to container env
     for (int i = 0; i < mySqlInstances.size(); i++){

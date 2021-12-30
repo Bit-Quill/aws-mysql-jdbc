@@ -344,6 +344,9 @@ signing {
 // Run integrations tests for test host
 // Environment is being configured and started
 tasks.register<Test>("test-integration-host") {
+    this.testLogging {
+        this.showStandardStreams = true
+    }
     useJUnitPlatform()
     setGroup("verification")
     filter.includeTestsMatching("testsuite.integration.host.*")
@@ -354,6 +357,9 @@ tasks.register<Test>("test-integration-host") {
 // Run integration tests in container
 // Environment (like supplementary containers) should be up and running!
 tasks.register<Test>("test-integration-container-redis") {
+    this.testLogging {
+        this.showStandardStreams = true
+    }
     useJUnitPlatform()
     setGroup("verification")
     filter.includeTestsMatching("testsuite.integration.container.RedisIntegrationTest")
@@ -362,6 +368,9 @@ tasks.register<Test>("test-integration-container-redis") {
 // Run integration tests in container
 // Environment (like supplementary containers) should be up and running!
 tasks.register<Test>("test-integration-container-aurora") {
+    this.testLogging {
+        this.showStandardStreams = true
+    }
     useJUnitPlatform()
     setGroup("verification")
     filter.includeTestsMatching("testsuite.integration.container.AuroraMySqlIntegrationTest")
@@ -369,6 +378,9 @@ tasks.register<Test>("test-integration-container-aurora") {
 
 // Run all tests excluding integration tests
 tasks.register<Test>("test-non-integration") {
+    this.testLogging {
+        this.showStandardStreams = true
+    }
     useJUnitPlatform()
     setGroup("verification")
     filter.excludeTestsMatching("testsuite.integration.*")
