@@ -4,8 +4,9 @@ import com.mysql.cj.conf.PropertyKey;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.IOException;
@@ -15,8 +16,11 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.IntSummaryStatistics;
 import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Stream;
 
 import eu.rekawek.toxiproxy.Proxy;
 import eu.rekawek.toxiproxy.ToxiproxyClient;
@@ -63,8 +67,8 @@ public class AuroraMySqlIntegrationTest {
   private static Proxy proxyInstance_5;
 
   private static final int REPEAT_TIMES = 5;
-  private static final List<Long> workflow2DefaultDowntimes = new ArrayList<>(REPEAT_TIMES);
-  private static final List<Long> workflow2AggressiveDowntimes = new ArrayList<>(REPEAT_TIMES);
+  private static final List<Integer> downtimesDefault = new ArrayList<>(REPEAT_TIMES);
+  private static final List<Integer> downtimesAggressive = new ArrayList<>(REPEAT_TIMES);
 
   @BeforeAll
   public static void setUp() throws IOException, SQLException {
@@ -90,14 +94,23 @@ public class AuroraMySqlIntegrationTest {
 
   @AfterAll
   public static void cleanUp() {
-    final double avgWorkflow2DefaultDowntimes = workflow2DefaultDowntimes.stream().mapToDouble(a -> a).average().orElse(0);
-    final double avgWorkflow2AggressiveDowntimes = workflow2AggressiveDowntimes.stream().mapToDouble(a -> a).average().orElse(0);
+    final IntSummaryStatistics statSumDefault = downtimesDefault.stream().mapToInt(a -> a).summaryStatistics();
+    final double avgDowntimeDefault = statSumDefault.getAverage();
+    final long minDowntimeDefault = statSumDefault.getMin();
+    final long maxDowntimeDefault = statSumDefault.getMax();
 
-    System.out.printf("Results\n%-50s%5.2fms\n%-50s%5.2fms",
-        "Average Failure Detection, Default Properties:",
-        avgWorkflow2DefaultDowntimes,
-        "Average Failure Detection, Aggressive Properties:",
-        avgWorkflow2AggressiveDowntimes);
+    final IntSummaryStatistics statSumAggressive = downtimesAggressive.stream().mapToInt(a -> a).summaryStatistics();
+    final double avgDowntimeAggressive = statSumAggressive.getAverage();
+    final long minDowntimeAggressive = statSumAggressive.getMin();
+    final long maxDowntimeAggressive = statSumAggressive.getMax();
+
+    System.out.printf("Failure Detection Results (in Milliseconds)\n" +
+            "%11s| %-9s| %-90s| %-90s\n" +
+            "%-11s| %-9d| %-9d| %-9.2f\n" +
+            "%-11s| %-9d| %-9d| %-9.2f",
+        "", "Min", "Max", "Avg",
+        "Default", minDowntimeDefault, maxDowntimeDefault, avgDowntimeDefault,
+        "Aggressive", minDowntimeAggressive, maxDowntimeAggressive, avgDowntimeAggressive);
   }
 
   @Test
@@ -147,106 +160,69 @@ public class AuroraMySqlIntegrationTest {
     conn.close();
   }
 
-  @RepeatedTest(REPEAT_TIMES)
-  @MethodSource("generateProperties")
-  public void test_workflow2_Default() {
-    final Properties props = new Properties();
-    props.setProperty(PropertyKey.USER.getKeyName(), TEST_USERNAME);
-    props.setProperty(PropertyKey.PASSWORD.getKeyName(), TEST_PASSWORD);
-    props.setProperty(PropertyKey.clusterInstanceHostPattern.getKeyName(), PROXIED_CLUSTER_TEMPLATE);
-    // Monitoring Props
-    props.setProperty("monitoring-connectTimeout", "3000"); // 3s
-    props.setProperty("monitoring-socketTimeout", "3000"); // 3s
+  @ParameterizedTest(name = "test_FailureDetectionTime")
+  @MethodSource("generateFailureDetectionTimeParams")
+  public void test_FailureDetectionTime(Properties props, List<Integer> downtimes) {
+    for(int i = 0; i < REPEAT_TIMES; i++) {
+      try (final Connection conn = connectToInstance(MYSQL_INSTANCE_1_URL + PROXIED_DOMAIN_NAME_PREFIX, MYSQL_PROXY_PORT, props);
+          final Statement statement = conn.createStatement()) {
+        // Start timer to stop network
+        final AtomicLong downtime = new AtomicLong();
+        Thread thread = new Thread(() -> {
+          try {
+            Thread.sleep(5000); // 5s
+            // Kill network
+            proxyInstance_1.toxics().bandwidth("DOWN-STREAM", ToxicDirection.DOWNSTREAM, 0); // from mysql server towards mysql driver
+            proxyInstance_1.toxics().bandwidth("UP-STREAM", ToxicDirection.UPSTREAM, 0); // from mysql driver towards mysql server
+            downtime.set(System.currentTimeMillis());
+          } catch (Exception e) {
+            e.printStackTrace();
+          }
+        });
 
-    try (final Connection conn = connectToInstance(MYSQL_INSTANCE_1_URL + PROXIED_DOMAIN_NAME_PREFIX, MYSQL_PROXY_PORT, props);
-        final Statement statement = conn.createStatement()) {
-      // Start timer to stop network
-      final long[] downtime = {0};
-      Thread thread = new Thread(() -> {
+        thread.start();
+        // Execute long query
         try {
-          Thread.sleep(5000); // 5s
-          // Kill network
-          proxyInstance_1.toxics().bandwidth("DOWN-STREAM", ToxicDirection.DOWNSTREAM, 0); // from mysql server towards mysql driver
-          proxyInstance_1.toxics().bandwidth("UP-STREAM", ToxicDirection.UPSTREAM, 0); // from mysql driver towards mysql server
-          downtime[0] = System.currentTimeMillis();
-        } catch (Exception e) {
-          e.printStackTrace();
+          final String QUERY = "select sleep(600)"; // 600s -> 10min
+          final ResultSet result = statement.executeQuery(QUERY);
+          Assertions.fail("Sleep query finished, should not be possible with network downed.");
+        } catch (Exception throwables) { // Catching executing query
+          // Calculate and add detection time
+          downtimes.add((int)(System.currentTimeMillis() - downtime.get()));
         }
-      });
 
-      thread.start();
-      // Execute long query
-      try {
-        final String QUERY = "select sleep(600)"; // 600s -> 10min
-        final ResultSet result = statement.executeQuery(QUERY);
-        Assertions.fail("Sleep query finished, should not be possible with network downed.");
-      } catch (Exception throwables) { // Catching executing query
-        // Calculate and add detection time
-        workflow2DefaultDowntimes.add(System.currentTimeMillis() - downtime[0]);
-      }
-
-    } catch (Exception throwables) { // Catching Connection connect & Statement creations
-      Assertions.fail(throwables);
-    } finally {
-      try {
-        proxyInstance_1.toxics().get("DOWN-STREAM").remove();
-        proxyInstance_1.toxics().get("UP-STREAM").remove();
-      } catch (Exception e) {
-        // Ignore as toxics were never set
+      } catch (Exception throwables) { // Catching Connection connect & Statement creations
+        Assertions.fail(throwables);
+      } finally {
+        try {
+          proxyInstance_1.toxics().get("DOWN-STREAM").remove();
+          proxyInstance_1.toxics().get("UP-STREAM").remove();
+        } catch (Exception e) {
+          // Ignore as toxics were never set
+        }
       }
     }
   }
 
-  @RepeatedTest(REPEAT_TIMES)
-  public void test_workflow2_Aggressive() {
-    final Properties props = new Properties();
-    props.setProperty(PropertyKey.USER.getKeyName(), TEST_USERNAME);
-    props.setProperty(PropertyKey.PASSWORD.getKeyName(), TEST_PASSWORD);
-    props.setProperty(PropertyKey.clusterInstanceHostPattern.getKeyName(), PROXIED_CLUSTER_TEMPLATE);
+  private static Stream<Arguments> generateFailureDetectionTimeParams() {
+    final Properties defaultProps = new Properties();
+    defaultProps.setProperty(PropertyKey.USER.getKeyName(), TEST_USERNAME);
+    defaultProps.setProperty(PropertyKey.PASSWORD.getKeyName(), TEST_PASSWORD);
+    defaultProps.setProperty(PropertyKey.clusterInstanceHostPattern.getKeyName(), PROXIED_CLUSTER_TEMPLATE);
     // Monitoring Props
-    props.setProperty(PropertyKey.failureDetectionTime.getKeyName(), "6000"); // 6s
-    props.setProperty(PropertyKey.failureDetectionInterval.getKeyName(), "1000"); // 1s
-    props.setProperty(PropertyKey.failureDetectionCount.getKeyName(), "1"); // 1
-    props.setProperty("monitoring-connectTimeout", "3000"); // 3s
-    props.setProperty("monitoring-socketTimeout", "3000"); // 3s
+    defaultProps.setProperty("monitoring-connectTimeout", "3000"); // 3s
+    defaultProps.setProperty("monitoring-socketTimeout", "3000"); // 3s
 
-    try (final Connection conn = connectToInstance(MYSQL_INSTANCE_1_URL + PROXIED_DOMAIN_NAME_PREFIX, MYSQL_PROXY_PORT, props);
-        final Statement statement = conn.createStatement()) {
-      // Start timer to stop network
-      final long[] downtime = {0};
-      Thread thread = new Thread(() -> {
-        try {
-          Thread.sleep(5000); // 5s
-          // Kill network
-          proxyInstance_1.toxics().bandwidth("DOWN-STREAM", ToxicDirection.DOWNSTREAM, 0); // from mysql server towards mysql driver
-          proxyInstance_1.toxics().bandwidth("UP-STREAM", ToxicDirection.UPSTREAM, 0); // from mysql driver towards mysql server
-          downtime[0] = System.currentTimeMillis();
-        } catch (Exception e) {
-          e.printStackTrace();
-        }
-      });
+    final Properties aggressiveProps = new Properties();
+    defaultProps.forEach((key, value) -> aggressiveProps.setProperty((String) key, (String) value));
+    aggressiveProps.setProperty(PropertyKey.failureDetectionTime.getKeyName(), "6000"); // 6s
+    aggressiveProps.setProperty(PropertyKey.failureDetectionInterval.getKeyName(), "1000"); // 1s
+    aggressiveProps.setProperty(PropertyKey.failureDetectionCount.getKeyName(), "1"); // 1
 
-      thread.start();
-      // Execute long query
-      try {
-        final String QUERY = "select sleep(600)"; // 600s -> 10min
-        final ResultSet result = statement.executeQuery(QUERY);
-        Assertions.fail("Sleep query finished, should not be possible with network downed.");
-      } catch (Exception throwables) { // Catching executing query
-        // Calculate and add detection time
-        workflow2AggressiveDowntimes.add(System.currentTimeMillis() - downtime[0]);
-      }
-
-    } catch (Exception throwables) { // Catching Connection connect & Statement creations
-      Assertions.fail(throwables);
-    } finally {
-      try {
-        proxyInstance_1.toxics().get("DOWN-STREAM").remove();
-        proxyInstance_1.toxics().get("UP-STREAM").remove();
-      } catch (Exception e) {
-        // Ignore as toxics were never set
-      }
-    }
+    return Stream.of(
+        Arguments.of(defaultProps, downtimesDefault),
+        Arguments.of(aggressiveProps, downtimesAggressive)
+    );
   }
 
   private static Connection connectToInstance(String instanceUrl, int port) throws SQLException {
