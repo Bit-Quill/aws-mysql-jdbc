@@ -83,7 +83,6 @@ import com.mysql.cj.jdbc.exceptions.SQLError;
 import com.mysql.cj.jdbc.exceptions.SQLExceptionsMapping;
 import com.mysql.cj.jdbc.ha.MultiHostMySQLConnection;
 import com.mysql.cj.jdbc.interceptors.ConnectionLifecycleInterceptor;
-import com.mysql.cj.jdbc.interceptors.ConnectionLifecycleInterceptorProvider;
 import com.mysql.cj.jdbc.result.CachedResultSetMetaData;
 import com.mysql.cj.jdbc.result.CachedResultSetMetaDataImpl;
 import com.mysql.cj.jdbc.result.ResultSetFactory;
@@ -1355,9 +1354,7 @@ public class ConnectionImpl implements JdbcConnection, SessionEventListener, Ser
     private void addProxyInterceptor() {
         if(this.realProxy != null) {
             ConnectionLifecycleInterceptor proxyInterceptor = null;
-            if(this.realProxy instanceof ConnectionLifecycleInterceptorProvider) {
-                proxyInterceptor = ((ConnectionLifecycleInterceptorProvider)this.realProxy).getConnectionLifecycleInterceptor();
-            } else if (this.realProxy instanceof ConnectionLifecycleInterceptor) {
+            if (this.realProxy instanceof ConnectionLifecycleInterceptor) {
                 proxyInterceptor = (ConnectionLifecycleInterceptor)this.realProxy;
             }
 
@@ -1368,6 +1365,18 @@ public class ConnectionImpl implements JdbcConnection, SessionEventListener, Ser
                 if(!this.connectionLifecycleInterceptors.contains(proxyInterceptor)) {
                     this.connectionLifecycleInterceptors.add(proxyInterceptor);
                 }
+            }
+        }
+    }
+
+    @Override
+    public void setConnectionLifecycleInterceptor(ConnectionLifecycleInterceptor interceptor) {
+        if(interceptor != null) {
+            if(this.connectionLifecycleInterceptors == null) {
+                this.connectionLifecycleInterceptors = new ArrayList<ConnectionLifecycleInterceptor>();
+            }
+            if(!this.connectionLifecycleInterceptors.contains(interceptor)) {
+                this.connectionLifecycleInterceptors.add(interceptor);
             }
         }
     }
