@@ -1,5 +1,6 @@
 package testsuite.integration.host;
 
+import com.mysql.cj.jdbc.ha.ca.ClusterAwareConnectionProxy;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -39,11 +40,11 @@ public class AuroraMySqlIntegrationEnvTest {
   private static final String TEST_PASSWORD = System.getenv("TEST_PASSWORD");
 
   private static final String RETRIEVE_TOPOLOGY_SQL =
-      "SELECT SERVER_ID FROM information_schema.replica_host_status ";
+      "SELECT SERVER_ID, SESSION_ID FROM information_schema.replica_host_status ";
 
   private static final String TEST_CONTAINER_NETWORK_ALIAS = "test-container";
 
-  private static final String PROXIED_DOMAIN_NAME_PREFIX = ".proxied";
+  private static final String PROXIED_DOMAIN_NAME_SUFFIX = ".proxied";
 
   private static final List<ToxiproxyContainer> toxiproxyContainerList = new ArrayList<>();
 
@@ -89,30 +90,45 @@ public class AuroraMySqlIntegrationEnvTest {
         try (Statement stmt = conn.createStatement()) {
           // Get instances
           try (ResultSet resultSet = stmt.executeQuery(RETRIEVE_TOPOLOGY_SQL)) {
-            int instanceCount = 0;
+            int writerCount = 0;
             while (resultSet.next()) {
-              // Get Instance endpoints
-              String hostEndpoint = resultSet.getString("SERVER_ID") + DB_CONN_STR_SUFFIX;
-              mySqlInstances.add(hostEndpoint);
+              String instanceEndpoint = resultSet.getString("SERVER_ID") + DB_CONN_STR_SUFFIX;
 
-              // Create & Start Toxi Proxy Container
-              ToxiproxyContainer toxiProxy = new ToxiproxyContainer(TOXIPROXY_IMAGE)
-                  .withNetwork(network)
-                  .withNetworkAliases(
-                      "toxiproxy-instance-" + (++instanceCount),
-                      hostEndpoint + PROXIED_DOMAIN_NAME_PREFIX);
-              toxiProxy.start();
-              System.out.println("Toxi Proxy Container Name: " + toxiProxy.getContainerName());
-              ToxiproxyContainer.ContainerProxy mysqlInstanceProxy = toxiProxy.getProxy(hostEndpoint, MYSQL_PORT);
-              MYSQL_PROXY_PORT = mysqlInstanceProxy.getOriginalProxyPort();
+              if (!"MASTER_SESSION_ID".equalsIgnoreCase(resultSet.getString("SESSION_ID"))) {
+                mySqlInstances.add(instanceEndpoint);
+                continue;
+              }
 
-              toxiproxyContainerList.add(toxiProxy);
+              if (writerCount == 0) {
+                // store the first writer to its expected position [0]
+                mySqlInstances.add(0, instanceEndpoint);
+              } else {
+                // append other writers, if any, to the end of the host list
+                mySqlInstances.add(instanceEndpoint);
+              }
+              writerCount++;
             }
           }
         }
       }
     } catch (SQLException e) {
       Assertions.fail(String.format("Failed initialize instances. Got exception: \n%s", e.getMessage()));
+    }
+
+    int instanceCount = 0;
+    for (String endpoints : mySqlInstances) {
+      // Create & Start Toxi Proxy Container
+      ToxiproxyContainer toxiProxy = new ToxiproxyContainer(TOXIPROXY_IMAGE)
+          .withNetwork(network)
+          .withNetworkAliases(
+              "toxiproxy-instance-" + (++instanceCount),
+              endpoints + PROXIED_DOMAIN_NAME_SUFFIX);
+      toxiProxy.start();
+      System.out.println("Toxi Proxy Container Name: " + toxiProxy.getContainerName());
+      ToxiproxyContainer.ContainerProxy mysqlInstanceProxy = toxiProxy.getProxy(endpoints, MYSQL_PORT);
+      MYSQL_PROXY_PORT = mysqlInstanceProxy.getOriginalProxyPort();
+
+      toxiproxyContainerList.add(toxiProxy);
     }
   }
 
@@ -144,7 +160,7 @@ public class AuroraMySqlIntegrationEnvTest {
         .withCopyFileToContainer(MountableFile.forHostPath("./build.gradle.kts"), "app/build.gradle.kts")
         .withEnv("TEST_USERNAME", TEST_USERNAME)
         .withEnv("TEST_PASSWORD", TEST_PASSWORD)
-        .withEnv("PROXIED_CLUSTER_TEMPLATE", "?" + DB_CONN_STR_SUFFIX + PROXIED_DOMAIN_NAME_PREFIX);
+        .withEnv("PROXIED_CLUSTER_TEMPLATE", "?" + DB_CONN_STR_SUFFIX + PROXIED_DOMAIN_NAME_SUFFIX);
 
     // Add mysql instances & proxies to container env
     for (int i = 0; i < mySqlInstances.size(); i++){
@@ -159,7 +175,7 @@ public class AuroraMySqlIntegrationEnvTest {
           "toxiproxy-instance-" + (i + 1));
     }
     testContainer.addEnv("MYSQL_PORT", Integer.toString(MYSQL_PORT));
-    testContainer.addEnv("PROXIED_DOMAIN_NAME_PREFIX", PROXIED_DOMAIN_NAME_PREFIX);
+    testContainer.addEnv("PROXIED_DOMAIN_NAME_PREFIX", PROXIED_DOMAIN_NAME_SUFFIX);
     testContainer.addEnv("MYSQL_PROXY_PORT", Integer.toString(MYSQL_PROXY_PORT));
 
     System.out.println("Toxyproxy Instances port: " + MYSQL_PROXY_PORT);

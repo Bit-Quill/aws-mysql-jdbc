@@ -348,10 +348,8 @@ tasks.register<Test>("test-integration-host") {
         this.showStandardStreams = true
     }
     useJUnitPlatform()
-    setGroup("verification")
+    group = "verification"
     filter.includeTestsMatching("testsuite.integration.host.*")
-    //filter.includeTestsMatching("testsuite.integration.host.RedisIntegrationEnvTest")
-    //filter.includeTestsMatching("testsuite.integration.host.AuroraMySqlIntegrationEnvTest")
 }
 
 // Run integration tests in container
@@ -361,7 +359,7 @@ tasks.register<Test>("test-integration-container-redis") {
         this.showStandardStreams = true
     }
     useJUnitPlatform()
-    setGroup("verification")
+    group = "verification"
     filter.includeTestsMatching("testsuite.integration.container.RedisIntegrationTest")
 }
 
@@ -372,7 +370,7 @@ tasks.register<Test>("test-integration-container-aurora") {
         this.showStandardStreams = true
     }
     useJUnitPlatform()
-    setGroup("verification")
+    group = "verification"
     filter.includeTestsMatching("testsuite.integration.container.AuroraMySqlIntegrationTest")
 }
 
@@ -382,6 +380,6 @@ tasks.register<Test>("test-non-integration") {
         this.showStandardStreams = true
     }
     useJUnitPlatform()
-    setGroup("verification")
+    group = "verification"
     filter.excludeTestsMatching("testsuite.integration.*")
 }
