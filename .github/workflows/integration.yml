@@ -3,7 +3,7 @@ name: Integration Tests
 on:
   push:
     branches:
-      - main
+      - test
   pull_request:
     branches:
       - main
@@ -46,6 +46,7 @@ jobs:
           ./gradlew --no-parallel --no-daemon test-integration-host
         env:
           DB_CONN_STR_SUFFIX: ${{ secrets.DB_CONN_STR_SUFFIX }}
+          DB_READONLY_CONN_STR_SUFFIX: ${{ secrets.DB_READONLY_CONN_STR_SUFFIX }}
           TEST_DB_CLUSTER_IDENTIFIER: ${{ secrets.TEST_DB_CLUSTER_IDENTIFIER }}
           TEST_USERNAME: ${{ secrets.TEST_USERNAME }}
           TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
@@ -59,6 +60,7 @@ jobs:
         if: always()
       - name: 'Archive junit results'
         uses: actions/upload-artifact@v2
+        if: ${{ always() }}
         with:
           name: 'junit-report'
           path: build/reports/tests/
