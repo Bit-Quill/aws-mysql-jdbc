@@ -150,17 +150,20 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
     this.initialConnectionProps = new HashMap<>();
     Properties originalProperties = this.propertySet.exposeAsProperties();
     if (originalProperties != null) {
-      originalProperties.stringPropertyNames().stream()
-        .forEach(p -> this.initialConnectionProps.put(p, originalProperties.getProperty(p)));
+      for (String p : originalProperties.stringPropertyNames()) {
+        this.initialConnectionProps.put(p, originalProperties.getProperty(p));
+      }
+    }
+
+    Properties additionalProperties = this.currentConnectionProvider.getCurrentHostInfo().exposeAsProperties();
+
+    for (String p : additionalProperties.stringPropertyNames()) {
+      if (!this.initialConnectionProps.containsKey(p)) {
+        this.initialConnectionProps.put(p, additionalProperties.getProperty(p));
+      }
     }
 
     initSettings();
-    try {
-      initProxy();
-    } catch (SQLException e) {
-      // TODO: review
-      e.printStackTrace();
-    }
 
     this.connectionProvider = new BasicConnectionProvider();
 
@@ -168,6 +171,13 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
     topologyService.setPerformanceMetricsEnabled(this.gatherPerfMetricsSetting);
     topologyService.setRefreshRate(this.clusterTopologyRefreshRateMsSetting);
     this.topologyService = topologyService;
+
+    try {
+      initProxy();
+    } catch (SQLException e) {
+      // TODO: review
+      e.printStackTrace();
+    }
 
     // TODO: need to initialize thisAsConnection, parentProxyConnection and
     this.readerFailoverHandler =
