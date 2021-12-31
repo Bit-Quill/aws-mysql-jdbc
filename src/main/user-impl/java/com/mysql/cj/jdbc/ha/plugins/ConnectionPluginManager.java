@@ -48,8 +48,8 @@ public class ConnectionPluginManager implements ITransactionContextHandler {
   //
 
   protected static final String DEFAULT_PLUGIN_FACTORIES = String.format("%s,%s",
-      NodeMonitoringConnectionPluginFactory.class.getName(),
-      FailoverConnectionPluginFactory.class.getName());
+      FailoverConnectionPluginFactory.class.getName(),
+      NodeMonitoringConnectionPluginFactory.class.getName());
 
   protected Log logger;
   protected PropertySet propertySet = null;
