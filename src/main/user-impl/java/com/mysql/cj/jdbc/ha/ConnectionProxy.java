@@ -201,11 +201,10 @@ public class ConnectionProxy
   }
 
   protected void initSettings(ConnectionUrl connectionUrl) throws SQLException {
-    final JdbcPropertySetImpl connProps = new JdbcPropertySetImpl();
     try {
-      connProps.initializeProperties(connectionUrl.getMainHost().exposeAsProperties());
+      this.connProps.initializeProperties(connectionUrl.getMainHost().exposeAsProperties());
       this.pluginsEnabled =
-          connProps.getBooleanProperty(PropertyKey.useConnectionPlugins).getValue();
+          this.connProps.getBooleanProperty(PropertyKey.useConnectionPlugins).getValue();
     } catch (CJException e) {
       throw SQLExceptionsMapping.translateException(e, null);
     }
