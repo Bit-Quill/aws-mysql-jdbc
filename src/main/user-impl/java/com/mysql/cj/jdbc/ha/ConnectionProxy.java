@@ -102,7 +102,7 @@ public class ConnectionProxy implements ICurrentConnectionProvider, InvocationHa
   public static JdbcConnection autodetectClusterAndCreateProxyInstance(ConnectionUrl connectionUrl)
       throws SQLException {
 
-    ConnectionProvider connectionProvider = new BasicConnectionProvider();
+    final ConnectionProvider connectionProvider = new BasicConnectionProvider();
     final ConnectionProxy connProxy = new ConnectionProxy(connectionUrl, connectionProvider.connect(connectionUrl.getMainHost()));
     if (connProxy.isPluginEnabled()) {
       return (JdbcConnection)
