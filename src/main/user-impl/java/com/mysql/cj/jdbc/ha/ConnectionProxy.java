@@ -33,9 +33,10 @@ import com.mysql.cj.exceptions.CJException;
 import com.mysql.cj.jdbc.JdbcConnection;
 import com.mysql.cj.jdbc.JdbcPropertySetImpl;
 import com.mysql.cj.jdbc.exceptions.SQLExceptionsMapping;
+import com.mysql.cj.jdbc.ha.plugins.BasicConnectionProvider;
 import com.mysql.cj.jdbc.ha.plugins.ConnectionPluginManager;
+import com.mysql.cj.jdbc.ha.plugins.ConnectionProvider;
 import com.mysql.cj.jdbc.ha.plugins.ICurrentConnectionProvider;
-import com.mysql.cj.jdbc.interceptors.ConnectionLifecycleInterceptorProvider;
 import com.mysql.cj.log.Log;
 import com.mysql.cj.log.LogFactory;
 import com.mysql.cj.log.NullLogger;
@@ -54,10 +55,7 @@ import java.util.function.Function;
  * failover features. Connection switching occurs on communications related exceptions and/or
  * cluster topology changes.
  */
-public class ConnectionProxy
-    implements ConnectionLifecycleInterceptorProvider,
-    ICurrentConnectionProvider,
-    InvocationHandler {
+public class ConnectionProxy implements ICurrentConnectionProvider, InvocationHandler {
 
   /** Null logger shared by all connections at startup. */
   protected static final Log NULL_LOGGER = new NullLogger(Log.LOGGER_INSTANCE_NAME);
@@ -79,14 +77,18 @@ public class ConnectionProxy
    *
    * @param connectionUrl {@link ConnectionUrl} instance containing the lists of hosts available to
    *     switch on.
+   * @param connection {@link JdbcConnection}
    * @throws SQLException if an error occurs
    */
-  public ConnectionProxy(ConnectionUrl connectionUrl) throws SQLException {
+  public ConnectionProxy(ConnectionUrl connectionUrl, JdbcConnection connection) throws SQLException {
     this.currentHostInfo = connectionUrl.getMainHost();
+    this.currentConnection = connection;
 
     initLogger(connectionUrl);
     initSettings(connectionUrl);
-    initProxy();
+    initProxy(ConnectionPluginManager::new);
+
+    this.currentConnection.setConnectionLifecycleInterceptor(new ConnectionProxyLifecycleInterceptor(this.pluginManager));
   }
 
   /**
@@ -100,7 +102,8 @@ public class ConnectionProxy
   public static JdbcConnection autodetectClusterAndCreateProxyInstance(ConnectionUrl connectionUrl)
       throws SQLException {
 
-    final ConnectionProxy connProxy = new ConnectionProxy(connectionUrl);
+    final ConnectionProvider connectionProvider = new BasicConnectionProvider();
+    final ConnectionProxy connProxy = new ConnectionProxy(connectionUrl, connectionProvider.connect(connectionUrl.getMainHost()));
     if (connProxy.isPluginEnabled()) {
       return (JdbcConnection)
           java.lang.reflect.Proxy.newProxyInstance(
@@ -109,7 +112,7 @@ public class ConnectionProxy
               connProxy);
     }
 
-    // If failover is disabled, reset proxy settings from the connection.
+    // If plugin system is disabled, reset proxy settings from the connection.
     connProxy.currentConnection.setProxy(null);
     return connProxy.currentConnection;
   }
@@ -123,18 +126,14 @@ public class ConnectionProxy
    */
   public static JdbcConnection createProxyInstance(ConnectionUrl connectionUrl)
       throws SQLException {
-    final ConnectionProxy connProxy = new ConnectionProxy(connectionUrl);
+    ConnectionProvider connectionProvider = new BasicConnectionProvider();
+    final ConnectionProxy connProxy = new ConnectionProxy(connectionUrl, connectionProvider.connect(connectionUrl.getMainHost()));
 
     return (JdbcConnection)
         java.lang.reflect.Proxy.newProxyInstance(
             JdbcConnection.class.getClassLoader(),
             new Class<?>[] {JdbcConnection.class},
             connProxy);
-  }
-
-  @Override
-  public com.mysql.cj.jdbc.interceptors.ConnectionLifecycleInterceptor getConnectionLifecycleInterceptor() {
-    return new ConnectionProxyLifecycleInterceptor(this.pluginManager);
   }
 
   @Override
@@ -149,6 +148,14 @@ public class ConnectionProxy
 
   @Override
   public void setCurrentConnection(JdbcConnection connection, HostInfo info) {
+    try {
+      if (this.currentConnection != null && !this.currentConnection.isClosed()) {
+        this.currentConnection.close();
+      }
+    } catch (SQLException sqlEx) {
+      // ignore
+    }
+
     this.currentConnection = connection;
     this.currentHostInfo = info;
   }
@@ -196,13 +203,9 @@ public class ConnectionProxy
     }
   }
 
-  protected void initProxy() {
-    this.initProxy(ConnectionPluginManager::new);
-  }
-
   protected void initSettings(ConnectionUrl connectionUrl) throws SQLException {
     try {
-      this.connProps.initializeProperties(connectionUrl.getMainHost().exposeAsProperties());
+      this.connProps.initializeProperties(connectionUrl.getConnectionArgumentsAsProperties());
       this.pluginsEnabled =
           this.connProps.getBooleanProperty(PropertyKey.useConnectionPlugins).getValue();
     } catch (CJException e) {
@@ -255,13 +258,10 @@ public class ConnectionProxy
     return null;
   }
 
-  private void initProxy(
-      Function<Log, ConnectionPluginManager> connectionPluginManagerInitializer) {
+  protected void initProxy(Function<Log, ConnectionPluginManager> connectionPluginManagerInitializer) {
     if (this.pluginManager == null) {
       this.pluginManager = connectionPluginManagerInitializer.apply(log);
-      this.pluginManager.init(
-          this,
-          connProps);
+      this.pluginManager.init(this, connProps);
     }
   }
 
@@ -303,18 +303,20 @@ public class ConnectionProxy
       this.invokeOn = toInvokeOn;
     }
 
-    public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+    public synchronized Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
       if (METHOD_EQUALS.equals(method.getName())) {
         // Let args[0] "unwrap" to its InvocationHandler if it is a proxy.
         return args[0].equals(this);
       }
 
-      Object result =
+      synchronized(ConnectionProxy.this) {
+        Object result =
           ConnectionProxy.this.pluginManager.execute(
-              this.invokeOn.getClass(),
-              method.getName(),
-              () -> method.invoke(this.invokeOn, args));
-      return proxyIfReturnTypeIsJdbcInterface(method.getReturnType(), result);
+            this.invokeOn.getClass(),
+            method.getName(),
+            () -> method.invoke(this.invokeOn, args));
+        return proxyIfReturnTypeIsJdbcInterface(method.getReturnType(), result);
+      }
     }
   }
 }
