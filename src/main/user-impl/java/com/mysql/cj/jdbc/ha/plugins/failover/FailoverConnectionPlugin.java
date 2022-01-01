@@ -59,6 +59,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.concurrent.Callable;
 import java.util.regex.Matcher;
@@ -155,14 +156,6 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
       }
     }
 
-    Properties additionalProperties = this.currentConnectionProvider.getCurrentHostInfo().exposeAsProperties();
-
-    for (String p : additionalProperties.stringPropertyNames()) {
-      if (!this.initialConnectionProps.containsKey(p)) {
-        this.initialConnectionProps.put(p, additionalProperties.getProperty(p));
-      }
-    }
-
     initSettings();
 
     this.connectionProvider = new BasicConnectionProvider();
@@ -171,13 +164,6 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
     topologyService.setPerformanceMetricsEnabled(this.gatherPerfMetricsSetting);
     topologyService.setRefreshRate(this.clusterTopologyRefreshRateMsSetting);
     this.topologyService = topologyService;
-
-    try {
-      initProxy();
-    } catch (SQLException e) {
-      // TODO: review
-      e.printStackTrace();
-    }
 
     // TODO: need to initialize thisAsConnection, parentProxyConnection and
     this.readerFailoverHandler =
@@ -198,6 +184,13 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
             this.failoverClusterTopologyRefreshRateMsSetting,
             this.failoverWriterReconnectIntervalMsSetting,
             this.logger);
+
+    try {
+      initProxy();
+    } catch (SQLException e) {
+      // TODO: review
+      e.printStackTrace();
+    }
   }
 
   @Override
@@ -218,8 +211,9 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
 
     Object result = null;
 
+    updateTopologyAndConnectIfNeeded(false);
+
     try {
-      updateTopologyAndConnectIfNeeded(false);
       result = this.nextPlugin.execute(methodInvokeOn, methodName, executeSqlFunc);
     } catch (IllegalStateException e) {
       dealWithIllegalStateException(e);
@@ -694,6 +688,7 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
       HostInfo hostInfo,
       String host,
       int port) {
+    // TODO: review whether we still need this method
     Map<String, String> properties = new HashMap<>(this.initialConnectionProps);
     properties.put(
         PropertyKey.connectTimeout.getKeyName(),
@@ -701,6 +696,12 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
     properties.put(
         PropertyKey.socketTimeout.getKeyName(),
         String.valueOf(this.failoverSocketTimeoutMs));
+
+    if (!Objects.equals(hostInfo.getDatabase(), "")) {
+      properties.put(
+          PropertyKey.DBNAME.getKeyName(),
+          hostInfo.getDatabase());
+    }
 
     final ConnectionUrl connectionUrl = ConnectionUrl.getConnectionUrlInstance(
             hostInfo.getDatabaseUrl(), this.propertySet.exposeAsProperties());
