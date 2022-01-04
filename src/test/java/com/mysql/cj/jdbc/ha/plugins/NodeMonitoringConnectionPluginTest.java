@@ -64,6 +64,14 @@ import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 class NodeMonitoringConnectionPluginTest {
+  static final String NODE = "node";
+  static final Class<JdbcConnection> MONITOR_METHOD_INVOKE_ON = JdbcConnection.class;
+  static final String MONITOR_METHOD_NAME = "executeQuery";
+  static final String NO_MONITOR_METHOD_NAME = "foo";
+  static final int FAILURE_DETECTION_TIME = 10;
+  static final int FAILURE_DETECTION_INTERVAL = 100;
+  static final int FAILURE_DETECTION_COUNT = 5;
+  private static final Object[] EMPTY_ARGS = {};
   @Mock ConnectionProxy proxy;
   @Mock JdbcConnection connection;
   @Mock Statement statement;
@@ -80,65 +88,8 @@ class NodeMonitoringConnectionPluginTest {
   @Mock RuntimeProperty<Integer> failureDetectionTimeProperty;
   @Mock RuntimeProperty<Integer> failureDetectionIntervalProperty;
   @Mock RuntimeProperty<Integer> failureDetectionCountProperty;
-
-  static final String NODE = "node";
-  static final Class<JdbcConnection> MONITOR_METHOD_INVOKE_ON = JdbcConnection.class;
-  static final String MONITOR_METHOD_NAME = "executeQuery";
-  static final String NO_MONITOR_METHOD_NAME = "foo";
-  static final int FAILURE_DETECTION_TIME = 10;
-  static final int FAILURE_DETECTION_INTERVAL = 100;
-  static final int FAILURE_DETECTION_COUNT = 5;
-
   private NodeMonitoringConnectionPlugin plugin;
   private AutoCloseable closeable;
-
-  @BeforeEach
-  void init() throws Exception {
-    closeable = MockitoAnnotations.openMocks(this);
-
-    initDefaultMockReturns();
-  }
-
-  @AfterEach
-  void cleanUp() throws Exception {
-    closeable.close();
-  }
-
-  @ParameterizedTest
-  @MethodSource("generateNullArguments")
-  void test_1_initWithNullArguments(
-      final ConnectionProxy proxy,
-      final PropertySet set,
-      final IConnectionPlugin connectionPlugin,
-      final Log log) {
-    assertThrows(
-        IllegalArgumentException.class,
-        () -> new NodeMonitoringConnectionPlugin(proxy, set, connectionPlugin, log));
-  }
-
-  @Test
-  void test_2_executeWithFailoverDisabled() throws Exception {
-    when(failureDetectionEnabledProperty.getValue())
-        .thenReturn(Boolean.FALSE);
-
-    initializePlugin();
-    plugin.execute(MONITOR_METHOD_INVOKE_ON, MONITOR_METHOD_NAME, sqlFunction);
-
-    verify(supplier, never()).get();
-    verify(mockPlugin).execute(any(Class.class), eq(MONITOR_METHOD_NAME), eq(sqlFunction));
-  }
-
-  @Test
-  void test_3_executeWithNoNeedToMonitor() throws Exception {
-    when(failureDetectionEnabledProperty.getValue())
-        .thenReturn(Boolean.TRUE);
-
-    initializePlugin();
-    plugin.execute(MONITOR_METHOD_INVOKE_ON, NO_MONITOR_METHOD_NAME, sqlFunction);
-
-    verify(supplier, atMostOnce()).get();
-    verify(mockPlugin).execute(any(Class.class), eq(NO_MONITOR_METHOD_NAME), eq(sqlFunction));
-  }
 
   /**
    * Generate different sets of method arguments where one argument is null to ensure
@@ -161,8 +112,16 @@ class NodeMonitoringConnectionPluginTest {
     );
   }
 
-  private void initializePlugin() {
-    plugin = new NodeMonitoringConnectionPlugin(proxy, propertySet, mockPlugin, logger, supplier);
+  @AfterEach
+  void cleanUp() throws Exception {
+    closeable.close();
+  }
+
+  @BeforeEach
+  void init() throws Exception {
+    closeable = MockitoAnnotations.openMocks(this);
+
+    initDefaultMockReturns();
   }
 
   void initDefaultMockReturns() throws Exception {
@@ -180,7 +139,11 @@ class NodeMonitoringConnectionPluginTest {
         anyInt()))
         .thenReturn(context);
 
-    when(mockPlugin.execute(any(Class.class), anyString(), Mockito.any(Callable.class))).thenReturn("done");
+    when(mockPlugin.execute(
+        any(Class.class),
+        anyString(),
+        Mockito.any(Callable.class),
+        EMPTY_ARGS)).thenReturn("done");
 
     when(proxy.getCurrentConnection()).thenReturn(connection);
     when(proxy.getCurrentHostInfo()).thenReturn(hostInfo);
@@ -207,5 +170,62 @@ class NodeMonitoringConnectionPluginTest {
         .thenReturn(FAILURE_DETECTION_INTERVAL);
     when(failureDetectionCountProperty.getValue())
         .thenReturn(FAILURE_DETECTION_COUNT);
+  }
+
+  @ParameterizedTest
+  @MethodSource("generateNullArguments")
+  void test_1_initWithNullArguments(
+      final ConnectionProxy proxy,
+      final PropertySet set,
+      final IConnectionPlugin connectionPlugin,
+      final Log log) {
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> new NodeMonitoringConnectionPlugin(proxy, set, connectionPlugin, log));
+  }
+
+  @Test
+  void test_2_executeWithFailoverDisabled() throws Exception {
+    when(failureDetectionEnabledProperty.getValue())
+        .thenReturn(Boolean.FALSE);
+
+    initializePlugin();
+    plugin.execute(
+        MONITOR_METHOD_INVOKE_ON,
+        MONITOR_METHOD_NAME,
+        sqlFunction,
+        EMPTY_ARGS);
+
+    verify(supplier, never()).get();
+    verify(mockPlugin).execute(
+        any(Class.class),
+        eq(MONITOR_METHOD_NAME),
+        eq(sqlFunction),
+        EMPTY_ARGS);
+  }
+
+  @Test
+  void test_3_executeWithNoNeedToMonitor() throws Exception {
+    when(failureDetectionEnabledProperty.getValue())
+        .thenReturn(Boolean.TRUE);
+
+    initializePlugin();
+    plugin.execute(MONITOR_METHOD_INVOKE_ON, NO_MONITOR_METHOD_NAME, sqlFunction,
+        EMPTY_ARGS);
+
+    verify(supplier, atMostOnce()).get();
+    verify(mockPlugin).execute(
+        any(Class.class),
+        eq(NO_MONITOR_METHOD_NAME),
+        eq(sqlFunction),
+        EMPTY_ARGS);
+  }
+
+  private void initializePlugin() {
+    plugin = new NodeMonitoringConnectionPlugin(proxy,
+        propertySet,
+        mockPlugin,
+        logger,
+        supplier);
   }
 }

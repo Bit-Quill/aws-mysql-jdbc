@@ -32,13 +32,15 @@ import com.mysql.cj.jdbc.ha.plugins.IConnectionPluginFactory;
 import com.mysql.cj.jdbc.ha.plugins.ICurrentConnectionProvider;
 import com.mysql.cj.log.Log;
 
+import java.sql.SQLException;
+
 public class FailoverConnectionPluginFactory implements IConnectionPluginFactory {
   @Override
   public IConnectionPlugin getInstance(
       ICurrentConnectionProvider currentConnectionProvider,
       PropertySet propertySet,
       IConnectionPlugin nextPlugin,
-      Log logger) {
+      Log logger) throws SQLException {
     return new FailoverConnectionPlugin(currentConnectionProvider, propertySet, nextPlugin, logger);
   }
 }

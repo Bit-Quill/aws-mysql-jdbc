@@ -158,7 +158,7 @@ public class FailoverIntegrationTest {
     testConnection = connectToWriterInstance(initialWriterId);
     Statement stmt = testConnection.createStatement();
 
-    // Crash Instance1 and nominate a new writer$
+    // Crash Instance1 and nominate a new writer
     failoverClusterAndWaitUntilWriterChanged(initialWriterId);
 
     // Failure occurs on Statement invocation

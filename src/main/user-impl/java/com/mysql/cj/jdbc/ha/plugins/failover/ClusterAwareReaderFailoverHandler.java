@@ -156,7 +156,7 @@ public class ClusterAwareReaderFailoverHandler implements ReaderFailoverHandler 
       this.log.logDebug(Messages.getString("ClusterAwareReaderFailover.6", new Object[] {"failover"}));
       return new ReaderFailoverResult(
           null,
-          FailoverConnectionPlugin.WRITER_CONNECTION_INDEX,
+          FailoverConnectionPlugin.NO_CONNECTION_INDEX,
           false);
     }
 
@@ -186,7 +186,7 @@ public class ClusterAwareReaderFailoverHandler implements ReaderFailoverHandler 
       ExecutorService executor,
       Future<ReaderFailoverResult> future) throws SQLException {
     ReaderFailoverResult defaultResult = new ReaderFailoverResult(
-        null, FailoverConnectionPlugin.WRITER_CONNECTION_INDEX, false);
+        null, FailoverConnectionPlugin.NO_CONNECTION_INDEX, false);
     try {
       ReaderFailoverResult result =
           future.get(this.maxFailoverTimeoutMs, TimeUnit.MILLISECONDS);
@@ -278,7 +278,7 @@ public class ClusterAwareReaderFailoverHandler implements ReaderFailoverHandler 
       this.log.logDebug(Messages.getString("ClusterAwareReaderFailover.6", new Object[] {"getReaderConnection"}));
       return new ReaderFailoverResult(
           null,
-          FailoverConnectionPlugin.WRITER_CONNECTION_INDEX,
+          FailoverConnectionPlugin.NO_CONNECTION_INDEX,
           false);
     }
 
@@ -337,7 +337,7 @@ public class ClusterAwareReaderFailoverHandler implements ReaderFailoverHandler 
 
       return new ReaderFailoverResult(
           null,
-          FailoverConnectionPlugin.WRITER_CONNECTION_INDEX,
+          FailoverConnectionPlugin.NO_CONNECTION_INDEX,
           false);
     } finally {
       executor.shutdownNow();
@@ -368,14 +368,14 @@ public class ClusterAwareReaderFailoverHandler implements ReaderFailoverHandler 
     }
     return new ReaderFailoverResult(
         null,
-        FailoverConnectionPlugin.WRITER_CONNECTION_INDEX,
+        FailoverConnectionPlugin.NO_CONNECTION_INDEX,
         false);
   }
 
   private ReaderFailoverResult getNextResult(CompletionService<ReaderFailoverResult> service)
       throws SQLException {
     ReaderFailoverResult defaultResult = new ReaderFailoverResult(
-        null, FailoverConnectionPlugin.WRITER_CONNECTION_INDEX, false);
+        null, FailoverConnectionPlugin.NO_CONNECTION_INDEX, false);
     try {
       Future<ReaderFailoverResult> future =
           service.poll(this.timeoutMs, TimeUnit.MILLISECONDS);
@@ -432,7 +432,7 @@ public class ClusterAwareReaderFailoverHandler implements ReaderFailoverHandler 
                 new Object[] {this.newHostTuple.getIndex(), newHost.getHostPortPair()}));
         return new ReaderFailoverResult(
             null,
-            FailoverConnectionPlugin.WRITER_CONNECTION_INDEX,
+            FailoverConnectionPlugin.NO_CONNECTION_INDEX,
             false);
       }
     }

@@ -33,7 +33,12 @@ import java.util.concurrent.Callable;
  * and to clean up resources used before closing the plugin.
  */
 public interface IConnectionPlugin extends ITransactionContextHandler {
-  Object execute(Class<?> methodInvokeOn, String methodName, Callable<?> executeSqlFunc)
+  Object execute(
+      Class<?> methodInvokeOn,
+      String methodName,
+      Callable<?> executeSqlFunc,
+      Object[] args)
       throws Exception;
+
   void releaseResources();
 }

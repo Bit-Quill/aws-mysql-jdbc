@@ -115,6 +115,7 @@ public class NodeMonitoringConnectionPlugin implements IConnectionPlugin {
    * @param methodInvokeOn Class of an object that method to monitor to be invoked on.
    * @param methodName     Name of the method to monitor.
    * @param executeSqlFunc {@link Callable} SQL function.
+   * @param args Arguments used to execute the given method.
    * @return Results of the {@link Callable} SQL function.
    * @throws Exception if an error occurs.
    */
@@ -122,7 +123,7 @@ public class NodeMonitoringConnectionPlugin implements IConnectionPlugin {
   public Object execute(
       Class<?> methodInvokeOn,
       String methodName,
-      Callable<?> executeSqlFunc) throws Exception {
+      Callable<?> executeSqlFunc, Object[] args) throws Exception {
     // update config settings since they may change
     final boolean isEnabled = this.propertySet
         .getBooleanProperty(PropertyKey.failureDetectionEnabled)
@@ -130,7 +131,7 @@ public class NodeMonitoringConnectionPlugin implements IConnectionPlugin {
 
     if (!isEnabled || !this.doesNeedMonitoring(methodInvokeOn, methodName)) {
       // do direct call
-      return this.nextPlugin.execute(methodInvokeOn, methodName, executeSqlFunc);
+      return this.nextPlugin.execute(methodInvokeOn, methodName, executeSqlFunc, args);
     }
     // ... otherwise, use a separate thread to execute method
 
@@ -166,7 +167,7 @@ public class NodeMonitoringConnectionPlugin implements IConnectionPlugin {
           failureDetectionIntervalMillis,
           failureDetectionCount);
 
-      result = this.nextPlugin.execute(methodInvokeOn, methodName, executeSqlFunc);
+      result = this.nextPlugin.execute(methodInvokeOn, methodName, executeSqlFunc, args);
 
     } finally {
       if (monitorContext != null) {

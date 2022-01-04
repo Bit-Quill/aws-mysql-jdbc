@@ -81,14 +81,23 @@ public class ConnectionProxy implements ICurrentConnectionProvider, InvocationHa
    * @throws SQLException if an error occurs
    */
   public ConnectionProxy(ConnectionUrl connectionUrl, JdbcConnection connection) throws SQLException {
+    this(connectionUrl, connection, ConnectionPluginManager::new);
+  }
+
+  ConnectionProxy(
+      ConnectionUrl connectionUrl,
+      JdbcConnection connection,
+      Function<Log, ConnectionPluginManager> connectionPluginManagerInitializer)
+      throws SQLException {
     this.currentHostInfo = connectionUrl.getMainHost();
     this.currentConnection = connection;
 
     initLogger(connectionUrl);
     initSettings(connectionUrl);
-    initProxy(ConnectionPluginManager::new);
+    initProxy(connectionPluginManagerInitializer);
 
-    this.currentConnection.setConnectionLifecycleInterceptor(new ConnectionProxyLifecycleInterceptor(this.pluginManager));
+    this.currentConnection.setConnectionLifecycleInterceptor(
+        new ConnectionProxyLifecycleInterceptor(this.pluginManager));
   }
 
   /**
@@ -118,7 +127,7 @@ public class ConnectionProxy implements ICurrentConnectionProvider, InvocationHa
   }
 
   /**
-   * Instantiates a new AuroraConnectionProxy.
+   * Instantiates a new {@link ConnectionProxy}.
    *
    * @param connectionUrl {@link ConnectionUrl} instance containing the lists of hosts available to
    *     switch on.
@@ -173,7 +182,8 @@ public class ConnectionProxy implements ICurrentConnectionProvider, InvocationHa
       Object result = this.pluginManager.execute(
           this.currentConnection.getClass(),
           methodName,
-          () -> method.invoke(currentConnection, args));
+          () -> method.invoke(currentConnection, args),
+          args);
       return proxyIfReturnTypeIsJdbcInterface(method.getReturnType(), result);
     } catch (Exception e) {
       // Check if the captured exception must be wrapped by an unchecked exception.
@@ -185,10 +195,6 @@ public class ConnectionProxy implements ICurrentConnectionProvider, InvocationHa
       }
       throw new IllegalStateException(e.getMessage(), e);
     }
-  }
-
-  protected JdbcConnection getConnection() {
-    return this.currentConnection;
   }
 
   protected InvocationHandler getNewJdbcInterfaceProxy(Object toProxy) {
@@ -258,7 +264,8 @@ public class ConnectionProxy implements ICurrentConnectionProvider, InvocationHa
     return null;
   }
 
-  protected void initProxy(Function<Log, ConnectionPluginManager> connectionPluginManagerInitializer) {
+  protected void initProxy(Function<Log, ConnectionPluginManager> connectionPluginManagerInitializer)
+      throws SQLException {
     if (this.pluginManager == null) {
       this.pluginManager = connectionPluginManagerInitializer.apply(log);
       this.pluginManager.init(this, connProps);
@@ -311,10 +318,11 @@ public class ConnectionProxy implements ICurrentConnectionProvider, InvocationHa
 
       synchronized(ConnectionProxy.this) {
         Object result =
-          ConnectionProxy.this.pluginManager.execute(
-            this.invokeOn.getClass(),
-            method.getName(),
-            () -> method.invoke(this.invokeOn, args));
+            ConnectionProxy.this.pluginManager.execute(
+                this.invokeOn.getClass(),
+                method.getName(),
+                () -> method.invoke(this.invokeOn, args),
+                args);
         return proxyIfReturnTypeIsJdbcInterface(method.getReturnType(), result);
       }
     }

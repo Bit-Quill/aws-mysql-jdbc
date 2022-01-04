@@ -33,6 +33,7 @@ import com.mysql.cj.log.Log;
 import com.mysql.cj.util.StringUtils;
 import com.mysql.cj.util.Util;
 
+import java.sql.SQLException;
 import java.util.concurrent.Callable;
 
 /**
@@ -78,7 +79,7 @@ public class ConnectionPluginManager implements ITransactionContextHandler {
    */
   public void init(
       ICurrentConnectionProvider currentConnectionProvider,
-      PropertySet propertySet) {
+      PropertySet propertySet) throws SQLException {
     this.currentConnectionProvider = currentConnectionProvider;
     this.propertySet = propertySet;
 
@@ -130,8 +131,9 @@ public class ConnectionPluginManager implements ITransactionContextHandler {
   public Object execute(
       Class<?> methodInvokeOn,
       String methodName,
-      Callable<?> executeSqlFunc) throws Exception {
-    return this.headPlugin.execute(methodInvokeOn, methodName, executeSqlFunc);
+      Callable<?> executeSqlFunc,
+      Object[] args) throws Exception {
+    return this.headPlugin.execute(methodInvokeOn, methodName, executeSqlFunc, args);
   }
 
   /**

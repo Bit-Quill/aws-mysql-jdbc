@@ -190,7 +190,7 @@ public class ClusterAwareReaderFailoverHandlerTest {
     assertFalse(result.isConnected());
     assertNull(result.getConnection());
     assertEquals(
-        FailoverConnectionPlugin.WRITER_CONNECTION_INDEX,
+        FailoverConnectionPlugin.NO_CONNECTION_INDEX,
         result.getConnectionIndex());
   }
 
@@ -209,7 +209,7 @@ public class ClusterAwareReaderFailoverHandlerTest {
     assertFalse(result.isConnected());
     assertNull(result.getConnection());
     assertEquals(
-        FailoverConnectionPlugin.WRITER_CONNECTION_INDEX,
+        FailoverConnectionPlugin.NO_CONNECTION_INDEX,
         result.getConnectionIndex());
 
     final List<HostInfo> hosts = new ArrayList<>();
@@ -217,7 +217,7 @@ public class ClusterAwareReaderFailoverHandlerTest {
     assertFalse(result.isConnected());
     assertNull(result.getConnection());
     assertEquals(
-        FailoverConnectionPlugin.WRITER_CONNECTION_INDEX,
+        FailoverConnectionPlugin.NO_CONNECTION_INDEX,
         result.getConnectionIndex());
   }
 
@@ -284,7 +284,7 @@ public class ClusterAwareReaderFailoverHandlerTest {
     assertFalse(result.isConnected());
     assertNull(result.getConnection());
     assertEquals(
-        FailoverConnectionPlugin.WRITER_CONNECTION_INDEX,
+        FailoverConnectionPlugin.NO_CONNECTION_INDEX,
         result.getConnectionIndex());
 
     final HostInfo currentHost = hosts.get(currentHostIndex);
@@ -330,7 +330,7 @@ public class ClusterAwareReaderFailoverHandlerTest {
     assertFalse(result.isConnected());
     assertNull(result.getConnection());
     assertEquals(
-        FailoverConnectionPlugin.WRITER_CONNECTION_INDEX,
+        FailoverConnectionPlugin.NO_CONNECTION_INDEX,
         result.getConnectionIndex());
 
     verify(mockTopologyService, never()).addToDownHostList(any());

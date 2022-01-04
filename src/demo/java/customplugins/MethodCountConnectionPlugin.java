@@ -66,12 +66,12 @@ public class MethodCountConnectionPlugin implements IConnectionPlugin {
   public Object execute(
       Class<?> methodInvokeOn,
       String methodName,
-      Callable<?> executeJdbcMethod) throws Exception {
+      Callable<?> executeJdbcMethod, Object[] args) throws Exception {
     // Increment the number of calls to this method.
     methodCount.merge(methodName, 1, Integer::sum);
     // Traverse the connection plugin chain by invoking the `execute` method in the
     // next plugin.
-    return this.nextPlugin.execute(methodInvokeOn, methodName, executeJdbcMethod);
+    return this.nextPlugin.execute(methodInvokeOn, methodName, executeJdbcMethod, args);
   }
 
   @Override

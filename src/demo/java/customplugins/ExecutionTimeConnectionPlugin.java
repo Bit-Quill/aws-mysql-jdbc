@@ -60,13 +60,13 @@ public class ExecutionTimeConnectionPlugin implements IConnectionPlugin {
   public Object execute(
       Class<?> methodInvokeOn,
       String methodName,
-      Callable<?> executeJdbcMethod)
+      Callable<?> executeJdbcMethod, Object[] args)
       throws Exception {
     // This `execute` measures the time it takes for the remaining connection plugins to
     // execute the given method call.
     final long startTime = System.nanoTime();
     final Object executeResult =
-        this.nextPlugin.execute(methodInvokeOn, methodName, executeJdbcMethod);
+        this.nextPlugin.execute(methodInvokeOn, methodName, executeJdbcMethod, args);
     final long elapsedTime = System.nanoTime() - startTime;
     methodExecutionTimes.merge(
         methodName,

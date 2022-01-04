@@ -48,7 +48,11 @@ public class DefaultConnectionPlugin implements IConnectionPlugin {
   }
 
   @Override
-  public Object execute(Class<?> methodInvokeOn, String methodName, Callable<?> executeSqlFunc) throws Exception {
+  public Object execute(
+      Class<?> methodInvokeOn,
+      String methodName,
+      Callable<?> executeSqlFunc,
+      Object[] args) throws Exception {
     try {
       return executeSqlFunc.call();
     } catch (InvocationTargetException invocationTargetException) {
