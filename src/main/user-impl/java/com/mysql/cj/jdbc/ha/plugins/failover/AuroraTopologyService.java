@@ -207,20 +207,13 @@ public class AuroraTopologyService
   protected ClusterTopologyInfo queryForTopology(JdbcConnection conn) throws SQLException {
     long startTimeMs = this.gatherPerfMetrics ? System.currentTimeMillis() : 0;
 
-    ClusterTopologyInfo topologyInfo = null;
+    ClusterTopologyInfo topologyInfo;
     try (Statement stmt = conn.createStatement()) {
       try (ResultSet resultSet = stmt.executeQuery(RETRIEVE_TOPOLOGY_SQL)) {
         topologyInfo = processQueryResults(resultSet);
       }
 
       return topologyInfo;
-      // return topologyInfo != null ? topologyInfo
-      //     : new ClusterTopologyInfo(
-      //         new ArrayList<>(),
-      //         new HashSet<>(),
-      //         null,
-      //         Instant.now(),
-      //         false);
      } finally {
       if (this.gatherPerfMetrics) {
         long currentTimeMs = System.currentTimeMillis();
