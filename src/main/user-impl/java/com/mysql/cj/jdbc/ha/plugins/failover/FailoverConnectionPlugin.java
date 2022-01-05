@@ -68,6 +68,11 @@ import java.util.regex.Pattern;
 
 import javax.net.ssl.SSLException;
 
+/**
+ * A {@link IConnectionPlugin} implementation that provides cluster-aware failover
+ * features. Connection switching occurs on communications related exceptions and/or
+ * cluster topology changes.
+ */
 public class FailoverConnectionPlugin implements IConnectionPlugin {
   public static final int NO_CONNECTION_INDEX = -1;
   public static final int WRITER_CONNECTION_INDEX = 0;
@@ -970,7 +975,6 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
         reason += (" " + this.closedReason);
       }
 
-      // releasePluginManager();
       throw SQLError.createSQLException(
           reason,
           MysqlErrorNumbers.SQL_STATE_CONNECTION_NOT_OPEN,

@@ -51,9 +51,8 @@ import java.util.Map;
 import java.util.function.Function;
 
 /**
- * A proxy for a dynamic com.mysql.cj.jdbc.JdbcConnection implementation that provides cluster-aware
- * failover features. Connection switching occurs on communications related exceptions and/or
- * cluster topology changes.
+ * A proxy that uses the {@link ConnectionPluginManager} to initialize
+ * {@link JdbcConnection} and execute JDBC methods.
  */
 public class ConnectionProxy implements ICurrentConnectionProvider, InvocationHandler {
 
@@ -290,14 +289,6 @@ public class ConnectionProxy implements ICurrentConnectionProvider, InvocationHa
 
   private boolean isPluginEnabled() {
     return this.pluginsEnabled;
-  }
-
-  // TODO: review
-  private void releasePluginManager() {
-    if (this.pluginManager != null) {
-      this.pluginManager.releaseResources();
-      this.pluginManager = null;
-    }
   }
 
   /**
