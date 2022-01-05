@@ -735,17 +735,7 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
     List<HostInfo> latestTopology =
         this.topologyService.getTopology(connection, forceUpdate);
 
-    if (Util.isNullOrEmpty(latestTopology) || connection.isClosed()) {
-      pickNewConnection();
-      return;
-    }
-
     this.hosts = latestTopology;
-    if (!isConnected()) {
-      pickNewConnection();
-      return;
-    }
-
     updateHostIndex(latestTopology);
   }
 
