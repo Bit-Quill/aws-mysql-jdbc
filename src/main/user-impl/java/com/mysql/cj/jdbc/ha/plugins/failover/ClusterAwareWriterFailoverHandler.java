@@ -298,7 +298,7 @@ public class ClusterAwareWriterFailoverHandler implements IWriterFailoverHandler
       this.originalWriterHost = currentHost;
     }
 
-    public WriterFailoverResult call() {
+    public WriterFailoverResult call() throws SQLException {
       log.logTrace(Messages.getString("ClusterAwareWriterFailoverHandler.9"));
 
       try {
@@ -368,7 +368,8 @@ public class ClusterAwareWriterFailoverHandler implements IWriterFailoverHandler
      *
      * @return Returns true if successful.
      */
-    private boolean refreshTopologyAndConnectToNewWriter() throws InterruptedException {
+    private boolean refreshTopologyAndConnectToNewWriter()
+        throws InterruptedException, SQLException {
       while (true) {
         List<HostInfo> topology =
             topologyService.getTopology(this.currentReaderConnection, true);

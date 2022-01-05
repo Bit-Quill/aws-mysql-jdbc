@@ -241,9 +241,9 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
 
     Object result = null;
 
-    updateTopologyAndConnectIfNeeded(false);
 
     try {
+      updateTopologyAndConnectIfNeeded(false);
       result = this.nextPlugin.execute(methodInvokeOn, methodName, executeSqlFunc, args);
     } catch (IllegalStateException e) {
       dealWithIllegalStateException(e);

@@ -170,7 +170,8 @@ public class AuroraTopologyService
    *     Returns an empty list if topology isn't available or is invalid (doesn't contain a writer).
    */
   @Override
-  public List<HostInfo> getTopology(JdbcConnection conn, boolean forceUpdate) {
+  public List<HostInfo> getTopology(JdbcConnection conn, boolean forceUpdate)
+      throws SQLException {
     ClusterTopologyInfo clusterTopologyInfo = topologyCache.get(this.clusterId);
 
     if (clusterTopologyInfo == null
@@ -203,7 +204,7 @@ public class AuroraTopologyService
    * @param conn A connection to database to fetch the latest topology.
    * @return Cluster topology details.
    */
-  protected ClusterTopologyInfo queryForTopology(JdbcConnection conn) {
+  protected ClusterTopologyInfo queryForTopology(JdbcConnection conn) throws SQLException {
     long startTimeMs = this.gatherPerfMetrics ? System.currentTimeMillis() : 0;
 
     ClusterTopologyInfo topologyInfo = null;
@@ -211,22 +212,21 @@ public class AuroraTopologyService
       try (ResultSet resultSet = stmt.executeQuery(RETRIEVE_TOPOLOGY_SQL)) {
         topologyInfo = processQueryResults(resultSet);
       }
-    } catch (SQLException e) {
-      // ignore
-    }
 
-    if (this.gatherPerfMetrics) {
-      long currentTimeMs = System.currentTimeMillis();
-      this.queryTopologyMetrics.registerQueryExecutionTime(currentTimeMs - startTimeMs);
+      return topologyInfo;
+      // return topologyInfo != null ? topologyInfo
+      //     : new ClusterTopologyInfo(
+      //         new ArrayList<>(),
+      //         new HashSet<>(),
+      //         null,
+      //         Instant.now(),
+      //         false);
+     } finally {
+      if (this.gatherPerfMetrics) {
+        long currentTimeMs = System.currentTimeMillis();
+        this.queryTopologyMetrics.registerQueryExecutionTime(currentTimeMs - startTimeMs);
+      }
     }
-
-    return topologyInfo != null ? topologyInfo
-        : new ClusterTopologyInfo(
-            new ArrayList<>(),
-            new HashSet<>(),
-            null,
-            Instant.now(),
-            false);
   }
 
   /**
