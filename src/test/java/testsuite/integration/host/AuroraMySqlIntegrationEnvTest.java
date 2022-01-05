@@ -38,7 +38,8 @@ public class AuroraMySqlIntegrationEnvTest {
 
   private static final String TEST_USERNAME = System.getenv("TEST_USERNAME");
   private static final String TEST_PASSWORD = System.getenv("TEST_PASSWORD");
-  private static final String TEST_DB_USER = "jane_doe"; //System.getenv("TEST_DB_USER");
+  private static final String TEST_DB_USER = System.getenv("TEST_DB_USER");
+  private static final String TEST_DB = "test"; //System.getenv("TEST_DB_USER");
 
   private static final String RETRIEVE_TOPOLOGY_SQL =
       "SELECT SERVER_ID FROM information_schema.replica_host_status ";
@@ -162,6 +163,7 @@ public class AuroraMySqlIntegrationEnvTest {
         .withEnv("TEST_USERNAME", TEST_USERNAME)
         .withEnv("TEST_PASSWORD", TEST_PASSWORD)
         .withEnv("TEST_DB_USER", TEST_DB_USER)
+        .withEnv("TEST_DB", TEST_DB)
         .withEnv("DB_CLUSTER_CONN", getClusterEndpoint())
         .withEnv("DB_RO_CLUSTER_CONN", TEST_DB_CLUSTER_IDENTIFIER + DB_READONLY_CONN_STR_SUFFIX)
         .withEnv("TOXIPROXY_CLUSTER_NETWORK_ALIAS", "toxiproxy-instance-cluster")

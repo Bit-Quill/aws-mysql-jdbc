@@ -4,12 +4,15 @@ import com.mysql.cj.conf.PropertyKey;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.shadow.com.univocity.parsers.csv.CsvWriter;
+import org.junit.jupiter.params.shadow.com.univocity.parsers.csv.CsvWriterSettings;
 
 import java.io.IOException;
 import java.sql.Connection;
@@ -18,11 +21,15 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.IntSummaryStatistics;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
 
@@ -42,6 +49,7 @@ public class AuroraMySqlIntegrationTest {
   private static final String TEST_USERNAME = System.getenv("TEST_USERNAME");
   private static final String TEST_PASSWORD = System.getenv("TEST_PASSWORD");
   private static final String TEST_DB_USER = System.getenv("TEST_DB_USER");
+  private static final String TEST_DB = System.getenv("TEST_DB");
 
   private static final String PROXIED_DOMAIN_NAME_SUFFIX = System.getenv("PROXIED_DOMAIN_NAME_SUFFIX");
   private static final String PROXIED_CLUSTER_TEMPLATE = System.getenv("PROXIED_CLUSTER_TEMPLATE");
@@ -81,12 +89,13 @@ public class AuroraMySqlIntegrationTest {
   private static Proxy proxyInstance_5;
   private static Proxy proxyCluster;
   private static Proxy proxyReadOnlyCluster;
-  private static final List<Proxy> proxyList = new ArrayList<>(5);
   private static final Map<String, Proxy> proxyMap = new HashMap<>(7);
 
   private static final int REPEAT_TIMES = 5;
-  private static final List<Integer> downtimesDefault = new ArrayList<>(REPEAT_TIMES);
-  private static final List<Integer> downtimesAggressive = new ArrayList<>(REPEAT_TIMES);
+  private static final List<List<Integer>> dataList = new ArrayList<>();
+
+  private static String currWriter;
+  private static String currReader;
 
   @BeforeAll
   public static void setUp() throws IOException, SQLException {
@@ -114,12 +123,6 @@ public class AuroraMySqlIntegrationTest {
     proxyMap.put(MYSQL_CLUSTER_URL, proxyCluster);
     proxyMap.put(MYSQL_RO_CLUSTER_URL, proxyReadOnlyCluster);
 
-    proxyList.add(proxyInstance_1);
-    proxyList.add(proxyInstance_2);
-    proxyList.add(proxyInstance_3);
-    proxyList.add(proxyInstance_4);
-    proxyList.add(proxyInstance_5);
-
     DriverManager.registerDriver(new Driver());
   }
 
@@ -130,70 +133,65 @@ public class AuroraMySqlIntegrationTest {
 
   @AfterAll
   public static void cleanUp() {
-    final IntSummaryStatistics statSumDefault = downtimesDefault.stream().mapToInt(a -> a).summaryStatistics();
-    final double avgDowntimeDefault = statSumDefault.getAverage();
-    final long minDowntimeDefault = statSumDefault.getMin();
-    final long maxDowntimeDefault = statSumDefault.getMax();
-
-    final IntSummaryStatistics statSumAggressive = downtimesAggressive.stream().mapToInt(a -> a).summaryStatistics();
-    final double avgDowntimeAggressive = statSumAggressive.getAverage();
-    final long minDowntimeAggressive = statSumAggressive.getMin();
-    final long maxDowntimeAggressive = statSumAggressive.getMax();
-
-    System.out.printf("Failure Detection Results (in Milliseconds)\n" +
-            "%11s| %-9s| %-90s| %-90s\n" +
-            "%-11s| %-9d| %-9d| %-9.2f\n" +
-            "%-11s| %-9d| %-9d| %-9.2f",
-        "", "Min", "Max", "Avg",
-        "Default", minDowntimeDefault, maxDowntimeDefault, avgDowntimeDefault,
-        "Aggressive", minDowntimeAggressive, maxDowntimeAggressive, avgDowntimeAggressive);
+    // TODO Put below into CSV format - look for CSV writer to use
+    // Print for CSV Format
+    // Title
+    System.out.println("Failure Detection Results (in Milliseconds)");
+    // Columns
+    System.out.println("FailureDetectionGraceTime, FailureDetectionInterval, FailureDetectionCount, SleepDelayMS, "
+        + "MinFailureDetectionTime, MaxFailureDetectionTime, AvgFailureDetectionTime");
+    // Data
+    for (List<Integer> data : dataList) {
+      int detectionTime = data.get(0);
+      int detectionInterval = data.get(1);
+      int detectionCount = data.get(2);
+      int sleepDelayMS = data.get(3);
+      int min = data.get(4);
+      int max = data.get(5);
+      int avg = data.get(6);
+      System.out.printf("%d, %d, %d, %d, %d, %d, %d\n",
+          detectionTime, detectionInterval, detectionCount, sleepDelayMS, min, max, avg
+      );
+    }
   }
 
-  @Test
-  public void testConnectNotProxied() throws SQLException {
-    Connection conn = connectToInstance(MYSQL_INSTANCE_1_URL, MYSQL_PORT);
+  @BeforeEach
+  public void setUpEach() {
+    proxyMap.forEach((k, v) -> {
+      try {
+        v.toxics().get("DOWN-STREAM").remove();
+      } catch (Exception e) {
+        // Ignore as toxics were not set
+      }
+      try {
+        v.toxics().get("UP-STREAM").remove();
+      } catch (Exception e) {
+        // Ignore
+      }
+    });
+  }
+
+  @ParameterizedTest(name = "test_ConnectionString")
+  @MethodSource("generateConnectionString")
+  public void test_ConnectionString(String connStr, int port) throws SQLException {
+    Connection conn = connectToInstance(connStr, port);
     assertTrue(conn.isValid(5));
     conn.close();
   }
 
-  @Test
-  public void testConnectProxied() throws SQLException {
-    Connection conn = connectToInstance(MYSQL_INSTANCE_1_URL + PROXIED_DOMAIN_NAME_SUFFIX, MYSQL_PROXY_PORT);
-    assertTrue(conn.isValid(5));
-    conn.close();
+  private static Stream<Arguments> generateConnectionString() {
+    return Stream.of(
+        Arguments.of(MYSQL_INSTANCE_1_URL, MYSQL_PORT),
+        Arguments.of(MYSQL_INSTANCE_1_URL + PROXIED_DOMAIN_NAME_SUFFIX, MYSQL_PROXY_PORT),
+        Arguments.of(MYSQL_CLUSTER_URL, MYSQL_PORT),
+        Arguments.of(MYSQL_CLUSTER_URL + PROXIED_DOMAIN_NAME_SUFFIX, MYSQL_PROXY_PORT),
+        Arguments.of(MYSQL_RO_CLUSTER_URL, MYSQL_PORT),
+        Arguments.of(MYSQL_RO_CLUSTER_URL + PROXIED_DOMAIN_NAME_SUFFIX, MYSQL_PROXY_PORT)
+    );
   }
 
   @Test
-  public void testClusterConnectNotProxied() throws SQLException {
-    Connection conn = connectToInstance(MYSQL_CLUSTER_URL, MYSQL_PORT);
-    assertTrue(conn.isValid(5));
-    conn.close();
-  }
-
-  @Test
-  public void testClusterConnectProxied() throws SQLException {
-    Connection conn = connectToInstance(MYSQL_CLUSTER_URL + PROXIED_DOMAIN_NAME_SUFFIX, MYSQL_PROXY_PORT);
-    assertTrue(conn.isValid(5));
-    conn.close();
-  }
-
-  @Test
-  public void testROClusterConnectNotProxied() throws SQLException {
-    Connection conn = connectToInstance(MYSQL_RO_CLUSTER_URL, MYSQL_PORT);
-    assertTrue(conn.isValid(5));
-    conn.close();
-  }
-
-  @Test
-  public void testROClusterConnectProxied() throws SQLException {
-    Connection conn = connectToInstance(MYSQL_RO_CLUSTER_URL + PROXIED_DOMAIN_NAME_SUFFIX, MYSQL_PROXY_PORT);
-    assertTrue(conn.isValid(5));
-    conn.close();
-  }
-
-  @Disabled
-  @Test
-  public void testValidateConnectionWhenNetworkDown() throws SQLException, IOException {
+  public void test_ValidateConnectionWhenNetworkDown() throws SQLException, IOException {
     Connection conn = connectToInstance(MYSQL_INSTANCE_1_URL + PROXIED_DOMAIN_NAME_SUFFIX, MYSQL_PROXY_PORT);
     assertTrue(conn.isValid(5));
 
@@ -208,9 +206,8 @@ public class AuroraMySqlIntegrationTest {
     conn.close();
   }
 
-  @Disabled
   @Test
-  public void testConnectWhenNetworkDown() throws SQLException, IOException {
+  public void test_ConnectWhenNetworkDown() throws SQLException, IOException {
     proxyInstance_1.toxics().bandwidth("DOWN-STREAM", ToxicDirection.DOWNSTREAM, 0); // from mysql server towards mysql driver
     proxyInstance_1.toxics().bandwidth("UP-STREAM", ToxicDirection.UPSTREAM, 0); // from mysql driver towards mysql server
 
@@ -226,41 +223,64 @@ public class AuroraMySqlIntegrationTest {
     conn.close();
   }
 
-  @Disabled
-  @ParameterizedTest(name = "test_FailureDetectionTime")
+  @ParameterizedTest
   @MethodSource("generateFailureDetectionTimeParams")
-  public void test_FailureDetectionTime(Properties props, List<Integer> downtimes) {
-    for(int i = 0; i < REPEAT_TIMES; i++) {
+  public void test_FailureDetectionTime(int detectionTime, int detectionInterval, int detectionCount, int sleepDelayMS) {
+    final Properties props = initDefaultProps();
+    props.setProperty(PropertyKey.connectTimeout.getKeyName(), "0");
+    props.setProperty(PropertyKey.socketTimeout.getKeyName(), "0");
+    props.setProperty(PropertyKey.failureDetectionTime.getKeyName(), Integer.toString(detectionTime));
+    props.setProperty(PropertyKey.failureDetectionInterval.getKeyName(), Integer.toString(detectionInterval));
+    props.setProperty(PropertyKey.failureDetectionCount.getKeyName(), Integer.toString(detectionCount));
+    props.setProperty(PropertyKey.enableClusterAwareFailover.getKeyName(), Boolean.FALSE.toString());
+
+    final AtomicLong downtime = new AtomicLong();
+    boolean hasFailConnect = false;
+    List<Integer> avg = new ArrayList<>(REPEAT_TIMES);
+    int min = Integer.MAX_VALUE;
+    int max = Integer.MIN_VALUE;
+    for (int i = 0; i < REPEAT_TIMES; i++) {
+      downtime.set(0);
+      // Thread to stop network
+      final Thread thread = new Thread(() -> {
+        try {
+          Thread.sleep(sleepDelayMS);
+          // Kill network
+          proxyInstance_1.toxics().bandwidth("DOWN-STREAM", ToxicDirection.DOWNSTREAM, 0); // from mysql server towards mysql driver
+          proxyInstance_1.toxics().bandwidth("UP-STREAM", ToxicDirection.UPSTREAM, 0); // from mysql driver towards mysql server
+          downtime.set(System.currentTimeMillis());
+        } catch (IOException ioException) {
+          Assertions.fail("Toxics were already set, should not happen");
+        } catch (InterruptedException interruptedException) {
+          // Ignore, stop the thread
+        }
+      });
       try (final Connection conn = connectToInstance(MYSQL_INSTANCE_1_URL + PROXIED_DOMAIN_NAME_SUFFIX, MYSQL_PROXY_PORT, props);
           final Statement statement = conn.createStatement()) {
-        // Start timer to stop network
-        final AtomicLong downtime = new AtomicLong();
-        Thread thread = new Thread(() -> {
-          try {
-            Thread.sleep(5000); // 5s
-            // Kill network
-            proxyInstance_1.toxics().bandwidth("DOWN-STREAM", ToxicDirection.DOWNSTREAM, 0); // from mysql server towards mysql driver
-            proxyInstance_1.toxics().bandwidth("UP-STREAM", ToxicDirection.UPSTREAM, 0); // from mysql driver towards mysql server
-            downtime.set(System.currentTimeMillis());
-          } catch (Exception e) {
-            e.printStackTrace();
-          }
-        });
+        hasFailConnect = false;
 
-        thread.start();
         // Execute long query
         try {
           final String QUERY = "select sleep(600)"; // 600s -> 10min
+          thread.start();
           final ResultSet result = statement.executeQuery(QUERY);
           Assertions.fail("Sleep query finished, should not be possible with network downed.");
         } catch (Exception throwables) { // Catching executing query
           // Calculate and add detection time
-          downtimes.add((int)(System.currentTimeMillis() - downtime.get()));
+          int failureTime = (int)(System.currentTimeMillis() - downtime.get());
+          avg.add(failureTime);
+          min = Math.min(min, failureTime);
+          max = Math.max(max, failureTime);
         }
-
       } catch (Exception throwables) { // Catching Connection connect & Statement creations
-        Assertions.fail(throwables);
+        if (hasFailConnect) {
+          // Already failed trying to connect twice in a row
+          Assertions.fail("Exception occurred twice when trying to connect or create statement");
+        }
+        i--; // Retry
+        hasFailConnect = true;
       } finally {
+        thread.interrupt(); // Ensure thread has stopped running
         try {
           proxyInstance_1.toxics().get("DOWN-STREAM").remove();
           proxyInstance_1.toxics().get("UP-STREAM").remove();
@@ -269,115 +289,28 @@ public class AuroraMySqlIntegrationTest {
         }
       }
     }
+
+    final Integer[] arr = {detectionTime, detectionInterval, detectionCount, sleepDelayMS, min, max, (int)avg.stream().mapToInt(a -> a).summaryStatistics().getAverage()};
+    final List<Integer> data = new ArrayList<>(Arrays.asList(arr));
+    dataList.add(data);
   }
 
   private static Stream<Arguments> generateFailureDetectionTimeParams() {
-    final Properties defaultProps = new Properties();
-    defaultProps.setProperty(PropertyKey.USER.getKeyName(), TEST_USERNAME);
-    defaultProps.setProperty(PropertyKey.PASSWORD.getKeyName(), TEST_PASSWORD);
-    defaultProps.setProperty(PropertyKey.clusterInstanceHostPattern.getKeyName(), PROXIED_CLUSTER_TEMPLATE);
-    // Monitoring Props
-    defaultProps.setProperty("monitoring-connectTimeout", "3000"); // 3s
-    defaultProps.setProperty("monitoring-socketTimeout", "3000"); // 3s
-
-    final Properties aggressiveProps = new Properties();
-    defaultProps.forEach((key, value) -> aggressiveProps.setProperty((String) key, (String) value));
-    aggressiveProps.setProperty(PropertyKey.failureDetectionTime.getKeyName(), "6000"); // 6s
-    aggressiveProps.setProperty(PropertyKey.failureDetectionInterval.getKeyName(), "1000"); // 1s
-    aggressiveProps.setProperty(PropertyKey.failureDetectionCount.getKeyName(), "1"); // 1
-
+    // detectionTime, detectionInterval, detectionCount, sleepDelayMS
     return Stream.of(
-        Arguments.of(defaultProps, downtimesDefault),
-        Arguments.of(aggressiveProps, downtimesAggressive)
+        Arguments.of(30000, 5000, 3, 5000), // Defaults
+        Arguments.of(6000, 1000, 1, 5000) // Aggressive
     );
   }
 
-  // Don't think this works like I want it to
-  // I think this needs to actually restart the server
-  @Disabled
-  @Test
-  @Timeout(3 * 60000)
-  public void test_ReplicationFailover() throws SQLException {
-    final String DB_CONN_STR_PREFIX = "jdbc:mysql:replication://";
-    final List<String> endpoints = new ArrayList<>();
-    endpoints.add(MYSQL_INSTANCE_1_URL); // Writer
-    endpoints.add(MYSQL_INSTANCE_2_URL);
-    endpoints.add(MYSQL_INSTANCE_3_URL);
-    endpoints.add(MYSQL_INSTANCE_4_URL);
-    endpoints.add(MYSQL_INSTANCE_5_URL);
-
-    final String initialWriterInstance = MYSQL_INSTANCE_1_URL.substring(0, MYSQL_INSTANCE_1_URL.indexOf('.'));
-    String replicationHosts = getReplicationHosts(endpoints);
-
-    Connection testConnection =
-        DriverManager.getConnection(DB_CONN_STR_PREFIX + replicationHosts,
-            TEST_USERNAME,
-            TEST_PASSWORD);
-
-    // Switch to a replica
-    testConnection.setReadOnly(true);
-    String replicaInstance = queryInstanceId(testConnection);
-    assertNotEquals(initialWriterInstance, replicaInstance);
-
-    // Mimic reboot to replicaInstance
-    // I don't think this works
-    // I think this needs to actually restart the server
-    Thread thread = new Thread(() -> {
-      try {
-        // Kill network
-        Thread.sleep(5000); // Sleep 5s
-        proxyInstance_1.toxics().bandwidth("DOWN-STREAM", ToxicDirection.DOWNSTREAM, 0); // from mysql server towards mysql driver
-        proxyInstance_1.toxics().bandwidth("UP-STREAM", ToxicDirection.UPSTREAM, 0); // from mysql driver towards mysql server
-        Thread.sleep(5000); // Sleep 5s
-      } catch (Exception e) {
-        e.printStackTrace();
-      }
-    });
-    thread.start();
-
-    try {
-      while (true) {
-        queryInstanceId(testConnection);
-      }
-    } catch (SQLException e) {
-      // do nothing
-    }
-
-    // Assert that we are connected to the new replica after failover happens.
-    final String newInstance = queryInstanceId(testConnection);
-    assertNotEquals(newInstance, replicaInstance);
-    assertNotEquals(newInstance, initialWriterInstance);
-  }
-
-  private String getReplicationHosts(List<String> endpoints) {
-    StringBuilder hostsStringBuilder = new StringBuilder();
-    int numHosts = 3; // Why 3?
-    for (int i = 0; i < numHosts; i++) {
-      hostsStringBuilder.append(endpoints.get(i)).append(PROXIED_DOMAIN_NAME_SUFFIX);
-      if (i < numHosts - 1) {
-        hostsStringBuilder.append(",");
-      }
-    }
-    return hostsStringBuilder.toString();
-  }
-
-  private String queryInstanceId(Connection connection) throws SQLException {
-    try (Statement myStmt = connection.createStatement();
-        ResultSet resultSet = myStmt.executeQuery("select @@aurora_server_id")
-    ) {
-      if (resultSet.next()) {
-        return resultSet.getString("@@aurora_server_id");
-      }
-    }
-    throw new SQLException();
-  }
-
-  private static String currWriter;
-  private static String currReader;
   @Test
   public void test_LostConnectionToWriter() {
+    Properties props = initDefaultProps();
+    props.setProperty(PropertyKey.failoverTimeoutMs.getKeyName(), "10000");
+
+    String currWriter = "";
     // Connect to cluster
-    try (Connection testConnection = connectToInstance(MYSQL_CLUSTER_URL + PROXIED_DOMAIN_NAME_SUFFIX, MYSQL_PROXY_PORT)) {
+    try (Connection testConnection = connectToInstance(MYSQL_CLUSTER_URL + PROXIED_DOMAIN_NAME_SUFFIX, MYSQL_PROXY_PORT, props)) {
       // Get writer
       currWriter = selectSingleRow(testConnection, "SELECT @@aurora_server_id");
 
@@ -395,8 +328,6 @@ public class AuroraMySqlIntegrationTest {
       SQLException exception = assertThrows(SQLException.class, () -> selectSingleRow(testConnection, "SELECT '1'"));
       assertEquals("08001", exception.getSQLState());
 
-      String newWriter = selectSingleRow(testConnection, "SELECT @@aurora_server_id");
-      System.out.println("New reader: " + newWriter);
     } catch (Exception e) {
       Assertions.fail(e);
     } finally {
@@ -412,7 +343,6 @@ public class AuroraMySqlIntegrationTest {
     }
   }
 
-  @Disabled
   @Test
   public void test_LostConnectionToReader() {
     // Connect to cluster
@@ -428,32 +358,31 @@ public class AuroraMySqlIntegrationTest {
       } else {
         Assertions.fail(String.format("%s does not have a proxy setup.", currReader));
       }
-      proxyCluster.toxics().bandwidth("DOWN-STREAM", ToxicDirection.DOWNSTREAM, 0); // from mysql server towards mysql driver
-      proxyCluster.toxics().bandwidth("UP-STREAM", ToxicDirection.UPSTREAM, 0); // from mysql driver towards mysql serve
+      proxyReadOnlyCluster.toxics().bandwidth("DOWN-STREAM", ToxicDirection.DOWNSTREAM, 0); // from mysql server towards mysql driver
+      proxyReadOnlyCluster.toxics().bandwidth("UP-STREAM", ToxicDirection.UPSTREAM, 0); // from mysql driver towards mysql serve
 
       SQLException exception = assertThrows(SQLException.class, () -> selectSingleRow(testConnection, "SELECT '1'"));
       assertEquals("08S02", exception.getSQLState());
 
       String newReader = selectSingleRow(testConnection, "SELECT @@aurora_server_id");
-      System.out.println("New reader: " + newReader);
     } catch (Exception e) {
       Assertions.fail(e);
     } finally {
       try {
-        Proxy proxyInstance = proxyMap.get(currWriter);
+        Proxy proxyInstance = proxyMap.get(currReader);
         proxyInstance.toxics().get("DOWN-STREAM").remove();
         proxyInstance.toxics().get("UP-STREAM").remove();
-        proxyCluster.toxics().get("DOWN-STREAM").remove();
-        proxyCluster.toxics().get("UP-STREAM").remove();
+        proxyReadOnlyCluster.toxics().get("DOWN-STREAM").remove();
+        proxyReadOnlyCluster.toxics().get("UP-STREAM").remove();
       } catch (Exception e) {
         // Ignore as toxics were not set
       }
     }
   }
 
-  @Disabled
   @Test
   public void test_LostConnectionToAllReaders() {
+    // Get Writer
     try (Connection checkWriterConnection = connectToInstance(MYSQL_CLUSTER_URL + PROXIED_DOMAIN_NAME_SUFFIX, MYSQL_PROXY_PORT)) {
       currWriter = selectSingleRow(checkWriterConnection, "SELECT @@aurora_server_id");
     } catch (Exception e) {
@@ -476,14 +405,12 @@ public class AuroraMySqlIntegrationTest {
           }
         }
       });
-      proxyCluster.toxics().bandwidth("DOWN-STREAM", ToxicDirection.DOWNSTREAM, 0); // from mysql server towards mysql driver
-      proxyCluster.toxics().bandwidth("UP-STREAM", ToxicDirection.UPSTREAM, 0); // from mysql driver towards mysql serve
 
       SQLException exception = assertThrows(SQLException.class, () -> selectSingleRow(testConnection, "SELECT '1'"));
       assertEquals("08S02", exception.getSQLState());
 
       String newReader = selectSingleRow(testConnection, "SELECT @@aurora_server_id");
-      System.out.println("New reader: " + newReader);
+      assertEquals(currWriter, newReader);
     } catch (Exception e) {
       Assertions.fail(e);
       e.printStackTrace();
@@ -491,14 +418,126 @@ public class AuroraMySqlIntegrationTest {
       try {
         proxyMap.forEach((k, v) -> {
           try {
-            v.toxics().bandwidth("DOWN-STREAM", ToxicDirection.DOWNSTREAM, 0); // from mysql server towards mysql driver
-            v.toxics().bandwidth("UP-STREAM", ToxicDirection.UPSTREAM, 0); // from mysql driver towards mysql serve
+            v.toxics().get("DOWN-STREAM").remove();
+            v.toxics().get("UP-STREAM").remove();
           } catch (Exception e) {
             // Ignore as toxics were not set
           }
         });
-        proxyCluster.toxics().get("DOWN-STREAM").remove();
-        proxyCluster.toxics().get("UP-STREAM").remove();
+      } catch (Exception e) {
+        // Ignore as toxics were not set
+      }
+    }
+  }
+
+  @Test
+  public void test_LostConnectionToReaderInstance() {
+    // Get Writer
+    try (Connection checkWriterConnection = connectToInstance(MYSQL_CLUSTER_URL + PROXIED_DOMAIN_NAME_SUFFIX, MYSQL_PROXY_PORT)) {
+      currWriter = selectSingleRow(checkWriterConnection, "SELECT @@aurora_server_id");
+    } catch (Exception e) {
+      fail(e);
+    }
+
+    // Get instance URL not WRITER
+    Set<String> readers = proxyMap.keySet();
+    readers.remove(currWriter);
+    String anyReader = readers.iterator().next();
+
+    // Connect to instance
+    String pattern = PROXIED_CLUSTER_TEMPLATE.replace("?", "%s");
+    try (Connection testConnection = connectToInstance(String.format(pattern, anyReader), MYSQL_PROXY_PORT)) {
+      // Get reader
+      currReader = selectSingleRow(testConnection, "SELECT @@aurora_server_id");
+      assertEquals(anyReader, currReader);
+
+      // Put down current reader
+      Proxy proxyInstance = proxyMap.get(currReader);
+      if (proxyInstance != null) {
+        proxyInstance.toxics().bandwidth("DOWN-STREAM", ToxicDirection.DOWNSTREAM, 0);
+        proxyInstance.toxics().bandwidth("UP-STREAM", ToxicDirection.UPSTREAM, 0);
+      } else {
+        Assertions.fail(String.format("%s does not have a proxy setup.", currReader));
+      }
+
+      SQLException exception = assertThrows(SQLException.class, () -> selectSingleRow(testConnection, "SELECT '1'"));
+      assertEquals("08S02", exception.getSQLState());
+
+      String newInstance = selectSingleRow(testConnection, "SELECT @@aurora_server_id");
+      assertEquals(currWriter, newInstance);
+    } catch (Exception e) {
+      Assertions.fail(e);
+      e.printStackTrace();
+    } finally {
+      try {
+        proxyMap.forEach((k, v) -> {
+          try {
+            v.toxics().get("DOWN-STREAM").remove();
+            v.toxics().get("UP-STREAM").remove();
+          } catch (Exception e) {
+            // Ignore as toxics were not set
+          }
+        });
+      } catch (Exception e) {
+        // Ignore as toxics were not set
+      }
+    }
+  }
+
+  @Test
+  public void test_LostConnectionReadOnly() {
+    // Get Writer
+    try (Connection checkWriterConnection = connectToInstance(MYSQL_CLUSTER_URL + PROXIED_DOMAIN_NAME_SUFFIX, MYSQL_PROXY_PORT)) {
+      currWriter = selectSingleRow(checkWriterConnection, "SELECT @@aurora_server_id");
+    } catch (Exception e) {
+      fail(e);
+    }
+
+    // Get instance URL not WRITER
+    Set<String> readers = proxyMap.keySet();
+    readers.remove(currWriter);
+    String anyReader = readers.iterator().next();
+
+    // Connect to instance
+    String pattern = PROXIED_CLUSTER_TEMPLATE.replace("?", "%s");
+    try (Connection testConnection = connectToInstance(String.format(pattern, anyReader), MYSQL_PROXY_PORT)) {
+      // Get reader
+      currReader = selectSingleRow(testConnection, "SELECT @@aurora_server_id");
+      assertEquals(anyReader, currReader);
+
+      testConnection.setReadOnly(true);
+
+      // Put down current reader
+      Proxy proxyInstance = proxyMap.get(currReader);
+      if (proxyInstance != null) {
+        proxyInstance.toxics().bandwidth("DOWN-STREAM", ToxicDirection.DOWNSTREAM, 0);
+        proxyInstance.toxics().bandwidth("UP-STREAM", ToxicDirection.UPSTREAM, 0);
+      } else {
+        Assertions.fail(String.format("%s does not have a proxy setup.", currReader));
+      }
+
+      SQLException exception = assertThrows(SQLException.class, () -> selectSingleRow(testConnection, "SELECT '1'"));
+      assertEquals("08S02", exception.getSQLState());
+
+      String newInstance = selectSingleRow(testConnection, "SELECT @@aurora_server_id");
+      assertNotEquals(currWriter, newInstance);
+    } catch (Exception e) {
+      Assertions.fail(e);
+      e.printStackTrace();
+    } finally {
+      try {
+        proxyMap.forEach((k, v) -> {
+          try {
+            v.toxics().get("DOWN-STREAM").remove();
+          } catch (Exception e) {
+            // Ignore as toxics were not set
+          }
+          try {
+            v.toxics().get("UP-STREAM").remove();
+          } catch (Exception e) {
+            // Ignore as toxics were not set
+          }
+        });
       } catch (Exception e) {
         // Ignore as toxics were not set
       }
@@ -515,38 +554,38 @@ public class AuroraMySqlIntegrationTest {
     }
   }
 
-  @Disabled
+  @Disabled // Won't work as no aws credentials in env
   @ParameterizedTest(name = "test_InvalidAwsIamAuth")
   @MethodSource("generateInvalidAwsIam")
   public void test_InvalidAwsIamAuth(String user, String password) {
-    final Properties props = new Properties();
+    final Properties props = initDefaultProps();
     props.setProperty(PropertyKey.useAwsIam.getKeyName(), Boolean.TRUE.toString());
     props.setProperty(PropertyKey.USER.getKeyName(), user);
     props.setProperty(PropertyKey.PASSWORD.getKeyName(), password);
     Assertions.assertThrows(
-            SQLException.class,
-            () -> connectToInstance(MYSQL_INSTANCE_1_URL + PROXIED_DOMAIN_NAME_SUFFIX, MYSQL_PROXY_PORT, props)
+          SQLException.class,
+          () -> connectToInstance(MYSQL_INSTANCE_1_URL, MYSQL_PORT, props)
     );
   }
 
   private static Stream<Arguments> generateInvalidAwsIam() {
     return Stream.of(
-            Arguments.of("", TEST_PASSWORD),
-            Arguments.of("INVALID_" + TEST_DB_USER, "")
+        Arguments.of("", TEST_PASSWORD),
+        Arguments.of("INVALID_" + TEST_DB_USER, "")
     );
   }
 
-  @Disabled
+  @Disabled // Won't work as no aws credentials in env
   @ParameterizedTest(name = "test_ValidAwsIamAuth")
   @MethodSource("generateValidAwsIam")
   public void testValidAwsIamAuth(String user, String password) {
-    final Properties props = new Properties();
+    final Properties props = initDefaultProps();
     props.setProperty(PropertyKey.useAwsIam.getKeyName(), Boolean.TRUE.toString());
     props.setProperty(PropertyKey.USER.getKeyName(), user);
     props.setProperty(PropertyKey.PASSWORD.getKeyName(), password);
     Assertions.assertThrows(
         SQLException.class,
-        () -> connectToInstance(MYSQL_INSTANCE_1_URL + PROXIED_DOMAIN_NAME_SUFFIX, MYSQL_PROXY_PORT, props)
+        () -> connectToInstance(MYSQL_INSTANCE_1_URL, MYSQL_PORT, props)
     );
   }
 
@@ -554,42 +593,129 @@ public class AuroraMySqlIntegrationTest {
     return Stream.of(
         Arguments.of(TEST_DB_USER, TEST_PASSWORD),
         Arguments.of(TEST_DB_USER, ""),
-        Arguments.of(TEST_DB_USER, null)
+        Arguments.of(TEST_DB_USER, " ")
     );
   }
 
-  @Disabled
   @Test
   void test_ValidInvalidValidConnections() throws SQLException {
-    final Properties validProp = new Properties();
+    final Properties validProp = initDefaultProps();
     validProp.setProperty(PropertyKey.USER.getKeyName(), TEST_USERNAME);
-    validProp.setProperty(PropertyKey.PASSWORD.getKeyName(), TEST_USERNAME);
-    final Connection validConn = connectToInstance(MYSQL_INSTANCE_1_URL + PROXIED_DOMAIN_NAME_SUFFIX, MYSQL_PROXY_PORT, validProp);
+    validProp.setProperty(PropertyKey.PASSWORD.getKeyName(), TEST_PASSWORD);
+    final Connection validConn = connectToInstance(MYSQL_INSTANCE_1_URL, MYSQL_PORT, validProp);
     validConn.close();
 
-    final Properties invalidProp = new Properties();
-    validProp.setProperty(PropertyKey.USER.getKeyName(), "INVALID_" + TEST_USERNAME);
-    validProp.setProperty(PropertyKey.PASSWORD.getKeyName(), TEST_USERNAME);
+    final Properties invalidProp = initDefaultProps();
+    invalidProp.setProperty(PropertyKey.USER.getKeyName(), "INVALID_" + TEST_USERNAME);
+    invalidProp.setProperty(PropertyKey.PASSWORD.getKeyName(), "INVALID_" + TEST_PASSWORD);
     Assertions.assertThrows(
             SQLException.class,
-            () -> connectToInstance(MYSQL_INSTANCE_1_URL + PROXIED_DOMAIN_NAME_SUFFIX, MYSQL_PROXY_PORT, invalidProp)
+            () -> connectToInstance(MYSQL_INSTANCE_1_URL, MYSQL_PORT, invalidProp)
     );
 
-    final Connection validConn2 = connectToInstance(MYSQL_INSTANCE_1_URL + PROXIED_DOMAIN_NAME_SUFFIX, MYSQL_PROXY_PORT, validProp);
+    final Connection validConn2 = connectToInstance(MYSQL_INSTANCE_1_URL, MYSQL_PORT, validProp);
     validConn2.close();
   }
 
-  private static Connection connectToInstance(String instanceUrl, int port) throws SQLException {
+  private static Properties initDefaultProps() {
     final Properties props = new Properties();
     props.setProperty(PropertyKey.USER.getKeyName(), TEST_USERNAME);
     props.setProperty(PropertyKey.PASSWORD.getKeyName(), TEST_PASSWORD);
-    props.setProperty(PropertyKey.connectTimeout.getKeyName(), "5000");
-    props.setProperty(PropertyKey.socketTimeout.getKeyName(), "5000");
+    props.setProperty(PropertyKey.connectTimeout.getKeyName(), "3000");
+    props.setProperty(PropertyKey.socketTimeout.getKeyName(), "3000");
     props.setProperty(PropertyKey.clusterInstanceHostPattern.getKeyName(), PROXIED_CLUSTER_TEMPLATE);
-    return connectToInstance(instanceUrl, port, props);
+    props.setProperty(PropertyKey.tcpKeepAlive.getKeyName(), "FALSE");
+    props.setProperty(PropertyKey.DBNAME.getKeyName(), TEST_DB);
+
+    return props;
+  }
+
+  private static Connection connectToInstance(String instanceUrl, int port) throws SQLException {
+    return connectToInstance(instanceUrl, port, initDefaultProps());
   }
 
   private static Connection connectToInstance(String instanceUrl, int port, Properties props) throws SQLException {
-    return DriverManager.getConnection("jdbc:mysql:aws://" + instanceUrl + ":" + port + "/test?tcpKeepAlive=false", props);
+    return DriverManager.getConnection("jdbc:mysql:aws://" + instanceUrl + ":" + port, props);
   }
 }
+
+
+//  // Don't think this works like I want it to
+//  // I think this needs to actually restart the server
+//  @Disabled
+//  @Test
+//  @Timeout(3 * 60000)
+//  public void test_ReplicationFailover() throws SQLException {
+//    final String DB_CONN_STR_PREFIX = "jdbc:mysql:replication://";
+//    final List<String> endpoints = new ArrayList<>();
+//    endpoints.add(MYSQL_INSTANCE_1_URL); // Writer
+//    endpoints.add(MYSQL_INSTANCE_2_URL);
+//    endpoints.add(MYSQL_INSTANCE_3_URL);
+//    endpoints.add(MYSQL_INSTANCE_4_URL);
+//    endpoints.add(MYSQL_INSTANCE_5_URL);
+//
+//    final String initialWriterInstance = MYSQL_INSTANCE_1_URL.substring(0, MYSQL_INSTANCE_1_URL.indexOf('.'));
+//    String replicationHosts = getReplicationHosts(endpoints);
+//
+//    Connection testConnection =
+//        DriverManager.getConnection(DB_CONN_STR_PREFIX + replicationHosts,
+//            TEST_USERNAME,
+//            TEST_PASSWORD);
+//
+//    // Switch to a replica
+//    testConnection.setReadOnly(true);
+//    String replicaInstance = queryInstanceId(testConnection);
+//    assertNotEquals(initialWriterInstance, replicaInstance);
+//
+//    // Mimic reboot to replicaInstance
+//    // I don't think this works
+//    // I think this needs to actually restart the server
+//    Thread thread = new Thread(() -> {
+//      try {
+//        // Kill network
+//        Thread.sleep(5000); // Sleep 5s
+//        proxyInstance_1.toxics().bandwidth("DOWN-STREAM", ToxicDirection.DOWNSTREAM, 0); // from mysql server towards mysql driver
+//        proxyInstance_1.toxics().bandwidth("UP-STREAM", ToxicDirection.UPSTREAM, 0); // from mysql driver towards mysql server
+//        Thread.sleep(5000); // Sleep 5s
+//      } catch (Exception e) {
+//        e.printStackTrace();
+//      }
+//    });
+//    thread.start();
+//
+//    try {
+//      while (true) {
+//        queryInstanceId(testConnection);
+//      }
+//    } catch (SQLException e) {
+//      // do nothing
+//    }
+//
+//    // Assert that we are connected to the new replica after failover happens.
+//    final String newInstance = queryInstanceId(testConnection);
+//    assertNotEquals(newInstance, replicaInstance);
+//    assertNotEquals(newInstance, initialWriterInstance);
+//  }
+//
+//  private String getReplicationHosts(List<String> endpoints) {
+//    StringBuilder hostsStringBuilder = new StringBuilder();
+//    int numHosts = 3; // Why 3?
+//    for (int i = 0; i < numHosts; i++) {
+//      hostsStringBuilder.append(endpoints.get(i)).append(PROXIED_DOMAIN_NAME_SUFFIX);
+//      if (i < numHosts - 1) {
+//        hostsStringBuilder.append(",");
+//      }
+//    }
+//    return hostsStringBuilder.toString();
+//  }
+//
+//  private String queryInstanceId(Connection connection) throws SQLException {
+//    try (Statement myStmt = connection.createStatement();
+//        ResultSet resultSet = myStmt.executeQuery("select @@aurora_server_id")
+//    ) {
+//      if (resultSet.next()) {
+//        return resultSet.getString("@@aurora_server_id");
+//      }
+//    }
+//    throw new SQLException();
+//  }

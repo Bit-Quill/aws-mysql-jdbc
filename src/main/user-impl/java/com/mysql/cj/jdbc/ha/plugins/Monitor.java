@@ -27,6 +27,7 @@
 package com.mysql.cj.jdbc.ha.plugins;
 
 import com.mysql.cj.conf.HostInfo;
+import com.mysql.cj.conf.PropertyKey;
 import com.mysql.cj.conf.PropertySet;
 import com.mysql.cj.log.Log;
 
@@ -189,6 +190,9 @@ public class Monitor implements IMonitor {
       if (this.monitoringConn == null || this.monitoringConn.isClosed()) {
         // open a new connection
         Map<String, String> monitoringConnProperties = new HashMap<>();
+        // Default values for connect and socket timeout
+        monitoringConnProperties.put(PropertyKey.connectTimeout.getKeyName(), "3000");
+        monitoringConnProperties.put(PropertyKey.socketTimeout.getKeyName(), "3000");
         Properties originalProperties = this.propertySet.exposeAsProperties();
         if (originalProperties != null) {
           originalProperties.stringPropertyNames().stream()
