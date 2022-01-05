@@ -143,7 +143,7 @@ class NodeMonitoringConnectionPluginTest {
         any(Class.class),
         anyString(),
         Mockito.any(Callable.class),
-        EMPTY_ARGS)).thenReturn("done");
+        eq(EMPTY_ARGS))).thenReturn("done");
 
     when(proxy.getCurrentConnection()).thenReturn(connection);
     when(proxy.getCurrentHostInfo()).thenReturn(hostInfo);
@@ -201,7 +201,7 @@ class NodeMonitoringConnectionPluginTest {
         any(Class.class),
         eq(MONITOR_METHOD_NAME),
         eq(sqlFunction),
-        EMPTY_ARGS);
+        eq(EMPTY_ARGS));
   }
 
   @Test
@@ -218,7 +218,7 @@ class NodeMonitoringConnectionPluginTest {
         any(Class.class),
         eq(NO_MONITOR_METHOD_NAME),
         eq(sqlFunction),
-        EMPTY_ARGS);
+        eq(EMPTY_ARGS));
   }
 
   private void initializePlugin() {
