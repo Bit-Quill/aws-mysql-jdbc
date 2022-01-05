@@ -44,9 +44,9 @@ import com.mysql.cj.jdbc.exceptions.SQLError;
 import com.mysql.cj.jdbc.exceptions.SQLExceptionsMapping;
 import com.mysql.cj.jdbc.ha.ConnectionUtils;
 import com.mysql.cj.jdbc.ha.plugins.BasicConnectionProvider;
-import com.mysql.cj.jdbc.ha.plugins.CanCollectPerformanceMetrics;
-import com.mysql.cj.jdbc.ha.plugins.ConnectionProvider;
+import com.mysql.cj.jdbc.ha.plugins.ICanCollectPerformanceMetrics;
 import com.mysql.cj.jdbc.ha.plugins.IConnectionPlugin;
+import com.mysql.cj.jdbc.ha.plugins.IConnectionProvider;
 import com.mysql.cj.jdbc.ha.plugins.ICurrentConnectionProvider;
 import com.mysql.cj.log.Log;
 import com.mysql.cj.util.IpAddressUtils;
@@ -88,7 +88,7 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
   private static final String METHOD_GET_TRANSACTION_ISOLATION =
       "getTransactionIsolation";
   private static final String METHOD_GET_SESSION_MAX_ROWS = "getSessionMaxRows";
-  protected final ConnectionProvider connectionProvider;
+  protected final IConnectionProvider connectionProvider;
   protected final ClusterAwareMetrics metrics = new ClusterAwareMetrics();
   private final ICurrentConnectionProvider currentConnectionProvider;
   private final PropertySet propertySet;
@@ -106,8 +106,8 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
       Pattern.compile(
           "(.+)\\.(proxy-[a-zA-Z0-9]+\\.[a-zA-Z0-9\\-]+\\.rds\\.amazonaws\\.com)",
           Pattern.CASE_INSENSITIVE);
-  protected WriterFailoverHandler writerFailoverHandler = null;
-  protected ReaderFailoverHandler readerFailoverHandler = null;
+  protected IWriterFailoverHandler writerFailoverHandler = null;
+  protected IReaderFailoverHandler readerFailoverHandler = null;
   // writer host is always stored at index 0
   protected int currentHostIndex = NO_CONNECTION_INDEX;
   protected Map<String, String> initialConnectionProps;
@@ -118,7 +118,7 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
   protected boolean isMultiWriterCluster = false;
   protected boolean isRdsProxy = false;
   protected boolean isRds = false;
-  protected TopologyService topologyService;
+  protected ITopologyService topologyService;
   protected List<HostInfo> hosts = new ArrayList<>();
 
   // Configuration settings
@@ -163,7 +163,7 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
       PropertySet propertySet,
       IConnectionPlugin nextPlugin,
       Log logger,
-      ConnectionProvider connectionProvider,
+      IConnectionProvider connectionProvider,
       Supplier<AuroraTopologyService> topologyServiceSupplier) throws SQLException {
     this.currentConnectionProvider = currentConnectionProvider;
     this.propertySet = propertySet;
@@ -249,8 +249,8 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
     if (METHOD_CLOSE.equals(methodName)) {
       if (this.gatherPerfMetricsSetting) {
         this.metrics.reportMetrics(this.logger);
-        if (this.topologyService instanceof CanCollectPerformanceMetrics) {
-          ((CanCollectPerformanceMetrics) this.topologyService).reportMetrics(this.logger);
+        if (this.topologyService instanceof ICanCollectPerformanceMetrics) {
+          ((ICanCollectPerformanceMetrics) this.topologyService).reportMetrics(this.logger);
         }
       }
     }

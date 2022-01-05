@@ -30,7 +30,7 @@ import com.mysql.cj.Messages;
 import com.mysql.cj.conf.HostInfo;
 import com.mysql.cj.jdbc.JdbcConnection;
 import com.mysql.cj.jdbc.ha.ConnectionUtils;
-import com.mysql.cj.jdbc.ha.plugins.ConnectionProvider;
+import com.mysql.cj.jdbc.ha.plugins.IConnectionProvider;
 import com.mysql.cj.log.Log;
 import com.mysql.cj.log.NullLogger;
 import com.mysql.cj.util.Util;
@@ -56,7 +56,7 @@ import java.util.concurrent.TimeUnit;
  * cluster failover. This handler tries both approaches in parallel: 1) try to re-connect to the
  * same writer host, 2) try to update cluster topology and connect to a newly elected writer.
  */
-public class ClusterAwareWriterFailoverHandler implements WriterFailoverHandler {
+public class ClusterAwareWriterFailoverHandler implements IWriterFailoverHandler {
 
   static final int WRITER_CONNECTION_INDEX = 0;
 
@@ -70,17 +70,17 @@ public class ClusterAwareWriterFailoverHandler implements WriterFailoverHandler 
   protected int readTopologyIntervalMs = 5000; // 5 sec
   protected int reconnectWriterIntervalMs = 5000; // 5 sec
   protected Map<String, String> initialConnectionProps;
-  protected TopologyService topologyService;
-  protected ConnectionProvider connectionProvider;
-  protected ReaderFailoverHandler readerFailoverHandler;
+  protected ITopologyService topologyService;
+  protected IConnectionProvider connectionProvider;
+  protected IReaderFailoverHandler readerFailoverHandler;
 
   /**
    * ClusterAwareWriterFailoverHandler constructor.
    */
   public ClusterAwareWriterFailoverHandler(
-      TopologyService topologyService,
-      ConnectionProvider connectionProvider,
-      ReaderFailoverHandler readerFailoverHandler,
+      ITopologyService topologyService,
+      IConnectionProvider connectionProvider,
+      IReaderFailoverHandler readerFailoverHandler,
       Map<String, String> initialConnectionProps,
       Log log) {
     this.topologyService = topologyService;
@@ -97,9 +97,9 @@ public class ClusterAwareWriterFailoverHandler implements WriterFailoverHandler 
    * ClusterAwareWriterFailoverHandler constructor.
    */
   public ClusterAwareWriterFailoverHandler(
-      TopologyService topologyService,
-      ConnectionProvider connectionProvider,
-      ReaderFailoverHandler readerFailoverHandler,
+      ITopologyService topologyService,
+      IConnectionProvider connectionProvider,
+      IReaderFailoverHandler readerFailoverHandler,
       Map<String, String> initialConnectionProps,
       int failoverTimeoutMs,
       int readTopologyIntervalMs,

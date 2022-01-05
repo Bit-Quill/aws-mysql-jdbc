@@ -61,7 +61,7 @@ public class Monitor implements IMonitor {
   private static final String MONITORING_PROPERTY_PREFIX = "monitoring-";
 
   private final Queue<MonitorConnectionContext> contexts = new ConcurrentLinkedQueue<>();
-  private final ConnectionProvider connectionProvider;
+  private final IConnectionProvider connectionProvider;
   private final Log logger;
   private final PropertySet propertySet;
   private final HostInfo hostInfo;
@@ -87,7 +87,7 @@ public class Monitor implements IMonitor {
    * @param logger A {@link Log} implementation.
    */
   public Monitor(
-      ConnectionProvider connectionProvider,
+      IConnectionProvider connectionProvider,
       HostInfo hostInfo,
       PropertySet propertySet,
       long monitorDisposalTime,

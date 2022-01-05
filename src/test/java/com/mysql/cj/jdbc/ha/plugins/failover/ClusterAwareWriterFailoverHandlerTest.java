@@ -41,7 +41,7 @@ import static org.mockito.Mockito.when;
 import com.mysql.cj.conf.HostInfo;
 import com.mysql.cj.jdbc.ConnectionImpl;
 import com.mysql.cj.jdbc.JdbcConnection;
-import com.mysql.cj.jdbc.ha.plugins.ConnectionProvider;
+import com.mysql.cj.jdbc.ha.plugins.IConnectionProvider;
 import com.mysql.cj.log.Log;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentMatchers;
@@ -69,9 +69,9 @@ public class ClusterAwareWriterFailoverHandlerTest {
   @Test
   public void testReconnectToWriter_taskBReaderException() throws SQLException {
     final AuroraTopologyService mockTopologyService = Mockito.mock(AuroraTopologyService.class);
-    final ConnectionProvider mockConnectionProvider = Mockito.mock(ConnectionProvider.class);
+    final IConnectionProvider mockConnectionProvider = Mockito.mock(IConnectionProvider.class);
     final ConnectionImpl mockConnection = Mockito.mock(ConnectionImpl.class);
-    final ReaderFailoverHandler mockReaderFailover = Mockito.mock(ReaderFailoverHandler.class);
+    final IReaderFailoverHandler mockReaderFailover = Mockito.mock(IReaderFailoverHandler.class);
 
     final HostInfo writerHost = ClusterAwareTestUtils.createBasicHostInfo("writer-host", "test");
     final HostInfo readerA_Host = ClusterAwareTestUtils.createBasicHostInfo("reader-a-host", "test");
@@ -123,10 +123,10 @@ public class ClusterAwareWriterFailoverHandlerTest {
   @Test
   public void testReconnectToWriter_SlowReaderA() throws SQLException {
     final AuroraTopologyService mockTopologyService = Mockito.mock(AuroraTopologyService.class);
-    final ConnectionProvider mockConnectionProvider = Mockito.mock(ConnectionProvider.class);
+    final IConnectionProvider mockConnectionProvider = Mockito.mock(IConnectionProvider.class);
     final ConnectionImpl mockWriterConnection = Mockito.mock(ConnectionImpl.class);
     final ConnectionImpl mockReaderA_Connection = Mockito.mock(ConnectionImpl.class);
-    final ReaderFailoverHandler mockReaderFailover = Mockito.mock(ReaderFailoverHandler.class);
+    final IReaderFailoverHandler mockReaderFailover = Mockito.mock(IReaderFailoverHandler.class);
 
     final HostInfo writerHost = ClusterAwareTestUtils.createBasicHostInfo("writer-host", "test");
     final HostInfo readerA_Host = ClusterAwareTestUtils.createBasicHostInfo("reader-a-host", "test");
@@ -189,10 +189,10 @@ public class ClusterAwareWriterFailoverHandlerTest {
   @Test
   public void testReconnectToWriter_taskBDefers() throws SQLException {
     final AuroraTopologyService mockTopologyService = Mockito.mock(AuroraTopologyService.class);
-    final ConnectionProvider mockConnectionProvider = Mockito.mock(ConnectionProvider.class);
+    final IConnectionProvider mockConnectionProvider = Mockito.mock(IConnectionProvider.class);
     final ConnectionImpl mockWriterConnection = Mockito.mock(ConnectionImpl.class);
     final ConnectionImpl mockReaderA_Connection = Mockito.mock(ConnectionImpl.class);
-    final ReaderFailoverHandler mockReaderFailover = Mockito.mock(ReaderFailoverHandler.class);
+    final IReaderFailoverHandler mockReaderFailover = Mockito.mock(IReaderFailoverHandler.class);
 
     final HostInfo writerHost = ClusterAwareTestUtils.createBasicHostInfo("writer-host", "test");
     final HostInfo readerA_Host = ClusterAwareTestUtils.createBasicHostInfo("reader-a-host", "test");
@@ -249,12 +249,12 @@ public class ClusterAwareWriterFailoverHandlerTest {
   @Test
   public void testConnectToReaderA_SlowWriter() throws SQLException {
     final AuroraTopologyService mockTopologyService = Mockito.mock(AuroraTopologyService.class);
-    final ConnectionProvider mockConnectionProvider = Mockito.mock(ConnectionProvider.class);
+    final IConnectionProvider mockConnectionProvider = Mockito.mock(IConnectionProvider.class);
     final ConnectionImpl mockWriterConnection = Mockito.mock(ConnectionImpl.class);
     final ConnectionImpl mockNewWriterConnection = Mockito.mock(ConnectionImpl.class);
     final ConnectionImpl mockReaderA_Connection = Mockito.mock(ConnectionImpl.class);
     final ConnectionImpl mockReaderB_Connection = Mockito.mock(ConnectionImpl.class);
-    final ReaderFailoverHandler mockReaderFailover = Mockito.mock(ReaderFailoverHandler.class);
+    final IReaderFailoverHandler mockReaderFailover = Mockito.mock(IReaderFailoverHandler.class);
 
     final HostInfo writerHost = ClusterAwareTestUtils.createBasicHostInfo("writer-host", "test");
     final HostInfo readerA_Host = ClusterAwareTestUtils.createBasicHostInfo("reader-a-host", "test");
@@ -321,11 +321,11 @@ public class ClusterAwareWriterFailoverHandlerTest {
   @Test
   public void testConnectToReaderA_taskADefers() throws SQLException {
     final AuroraTopologyService mockTopologyService = Mockito.mock(AuroraTopologyService.class);
-    final ConnectionProvider mockConnectionProvider = Mockito.mock(ConnectionProvider.class);
+    final IConnectionProvider mockConnectionProvider = Mockito.mock(IConnectionProvider.class);
     final ConnectionImpl mockNewWriterConnection = Mockito.mock(ConnectionImpl.class);
     final ConnectionImpl mockReaderA_Connection = Mockito.mock(ConnectionImpl.class);
     final ConnectionImpl mockReaderB_Connection = Mockito.mock(ConnectionImpl.class);
-    final ReaderFailoverHandler mockReaderFailover = Mockito.mock(ReaderFailoverHandler.class);
+    final IReaderFailoverHandler mockReaderFailover = Mockito.mock(IReaderFailoverHandler.class);
 
     final HostInfo initialWriterHost = ClusterAwareTestUtils.createBasicHostInfo("initial-writer-host", "test");
     final HostInfo readerA_Host = ClusterAwareTestUtils.createBasicHostInfo("reader-a-host", "test");
@@ -393,12 +393,12 @@ public class ClusterAwareWriterFailoverHandlerTest {
   @Test
   public void testFailedToConnect_failoverTimeout() throws SQLException {
     final AuroraTopologyService mockTopologyService = Mockito.mock(AuroraTopologyService.class);
-    final ConnectionProvider mockConnectionProvider = Mockito.mock(ConnectionProvider.class);
+    final IConnectionProvider mockConnectionProvider = Mockito.mock(IConnectionProvider.class);
     final ConnectionImpl mockWriterConnection = Mockito.mock(ConnectionImpl.class);
     final ConnectionImpl mockNewWriterConnection = Mockito.mock(ConnectionImpl.class);
     final ConnectionImpl mockReaderA_Connection = Mockito.mock(ConnectionImpl.class);
     final ConnectionImpl mockReaderB_Connection = Mockito.mock(ConnectionImpl.class);
-    final ReaderFailoverHandler mockReaderFailover = Mockito.mock(ReaderFailoverHandler.class);
+    final IReaderFailoverHandler mockReaderFailover = Mockito.mock(IReaderFailoverHandler.class);
 
     final HostInfo writerHost = ClusterAwareTestUtils.createBasicHostInfo("writer-host", "test");
     final HostInfo readerA_Host = ClusterAwareTestUtils.createBasicHostInfo("reader-a-host", "test");
@@ -467,10 +467,10 @@ public class ClusterAwareWriterFailoverHandlerTest {
   @Test
   public void testFailedToConnect_taskAException_taskBWriterException() throws SQLException {
     final AuroraTopologyService mockTopologyService = Mockito.mock(AuroraTopologyService.class);
-    final ConnectionProvider mockConnectionProvider = Mockito.mock(ConnectionProvider.class);
+    final IConnectionProvider mockConnectionProvider = Mockito.mock(IConnectionProvider.class);
     final ConnectionImpl mockReaderA_Connection = Mockito.mock(ConnectionImpl.class);
     final ConnectionImpl mockReaderB_Connection = Mockito.mock(ConnectionImpl.class);
-    final ReaderFailoverHandler mockReaderFailover = Mockito.mock(ReaderFailoverHandler.class);
+    final IReaderFailoverHandler mockReaderFailover = Mockito.mock(IReaderFailoverHandler.class);
 
     final HostInfo writerHost = ClusterAwareTestUtils.createBasicHostInfo("writer-host", "test");
     final HostInfo readerA_Host = ClusterAwareTestUtils.createBasicHostInfo("reader-a-host", "test");

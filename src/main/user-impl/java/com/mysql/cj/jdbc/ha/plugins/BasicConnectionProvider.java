@@ -35,7 +35,7 @@ import java.sql.SQLException;
  * This class is a basic implementation of ConnectionProvider interface. It creates and returns an
  * instance of ConnectionImpl.
  */
-public class BasicConnectionProvider implements ConnectionProvider {
+public class BasicConnectionProvider implements IConnectionProvider {
 
   /**
    * Called once per connection that needs to be created.

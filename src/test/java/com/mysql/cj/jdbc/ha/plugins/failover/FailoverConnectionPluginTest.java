@@ -46,8 +46,8 @@ import com.mysql.cj.jdbc.ConnectionImpl;
 import com.mysql.cj.jdbc.JdbcConnection;
 import com.mysql.cj.jdbc.JdbcPropertySet;
 import com.mysql.cj.jdbc.JdbcPropertySetImpl;
-import com.mysql.cj.jdbc.ha.plugins.ConnectionProvider;
 import com.mysql.cj.jdbc.ha.plugins.IConnectionPlugin;
+import com.mysql.cj.jdbc.ha.plugins.IConnectionProvider;
 import com.mysql.cj.jdbc.ha.plugins.ICurrentConnectionProvider;
 import com.mysql.cj.log.Log;
 import org.junit.jupiter.api.AfterEach;
@@ -76,7 +76,7 @@ class FailoverConnectionPluginTest {
   private final List<HostInfo> mockTopology =
       new ArrayList<>(Arrays.asList(writerHost, readerHost));
   @Mock private ConnectionImpl mockConnection;
-  @Mock private ConnectionProvider mockConnectionProvider;
+  @Mock private IConnectionProvider mockConnectionProvider;
   @Mock private ICurrentConnectionProvider mockCurrentConnectionProvider;
   @Mock private IConnectionPlugin mockNextPlugin;
   @Mock private HostInfo mockHostInfo;

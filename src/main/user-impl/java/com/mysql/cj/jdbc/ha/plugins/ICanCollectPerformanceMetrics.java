@@ -32,7 +32,7 @@ import com.mysql.cj.log.Log;
  * This is a generic interface for performance metrics. It can be implemented by any class that
  * requires collecting internal metrics.
  */
-public interface CanCollectPerformanceMetrics {
+public interface ICanCollectPerformanceMetrics {
 
   /**
    * Enables or disables collecting of internal performance metrics.

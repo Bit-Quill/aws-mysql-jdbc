@@ -39,7 +39,7 @@ import java.util.Set;
  * <p>It's expected that each instance of ClusterAwareConnectionProxy uses its own instance of
  * topology service.
  */
-public interface TopologyService {
+public interface ITopologyService {
 
   /**
    * Set unique cluster identifier for topology service instance.

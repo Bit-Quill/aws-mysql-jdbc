@@ -35,7 +35,7 @@ import com.mysql.cj.jdbc.JdbcPropertySetImpl;
 import com.mysql.cj.jdbc.exceptions.SQLExceptionsMapping;
 import com.mysql.cj.jdbc.ha.plugins.BasicConnectionProvider;
 import com.mysql.cj.jdbc.ha.plugins.ConnectionPluginManager;
-import com.mysql.cj.jdbc.ha.plugins.ConnectionProvider;
+import com.mysql.cj.jdbc.ha.plugins.IConnectionProvider;
 import com.mysql.cj.jdbc.ha.plugins.ICurrentConnectionProvider;
 import com.mysql.cj.log.Log;
 import com.mysql.cj.log.LogFactory;
@@ -110,7 +110,7 @@ public class ConnectionProxy implements ICurrentConnectionProvider, InvocationHa
   public static JdbcConnection autodetectClusterAndCreateProxyInstance(ConnectionUrl connectionUrl)
       throws SQLException {
 
-    final ConnectionProvider connectionProvider = new BasicConnectionProvider();
+    final IConnectionProvider connectionProvider = new BasicConnectionProvider();
     final ConnectionProxy connProxy = new ConnectionProxy(connectionUrl, connectionProvider.connect(connectionUrl.getMainHost()));
     if (connProxy.isPluginEnabled()) {
       return (JdbcConnection)
@@ -134,7 +134,7 @@ public class ConnectionProxy implements ICurrentConnectionProvider, InvocationHa
    */
   public static JdbcConnection createProxyInstance(ConnectionUrl connectionUrl)
       throws SQLException {
-    ConnectionProvider connectionProvider = new BasicConnectionProvider();
+    IConnectionProvider connectionProvider = new BasicConnectionProvider();
     final ConnectionProxy connProxy = new ConnectionProxy(connectionUrl, connectionProvider.connect(connectionUrl.getMainHost()));
 
     return (JdbcConnection)

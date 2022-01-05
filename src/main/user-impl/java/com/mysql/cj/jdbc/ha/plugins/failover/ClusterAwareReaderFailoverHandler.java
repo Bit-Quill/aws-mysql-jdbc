@@ -30,7 +30,7 @@ import com.mysql.cj.Messages;
 import com.mysql.cj.conf.HostInfo;
 import com.mysql.cj.jdbc.JdbcConnection;
 import com.mysql.cj.jdbc.ha.ConnectionUtils;
-import com.mysql.cj.jdbc.ha.plugins.ConnectionProvider;
+import com.mysql.cj.jdbc.ha.plugins.IConnectionProvider;
 import com.mysql.cj.log.Log;
 import com.mysql.cj.log.NullLogger;
 import com.mysql.cj.util.Util;
@@ -61,7 +61,7 @@ import java.util.concurrent.TimeoutException;
  * reader has been connected to, the process may consider a writer host, and other hosts marked
  * down, to connect to.
  */
-public class ClusterAwareReaderFailoverHandler implements ReaderFailoverHandler {
+public class ClusterAwareReaderFailoverHandler implements IReaderFailoverHandler {
   protected static final int DEFAULT_FAILOVER_TIMEOUT = 60000; // 60 sec
   protected static final int DEFAULT_READER_CONNECT_TIMEOUT = 30000; // 30 sec
 
@@ -73,21 +73,21 @@ public class ClusterAwareReaderFailoverHandler implements ReaderFailoverHandler 
   protected Map<String, String> initialConnectionProps;
   protected int maxFailoverTimeoutMs;
   protected int timeoutMs;
-  protected final ConnectionProvider connProvider;
-  protected final TopologyService topologyService;
+  protected final IConnectionProvider connProvider;
+  protected final ITopologyService topologyService;
 
   /**
    * ClusterAwareReaderFailoverHandler constructor.
    *
-   * @param topologyService An implementation of {@link TopologyService} that obtains and
+   * @param topologyService An implementation of {@link ITopologyService} that obtains and
    *                        caches a cluster's topology.
    * @param connProvider A provider for creating new connections.
    * @param initialConnectionProps The initial connection properties to copy over to the
    *                               new reader.
    */
   public ClusterAwareReaderFailoverHandler(
-      TopologyService topologyService,
-      ConnectionProvider connProvider,
+      ITopologyService topologyService,
+      IConnectionProvider connProvider,
       Map<String, String> initialConnectionProps,
       Log log) {
     this(
@@ -102,7 +102,7 @@ public class ClusterAwareReaderFailoverHandler implements ReaderFailoverHandler 
   /**
    * ClusterAwareReaderFailoverHandler constructor.
    *
-   * @param topologyService An implementation of {@link TopologyService} that obtains and
+   * @param topologyService An implementation of {@link ITopologyService} that obtains and
    *                        caches a cluster's topology.
    * @param connProvider A provider for creating new connections.
    * @param initialConnectionProps The initial connection properties to copy over to the
@@ -113,8 +113,8 @@ public class ClusterAwareReaderFailoverHandler implements ReaderFailoverHandler 
    * @param log An implementation of {@link Log}.
    */
   public ClusterAwareReaderFailoverHandler(
-      TopologyService topologyService,
-      ConnectionProvider connProvider,
+      ITopologyService topologyService,
+      IConnectionProvider connProvider,
       Map<String, String> initialConnectionProps,
       int failoverTimeoutMs,
       int timeoutMs,

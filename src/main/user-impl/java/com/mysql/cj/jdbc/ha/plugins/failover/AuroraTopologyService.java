@@ -30,7 +30,7 @@ import com.mysql.cj.Messages;
 import com.mysql.cj.conf.ConnectionUrl;
 import com.mysql.cj.conf.HostInfo;
 import com.mysql.cj.jdbc.JdbcConnection;
-import com.mysql.cj.jdbc.ha.plugins.CanCollectPerformanceMetrics;
+import com.mysql.cj.jdbc.ha.plugins.ICanCollectPerformanceMetrics;
 import com.mysql.cj.log.Log;
 import com.mysql.cj.log.NullLogger;
 import com.mysql.cj.util.ExpiringCache;
@@ -58,7 +58,7 @@ import java.util.UUID;
  * includes a list of down hosts. That helps to avoid unnecessary attempts to connect them.
  */
 public class AuroraTopologyService
-    implements TopologyService, CanCollectPerformanceMetrics {
+    implements ITopologyService, ICanCollectPerformanceMetrics {
 
   static final int DEFAULT_REFRESH_RATE_IN_MILLISECONDS = 30000;
   static final int DEFAULT_CACHE_EXPIRE_MS = 5 * 60 * 1000; // 5 min

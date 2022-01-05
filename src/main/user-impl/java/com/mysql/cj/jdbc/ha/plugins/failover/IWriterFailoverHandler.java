@@ -35,7 +35,7 @@ import java.util.List;
  * Interface for Writer Failover Process handler. This handler implements all necessary logic to try
  * to reconnect to a current writer host or to a newly elected writer.
  */
-public interface WriterFailoverHandler {
+public interface IWriterFailoverHandler {
 
   /**
    * Called to start Writer Failover Process.

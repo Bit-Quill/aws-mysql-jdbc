@@ -65,7 +65,7 @@ import java.util.concurrent.Future;
 class MonitorTest {
 
   @Mock
-  ConnectionProvider connectionProvider;
+  IConnectionProvider connectionProvider;
   @Mock
   ConnectionImpl connection;
   @Mock

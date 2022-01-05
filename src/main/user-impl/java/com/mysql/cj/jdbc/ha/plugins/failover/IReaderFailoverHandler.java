@@ -35,7 +35,7 @@ import java.util.List;
  * Interface for Reader Failover Process handler. This handler implements all necessary logic to try
  * to reconnect to another reader host.
  */
-public interface ReaderFailoverHandler {
+public interface IReaderFailoverHandler {
 
   /**
    * Called to start Reader Failover Process. This process tries to connect to any reader. If no

@@ -32,7 +32,7 @@ import com.mysql.cj.jdbc.ConnectionImpl;
 import java.sql.SQLException;
 
 /** Implement this interface in order to handle physical connection creation process. */
-public interface ConnectionProvider {
+public interface IConnectionProvider {
   /**
    * Called once per connection that needs to be created.
    *
