@@ -452,6 +452,10 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
   }
 
   protected void initializeTopology() throws SQLException {
+    if (this.currentConnectionProvider.getCurrentConnection() == null) {
+      return;
+    }
+
     fetchTopology();
     if (this.isFailoverEnabled()) {
       validateConnection();

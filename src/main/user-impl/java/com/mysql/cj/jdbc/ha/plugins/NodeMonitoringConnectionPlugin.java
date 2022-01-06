@@ -106,7 +106,9 @@ public class NodeMonitoringConnectionPlugin implements IConnectionPlugin {
     this.nextPlugin = nextPlugin;
     this.monitorServiceSupplier = monitorServiceSupplier;
 
-    generateNodeKeys(this.currentConnectionProvider.getCurrentConnection());
+    if (this.currentConnectionProvider.getCurrentConnection() != null) {
+      generateNodeKeys(this.currentConnectionProvider.getCurrentConnection());
+    }
   }
 
   /**
@@ -276,7 +278,7 @@ public class NodeMonitoringConnectionPlugin implements IConnectionPlugin {
    * @param newConnection The connection used by {@link ConnectionProxy}.
    */
   private void checkIfChanged(JdbcConnection newConnection) {
-    final boolean isSameConnection = this.connection.equals(newConnection);
+    final boolean isSameConnection = this.connection != null && this.connection.equals(newConnection);
     if (!isSameConnection) {
       this.monitorService.stopMonitoringForAllConnections(this.nodeKeys);
       this.connection = newConnection;

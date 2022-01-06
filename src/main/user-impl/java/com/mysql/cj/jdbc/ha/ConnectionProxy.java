@@ -182,12 +182,14 @@ public class ConnectionProxy implements ICurrentConnectionProvider, InvocationHa
       return executeMethodDirectly(methodName, args);
     }
 
+    Object[] argsCopy = args == null ?  null : Arrays.copyOf(args, args.length);
+
     try {
       Object result = this.pluginManager.execute(
           this.currentConnection.getClass(),
           methodName,
           () -> method.invoke(currentConnection, args),
-          Arrays.copyOf(args, args.length));
+          argsCopy);
       return proxyIfReturnTypeIsJdbcInterface(method.getReturnType(), result);
     } catch (Exception e) {
       // Check if the captured exception must be wrapped by an unchecked exception.
@@ -310,13 +312,15 @@ public class ConnectionProxy implements ICurrentConnectionProvider, InvocationHa
         return args[0].equals(this);
       }
 
+      Object[] argsCopy = args == null ? null : Arrays.copyOf(args, args.length);
+
       synchronized(ConnectionProxy.this) {
         Object result =
             ConnectionProxy.this.pluginManager.execute(
                 this.invokeOn.getClass(),
                 method.getName(),
                 () -> method.invoke(this.invokeOn, args),
-                Arrays.copyOf(args, args.length));
+                argsCopy);
         return proxyIfReturnTypeIsJdbcInterface(method.getReturnType(), result);
       }
     }
