@@ -47,6 +47,7 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -186,7 +187,7 @@ public class ConnectionProxy implements ICurrentConnectionProvider, InvocationHa
           this.currentConnection.getClass(),
           methodName,
           () -> method.invoke(currentConnection, args),
-          args);
+          Arrays.copyOf(args, args.length));
       return proxyIfReturnTypeIsJdbcInterface(method.getReturnType(), result);
     } catch (Exception e) {
       // Check if the captured exception must be wrapped by an unchecked exception.
@@ -271,7 +272,7 @@ public class ConnectionProxy implements ICurrentConnectionProvider, InvocationHa
       this.pluginManager = connectionPluginManagerInitializer.apply(log);
       this.pluginManager.init(this, connProps);
 
-      if(this.currentConnection == null) {
+      if (this.currentConnection == null) {
         this.pluginManager.openInitialConnection(connectionUrl);
       }
     }
@@ -291,14 +292,6 @@ public class ConnectionProxy implements ICurrentConnectionProvider, InvocationHa
     return (METHOD_EQUALS.equals(methodName)
         || METHOD_HASH_CODE.equals(methodName)
         && (args == null || args.length <= 0 || args[0] == null));
-  }
-
-  // TODO: review
-  private void releasePluginManager() {
-    if (this.pluginManager != null) {
-      this.pluginManager.releaseResources();
-      this.pluginManager = null;
-    }
   }
 
   /**
@@ -323,7 +316,7 @@ public class ConnectionProxy implements ICurrentConnectionProvider, InvocationHa
                 this.invokeOn.getClass(),
                 method.getName(),
                 () -> method.invoke(this.invokeOn, args),
-                args);
+                Arrays.copyOf(args, args.length));
         return proxyIfReturnTypeIsJdbcInterface(method.getReturnType(), result);
       }
     }

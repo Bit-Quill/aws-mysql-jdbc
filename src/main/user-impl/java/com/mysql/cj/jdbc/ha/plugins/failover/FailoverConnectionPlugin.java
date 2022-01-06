@@ -186,7 +186,7 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
     }
 
     this.topologyService = topologyServiceSupplier.get();
-    if(this.topologyService instanceof  ICanCollectPerformanceMetrics) {
+    if (this.topologyService instanceof  ICanCollectPerformanceMetrics) {
       ((ICanCollectPerformanceMetrics)topologyService).setPerformanceMetricsEnabled(this.gatherPerfMetricsSetting);
     }
     topologyService.setRefreshRate(this.clusterTopologyRefreshRateMsSetting);
@@ -1062,7 +1062,7 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
   private void createConnection(ConnectionUrl connectionUrl) throws SQLException {
 
     // Connection isn't created - try to use cached topology to create it
-    if(this.currentConnectionProvider.getCurrentConnection() == null) {
+    if (this.currentConnectionProvider.getCurrentConnection() == null) {
       String host = connectionUrl.getMainHost().getHost();
       if (isRdsClusterDns(host)) {
         this.explicitlyReadOnly = isReaderClusterDns(host);
@@ -1080,12 +1080,12 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
     }
 
     // Connection isn't created - let other plugins to create it
-    if(this.currentConnectionProvider.getCurrentConnection() == null) {
+    if (this.currentConnectionProvider.getCurrentConnection() == null) {
       this.nextPlugin.openInitialConnection(connectionUrl);
     }
 
     // Connection isn't created - take it over and create it
-    if(this.currentConnectionProvider.getCurrentConnection() == null) {
+    if (this.currentConnectionProvider.getCurrentConnection() == null) {
       JdbcConnection connection = this.connectionProvider.connect(connectionUrl.getMainHost());
       this.currentConnectionProvider.setCurrentConnection(connection, connectionUrl.getMainHost());
     }

@@ -91,7 +91,7 @@ public class DefaultConnectionPlugin implements IConnectionPlugin {
 
   @Override
   public void openInitialConnection(ConnectionUrl connectionUrl) throws SQLException {
-    if(this.currentConnectionProvider.getCurrentConnection() != null) {
+    if (this.currentConnectionProvider.getCurrentConnection() != null) {
       return;
     }
 
