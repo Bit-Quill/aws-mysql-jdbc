@@ -29,6 +29,7 @@ package com.mysql.cj.jdbc.ha.plugins.failover;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -48,6 +49,7 @@ import org.mockito.Mockito;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.SQLSyntaxErrorException;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.util.List;
@@ -285,7 +287,7 @@ public class AuroraTopologyServiceTest {
   }
 
   @Test
-  public void testForceUpdateQueryFailure() throws SQLException {
+  public void testForceUpdateQueryFailureWithSQLException() throws SQLException {
     final JdbcConnection mockConn = Mockito.mock(ConnectionImpl.class);
     final String url =
         "jdbc:mysql:aws://my-cluster-name.cluster-XYZ.us-east-2.rds.amazonaws.com:1234/test";
@@ -303,8 +305,7 @@ public class AuroraTopologyServiceTest {
     spyProvider.setClusterInstanceTemplate(clusterInstanceInfo);
     when(mockConn.createStatement()).thenThrow(SQLException.class);
 
-    final List<HostInfo> hosts = spyProvider.getTopology(mockConn, true);
-    assertTrue(hosts.isEmpty());
+    assertThrows(SQLException.class, () -> spyProvider.getTopology(mockConn, true));
   }
 
   @Test
@@ -330,7 +331,7 @@ public class AuroraTopologyServiceTest {
     spyProvider.setRefreshRate(1);
 
     final List<HostInfo> hosts = spyProvider.getTopology(mockConn, false);
-    when(mockConn.createStatement()).thenThrow(SQLException.class);
+    when(mockConn.createStatement()).thenThrow(SQLSyntaxErrorException.class);
     Thread.sleep(5);
     final List<HostInfo> staleHosts = spyProvider.getTopology(mockConn, false);
 

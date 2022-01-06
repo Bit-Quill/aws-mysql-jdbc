@@ -38,6 +38,7 @@ import com.mysql.cj.util.Util;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.SQLSyntaxErrorException;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.time.Duration;
@@ -207,19 +208,30 @@ public class AuroraTopologyService
   protected ClusterTopologyInfo queryForTopology(JdbcConnection conn) throws SQLException {
     long startTimeMs = this.gatherPerfMetrics ? System.currentTimeMillis() : 0;
 
-    ClusterTopologyInfo topologyInfo;
+    ClusterTopologyInfo topologyInfo = null;
+
     try (Statement stmt = conn.createStatement()) {
       try (ResultSet resultSet = stmt.executeQuery(RETRIEVE_TOPOLOGY_SQL)) {
         topologyInfo = processQueryResults(resultSet);
       }
-
-      return topologyInfo;
-     } finally {
+    } catch (SQLSyntaxErrorException e) {
+      // We may get SQLSyntaxErrorException like the following from MySQL databases:
+      // "Unknown table 'REPLICA_HOST_STATUS' in information_schema"
+      // Ignore this kind of exceptions.
+    } finally {
       if (this.gatherPerfMetrics) {
         long currentTimeMs = System.currentTimeMillis();
         this.queryTopologyMetrics.registerQueryExecutionTime(currentTimeMs - startTimeMs);
       }
     }
+
+    return topologyInfo != null ? topologyInfo
+        : new ClusterTopologyInfo(
+            new ArrayList<>(),
+            new HashSet<>(),
+            null,
+            Instant.now(),
+            false);
   }
 
   /**
