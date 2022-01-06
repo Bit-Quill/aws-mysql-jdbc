@@ -164,11 +164,12 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
       IConnectionPlugin nextPlugin,
       Log logger,
       IConnectionProvider connectionProvider,
-      Supplier<AuroraTopologyService> topologyServiceSupplier) throws SQLException {
+      Supplier<ITopologyService> topologyServiceSupplier) throws SQLException {
     this.currentConnectionProvider = currentConnectionProvider;
     this.propertySet = propertySet;
     this.nextPlugin = nextPlugin;
     this.logger = logger;
+    this.connectionProvider = connectionProvider;
 
     this.initialConnectionProps = new HashMap<>();
     Properties originalProperties = this.propertySet.exposeAsProperties();
@@ -180,16 +181,16 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
 
     initSettings();
 
-    this.connectionProvider = connectionProvider;
-
     if (!this.enableFailoverSetting) {
       return;
     }
 
-    AuroraTopologyService topologyService = topologyServiceSupplier.get();
-    topologyService.setPerformanceMetricsEnabled(this.gatherPerfMetricsSetting);
+    this.topologyService = topologyServiceSupplier.get();
+    if (this.topologyService instanceof  ICanCollectPerformanceMetrics) {
+      ((ICanCollectPerformanceMetrics)topologyService)
+        .setPerformanceMetricsEnabled(this.gatherPerfMetricsSetting);
+    }
     topologyService.setRefreshRate(this.clusterTopologyRefreshRateMsSetting);
-    this.topologyService = topologyService;
 
     this.readerFailoverHandler =
         new ClusterAwareReaderFailoverHandler(
@@ -210,6 +211,12 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
             this.failoverWriterReconnectIntervalMsSetting,
             this.logger);
 
+    initProxy();
+  }
+
+  @Override
+  public void openInitialConnection(ConnectionUrl connectionUrl) throws SQLException {
+    createConnection(connectionUrl);
     initProxy();
   }
 
@@ -303,42 +310,41 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
 
   void initSettings() {
     this.enableFailoverSetting =
-        propertySet.getBooleanProperty(PropertyKey.enableClusterAwareFailover).getValue();
+      propertySet.getBooleanProperty(PropertyKey.enableClusterAwareFailover).getValue();
 
     this.clusterTopologyRefreshRateMsSetting =
-        propertySet
-            .getIntegerProperty(PropertyKey.clusterTopologyRefreshRateMs)
-            .getValue();
+      propertySet
+        .getIntegerProperty(PropertyKey.clusterTopologyRefreshRateMs)
+        .getValue();
     this.gatherPerfMetricsSetting =
-        propertySet.getBooleanProperty(PropertyKey.gatherPerfMetrics).getValue();
+      propertySet.getBooleanProperty(PropertyKey.gatherPerfMetrics).getValue();
     this.failoverTimeoutMsSetting =
-        propertySet.getIntegerProperty(PropertyKey.failoverTimeoutMs).getValue();
+      propertySet.getIntegerProperty(PropertyKey.failoverTimeoutMs).getValue();
     this.failoverClusterTopologyRefreshRateMsSetting =
-        propertySet
-            .getIntegerProperty(PropertyKey.failoverClusterTopologyRefreshRateMs)
-            .getValue();
+      propertySet
+        .getIntegerProperty(PropertyKey.failoverClusterTopologyRefreshRateMs)
+        .getValue();
     this.failoverWriterReconnectIntervalMsSetting =
-        propertySet
-            .getIntegerProperty(PropertyKey.failoverWriterReconnectIntervalMs)
-            .getValue();
+      propertySet
+        .getIntegerProperty(PropertyKey.failoverWriterReconnectIntervalMs)
+        .getValue();
     this.failoverReaderConnectTimeoutMsSetting =
-        propertySet
-            .getIntegerProperty(PropertyKey.failoverReaderConnectTimeoutMs)
-            .getValue();
+      propertySet
+        .getIntegerProperty(PropertyKey.failoverReaderConnectTimeoutMs)
+        .getValue();
     this.clusterIdSetting =
-        propertySet.getStringProperty(PropertyKey.clusterId).getValue();
+      propertySet.getStringProperty(PropertyKey.clusterId).getValue();
     this.clusterInstanceHostPatternSetting =
-        propertySet.getStringProperty(PropertyKey.clusterInstanceHostPattern).getValue();
+      propertySet.getStringProperty(PropertyKey.clusterInstanceHostPattern).getValue();
 
     this.failoverConnectTimeoutMs =
-        propertySet.getIntegerProperty(PropertyKey.connectTimeout).getValue();
+      propertySet.getIntegerProperty(PropertyKey.connectTimeout).getValue();
     this.failoverSocketTimeoutMs =
-        propertySet.getIntegerProperty(PropertyKey.socketTimeout).getValue();
+      propertySet.getIntegerProperty(PropertyKey.socketTimeout).getValue();
 
     this.autoReconnect =
-        propertySet.getBooleanProperty(PropertyKey.autoReconnect.getKeyName()).getValue()
-        || propertySet.getBooleanProperty(PropertyKey.autoReconnectForPools.getKeyName()).getValue();
-
+      propertySet.getBooleanProperty(PropertyKey.autoReconnect.getKeyName()).getValue()
+      || propertySet.getBooleanProperty(PropertyKey.autoReconnectForPools.getKeyName()).getValue();
   }
 
   /**
@@ -350,9 +356,110 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
     return this.currentHostIndex != NO_CONNECTION_INDEX;
   }
 
-  protected void initializeTopology() {
-    initTopology();
+  private void validateConnection() throws SQLException {
+    this.currentHostIndex =
+            getHostIndex(topologyService.getHostByName(this.currentConnectionProvider.getCurrentConnection()));
+    if (!isConnected()) {
+      pickNewConnection();
+      return;
+    }
+
+    if (validWriterConnection()) {
+      if (this.gatherPerfMetricsSetting) {
+        this.metrics.registerInvalidInitialConnection(false);
+      }
+      return;
+    }
+
+    if (this.gatherPerfMetricsSetting) {
+      this.metrics.registerInvalidInitialConnection(true);
+    }
+
+    try {
+      connectTo(WRITER_CONNECTION_INDEX);
+    } catch (SQLException e) {
+      if (this.gatherPerfMetricsSetting) {
+        this.failoverStartTimeMs = System.currentTimeMillis();
+      }
+      failover(WRITER_CONNECTION_INDEX);
+    }
+  }
+
+  private boolean validWriterConnection() {
+    return this.explicitlyReadOnly == null
+            || this.explicitlyReadOnly
+            || isWriterHostIndex(this.currentHostIndex);
+  }
+
+  private void attemptConnectionUsingCachedTopology() throws SQLException {
+    List<HostInfo> cachedHosts = topologyService.getCachedTopology();
+    if (Util.isNullOrEmpty(cachedHosts)) {
+      if (this.gatherPerfMetricsSetting) {
+        this.metrics.registerUseCachedTopology(false);
+      }
+      return;
+    }
+
+    this.hosts = cachedHosts;
+
+    if (this.gatherPerfMetricsSetting) {
+      this.metrics.registerUseCachedTopology(true);
+    }
+
+    int candidateIndex = getCandidateIndexForInitialConnection();
+    if (candidateIndex != NO_CONNECTION_INDEX) {
+      connectTo(candidateIndex);
+    }
+  }
+
+  private int getCandidateIndexForInitialConnection() {
+    if (Util.isNullOrEmpty(this.hosts)) {
+      return NO_CONNECTION_INDEX;
+    }
+
+    if (isExplicitlyReadOnly()) {
+      int candidateReaderIndex = getCandidateReaderForInitialConnection();
+      if (candidateReaderIndex != NO_CONNECTION_INDEX) {
+        return candidateReaderIndex;
+      }
+    }
+    return WRITER_CONNECTION_INDEX;
+  }
+
+  private int getCandidateReaderForInitialConnection() {
+    int lastUsedReaderIndex = getHostIndex(topologyService.getLastUsedReaderHost());
+    if (lastUsedReaderIndex != NO_CONNECTION_INDEX) {
+      if (this.gatherPerfMetricsSetting) {
+        this.metrics.registerUseLastConnectedReader(true);
+      }
+      return lastUsedReaderIndex;
+    }
+
+    if (this.gatherPerfMetricsSetting) {
+      this.metrics.registerUseLastConnectedReader(false);
+    }
+
+    if (clusterContainsReader()) {
+      return getRandomReaderIndex();
+    } else {
+      return NO_CONNECTION_INDEX;
+    }
+  }
+
+  private int getRandomReaderIndex() {
+    int max = this.hosts.size() - 1;
+    int min = WRITER_CONNECTION_INDEX + 1;
+    return (int) (Math.random() * ((max - min) + 1)) + min;
+  }
+
+  protected void initializeTopology() throws SQLException {
+    if (this.currentConnectionProvider.getCurrentConnection() == null) {
+      return;
+    }
+
+    fetchTopology();
     if (this.isFailoverEnabled()) {
+      validateConnection();
 
       if (this.currentHostIndex != NO_CONNECTION_INDEX
           && !Util.isNullOrEmpty(this.hosts)) {
@@ -910,18 +1017,19 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
   }
 
   private void initProxy() throws SQLException {
-    final HostInfo currentHostInfo = this.currentConnectionProvider.getCurrentHostInfo();
-    final String hostname = currentHostInfo.getHost();
+    final HostInfo hostInfo = this.currentConnectionProvider.getCurrentHostInfo();
+    final String hostname = hostInfo.getHost();
+
     if (!StringUtils.isNullOrEmpty(this.clusterInstanceHostPatternSetting)) {
-      initFromHostPatternSetting(currentHostInfo);
+      initFromHostPatternSetting(hostInfo);
     } else if (IpAddressUtils.isIPv4(hostname) || IpAddressUtils.isIPv6(hostname)) {
-      initExpectingNoTopology(currentHostInfo);
+      initExpectingNoTopology(hostInfo);
     } else {
       identifyRdsType(hostname);
       if (!this.isRds) {
-        initExpectingNoTopology(currentHostInfo);
+        initExpectingNoTopology(hostInfo);
       } else {
-        initFromConnectionString(currentHostInfo);
+        initFromConnectionString(hostInfo);
       }
     }
 
@@ -934,7 +1042,7 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
     }
   }
 
-  private void initTopology() {
+  private void fetchTopology() throws SQLException {
     final JdbcConnection currentConnection = this.currentConnectionProvider.getCurrentConnection();
     List<HostInfo> topology = this.topologyService.getTopology(currentConnection, false);
     if (!Util.isNullOrEmpty(topology)) {
@@ -953,6 +1061,39 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
 
     if (this.isFailoverEnabled()) {
       logTopology();
+    }
+  }
+
+  private void createConnection(ConnectionUrl connectionUrl) throws SQLException {
+
+    // Connection isn't created - try to use cached topology to create it
+    if (this.currentConnectionProvider.getCurrentConnection() == null) {
+      final String host = connectionUrl.getMainHost().getHost();
+      if (isRdsClusterDns(host)) {
+        this.explicitlyReadOnly = isReaderClusterDns(host);
+        this.logger.logTrace(
+          Messages.getString(
+            "ClusterAwareConnectionProxy.10",
+            new Object[]{"explicitlyReadOnly", this.explicitlyReadOnly}));
+
+        try {
+          attemptConnectionUsingCachedTopology();
+        } catch (SQLException e) {
+          // do nothing - attempt to connect directly will be made below
+        }
+      }
+    }
+
+    // Connection isn't created - let other plugins to create it
+    if (this.currentConnectionProvider.getCurrentConnection() == null) {
+      this.nextPlugin.openInitialConnection(connectionUrl);
+    }
+
+    // Connection isn't created - take it over and create it
+    if (this.currentConnectionProvider.getCurrentConnection() == null) {
+      final HostInfo mainHost = connectionUrl.getMainHost();
+      JdbcConnection connection = this.connectionProvider.connect(mainHost);
+      this.currentConnectionProvider.setCurrentConnection(connection, mainHost);
     }
   }
 

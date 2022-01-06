@@ -39,6 +39,6 @@ public class DefaultConnectionPluginFactory implements IConnectionPluginFactory 
       PropertySet propertySet,
       IConnectionPlugin nextPlugin,
       Log logger) {
-    return new DefaultConnectionPlugin(logger);
+    return new DefaultConnectionPlugin(currentConnectionProvider, logger);
   }
 }

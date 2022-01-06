@@ -100,9 +100,10 @@ class NodeMonitoringConnectionPluginTest {
    */
   private static Stream<Arguments> generateNullArguments() {
     final ConnectionProxy proxy = mock(ConnectionProxy.class);
+    final ICurrentConnectionProvider currentConnectionProvider = mock(ICurrentConnectionProvider.class);
     final PropertySet set = new DefaultPropertySet();
     final Log log = new NullLogger("NodeMonitoringConnectionPluginTest");
-    final IConnectionPlugin connectionPlugin = new DefaultConnectionPlugin(log);
+    final IConnectionPlugin connectionPlugin = new DefaultConnectionPlugin(currentConnectionProvider, log);
 
     return Stream.of(
         Arguments.of(null, set, connectionPlugin, log),
