@@ -164,7 +164,7 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
       IConnectionPlugin nextPlugin,
       Log logger,
       IConnectionProvider connectionProvider,
-      Supplier<AuroraTopologyService> topologyServiceSupplier) throws SQLException {
+      Supplier<ITopologyService> topologyServiceSupplier) throws SQLException {
     this.currentConnectionProvider = currentConnectionProvider;
     this.propertySet = propertySet;
     this.nextPlugin = nextPlugin;
@@ -187,7 +187,8 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
 
     this.topologyService = topologyServiceSupplier.get();
     if (this.topologyService instanceof  ICanCollectPerformanceMetrics) {
-      ((ICanCollectPerformanceMetrics)topologyService).setPerformanceMetricsEnabled(this.gatherPerfMetricsSetting);
+      ((ICanCollectPerformanceMetrics)topologyService)
+        .setPerformanceMetricsEnabled(this.gatherPerfMetricsSetting);
     }
     topologyService.setRefreshRate(this.clusterTopologyRefreshRateMsSetting);
 
@@ -1067,7 +1068,7 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
 
     // Connection isn't created - try to use cached topology to create it
     if (this.currentConnectionProvider.getCurrentConnection() == null) {
-      String host = connectionUrl.getMainHost().getHost();
+      final String host = connectionUrl.getMainHost().getHost();
       if (isRdsClusterDns(host)) {
         this.explicitlyReadOnly = isReaderClusterDns(host);
         this.logger.logTrace(
@@ -1090,8 +1091,9 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
 
     // Connection isn't created - take it over and create it
     if (this.currentConnectionProvider.getCurrentConnection() == null) {
-      JdbcConnection connection = this.connectionProvider.connect(connectionUrl.getMainHost());
-      this.currentConnectionProvider.setCurrentConnection(connection, connectionUrl.getMainHost());
+      final HostInfo mainHost = connectionUrl.getMainHost();
+      JdbcConnection connection = this.connectionProvider.connect(mainHost);
+      this.currentConnectionProvider.setCurrentConnection(connection, mainHost);
     }
   }
 

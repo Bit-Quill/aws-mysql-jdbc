@@ -42,6 +42,8 @@ public interface IConnectionPlugin extends ITransactionContextHandler {
       Callable<?> executeSqlFunc,
       Object[] args)
       throws Exception;
+
   void openInitialConnection(ConnectionUrl connectionUrl) throws SQLException;
+
   void releaseResources();
 }

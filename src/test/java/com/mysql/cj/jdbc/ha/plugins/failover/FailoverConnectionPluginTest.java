@@ -40,6 +40,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.mysql.cj.NativeSession;
+import com.mysql.cj.conf.ConnectionUrl;
 import com.mysql.cj.conf.HostInfo;
 import com.mysql.cj.conf.PropertyKey;
 import com.mysql.cj.jdbc.ConnectionImpl;
@@ -173,7 +174,6 @@ class FailoverConnectionPluginTest {
     verify(mockConnectionProvider, never()).connect(any());
   }
 
-  @Disabled // TODO: Enable test after RDS-583
   @Test
   public void testForWriterReconnectWhenDirectReaderConnectionFails()
       throws SQLException {
@@ -210,6 +210,9 @@ class FailoverConnectionPluginTest {
     when(mockConnectionProvider.connect(refEq(writerHost))).thenReturn(mockWriterConn);
 
     final FailoverConnectionPlugin failoverPlugin = initFailoverPlugin();
+    final ConnectionUrl connectionUrl =
+            ConnectionUrl.getConnectionUrlInstance(url, new Properties());
+    failoverPlugin.openInitialConnection(connectionUrl);
 
     assertEquals(
         FailoverConnectionPlugin.WRITER_CONNECTION_INDEX,
@@ -219,7 +222,6 @@ class FailoverConnectionPluginTest {
     assertTrue(failoverPlugin.isFailoverEnabled());
   }
 
-  @Disabled // TODO: Enable test after RDS-583
   @Test
   public void testForWriterReconnectWhenInvalidInitialWriterConnection()
       throws SQLException {
@@ -266,6 +268,9 @@ class FailoverConnectionPluginTest {
         mockActualWriterConn);
 
     final FailoverConnectionPlugin failoverPlugin = initFailoverPlugin();
+    final ConnectionUrl connectionUrl =
+            ConnectionUrl.getConnectionUrlInstance(url, new Properties());
+    failoverPlugin.openInitialConnection(connectionUrl);
 
     assertEquals(
         FailoverConnectionPlugin.WRITER_CONNECTION_INDEX,
