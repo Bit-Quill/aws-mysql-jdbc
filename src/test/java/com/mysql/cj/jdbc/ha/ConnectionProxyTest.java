@@ -111,7 +111,6 @@ public class ConnectionProxyTest {
 
     final ConnectionProxy proxy = getConnectionProxy(conStr);
 
-    assertFalse(proxy.pluginsEnabled);
     assertSame(mockConnection, proxy.getCurrentConnection());
   }
 

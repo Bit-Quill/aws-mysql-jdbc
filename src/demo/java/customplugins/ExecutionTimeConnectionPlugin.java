@@ -26,9 +26,11 @@
 
 package customplugins;
 
+import com.mysql.cj.conf.ConnectionUrl;
 import com.mysql.cj.jdbc.ha.plugins.IConnectionPlugin;
 import com.mysql.cj.log.Log;
 
+import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -84,6 +86,11 @@ public class ExecutionTimeConnectionPlugin implements IConnectionPlugin {
   @Override
   public void transactionCompleted() {
     this.nextPlugin.transactionCompleted();
+  }
+
+  @Override
+  public void openInitialConnection(ConnectionUrl connectionUrl) throws SQLException {
+    this.nextPlugin.openInitialConnection(connectionUrl);
   }
 
   @Override

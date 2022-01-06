@@ -26,6 +26,7 @@
 
 package com.mysql.cj.jdbc.ha.plugins;
 
+import com.mysql.cj.conf.ConnectionUrl;
 import com.mysql.cj.conf.HostInfo;
 import com.mysql.cj.conf.PropertyKey;
 import com.mysql.cj.conf.PropertySet;
@@ -240,6 +241,11 @@ public class NodeMonitoringConnectionPlugin implements IConnectionPlugin {
   @Override
   public void transactionCompleted() {
     this.nextPlugin.transactionCompleted();
+  }
+
+  @Override
+  public void openInitialConnection(ConnectionUrl connectionUrl) throws SQLException {
+    this.nextPlugin.openInitialConnection(connectionUrl);
   }
 
   /**

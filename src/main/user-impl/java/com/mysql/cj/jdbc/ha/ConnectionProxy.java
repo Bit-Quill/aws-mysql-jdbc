@@ -66,10 +66,12 @@ public class ConnectionProxy implements ICurrentConnectionProvider, InvocationHa
   // writer host is always stored at index 0
   protected Map<String, String> initialConnectionProps;
   protected ConnectionPluginManager pluginManager = null;
-  // Configuration settings
-  protected boolean pluginsEnabled = true;
   private HostInfo currentHostInfo;
   private JdbcConnection currentConnection;
+
+  public ConnectionProxy(ConnectionUrl connectionUrl) throws SQLException {
+    this(connectionUrl, null);
+  }
 
   /**
    * Instantiates a new AuroraConnectionProxy for the given list of hosts and connection properties.
@@ -93,7 +95,7 @@ public class ConnectionProxy implements ICurrentConnectionProvider, InvocationHa
 
     initLogger(connectionUrl);
     initSettings(connectionUrl);
-    initProxy(connectionPluginManagerInitializer);
+    initPluginManager(connectionPluginManagerInitializer, connectionUrl);
 
     this.currentConnection.setConnectionLifecycleInterceptor(
         new ConnectionProxyLifecycleInterceptor(this.pluginManager));
@@ -110,9 +112,12 @@ public class ConnectionProxy implements ICurrentConnectionProvider, InvocationHa
   public static JdbcConnection autodetectClusterAndCreateProxyInstance(ConnectionUrl connectionUrl)
       throws SQLException {
 
-    final IConnectionProvider connectionProvider = new BasicConnectionProvider();
-    final ConnectionProxy connProxy = new ConnectionProxy(connectionUrl, connectionProvider.connect(connectionUrl.getMainHost()));
-    if (connProxy.isPluginEnabled()) {
+    boolean pluginsEnabled = Boolean.parseBoolean(
+      connectionUrl.getConnectionArgumentsAsProperties()
+        .getProperty(PropertyKey.useConnectionPlugins.getKeyName(), Boolean.toString(true)));
+
+    if (pluginsEnabled) {
+      final ConnectionProxy connProxy = new ConnectionProxy(connectionUrl);
       return (JdbcConnection)
           java.lang.reflect.Proxy.newProxyInstance(
               JdbcConnection.class.getClassLoader(),
@@ -120,9 +125,8 @@ public class ConnectionProxy implements ICurrentConnectionProvider, InvocationHa
               connProxy);
     }
 
-    // If plugin system is disabled, reset proxy settings from the connection.
-    connProxy.currentConnection.setProxy(null);
-    return connProxy.currentConnection;
+    final IConnectionProvider connectionProvider = new BasicConnectionProvider();
+    return connectionProvider.connect(connectionUrl.getMainHost());
   }
 
   /**
@@ -211,8 +215,6 @@ public class ConnectionProxy implements ICurrentConnectionProvider, InvocationHa
   protected void initSettings(ConnectionUrl connectionUrl) throws SQLException {
     try {
       this.connProps.initializeProperties(connectionUrl.getConnectionArgumentsAsProperties());
-      this.pluginsEnabled =
-          this.connProps.getBooleanProperty(PropertyKey.useConnectionPlugins).getValue();
     } catch (CJException e) {
       throw SQLExceptionsMapping.translateException(e, null);
     }
@@ -263,11 +265,15 @@ public class ConnectionProxy implements ICurrentConnectionProvider, InvocationHa
     return null;
   }
 
-  protected void initProxy(Function<Log, ConnectionPluginManager> connectionPluginManagerInitializer)
+  protected void initPluginManager(Function<Log, ConnectionPluginManager> connectionPluginManagerInitializer, ConnectionUrl connectionUrl)
       throws SQLException {
     if (this.pluginManager == null) {
       this.pluginManager = connectionPluginManagerInitializer.apply(log);
       this.pluginManager.init(this, connProps);
+
+      if(this.currentConnection == null) {
+        this.pluginManager.openInitialConnection(connectionUrl);
+      }
     }
   }
 
@@ -287,8 +293,12 @@ public class ConnectionProxy implements ICurrentConnectionProvider, InvocationHa
         && (args == null || args.length <= 0 || args[0] == null));
   }
 
-  private boolean isPluginEnabled() {
-    return this.pluginsEnabled;
+  // TODO: review
+  private void releasePluginManager() {
+    if (this.pluginManager != null) {
+      this.pluginManager.releaseResources();
+      this.pluginManager = null;
+    }
   }
 
   /**

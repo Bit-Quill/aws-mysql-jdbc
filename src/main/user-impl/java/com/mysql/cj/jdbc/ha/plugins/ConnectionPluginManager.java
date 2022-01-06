@@ -26,6 +26,7 @@
 
 package com.mysql.cj.jdbc.ha.plugins;
 
+import com.mysql.cj.conf.ConnectionUrl;
 import com.mysql.cj.conf.PropertyKey;
 import com.mysql.cj.conf.PropertySet;
 import com.mysql.cj.jdbc.ha.plugins.failover.FailoverConnectionPluginFactory;
@@ -143,6 +144,10 @@ public class ConnectionPluginManager implements ITransactionContextHandler {
   public void releaseResources() {
     this.logger.logTrace("[ConnectionPluginManager.releaseResources]");
     this.headPlugin.releaseResources();
+  }
+
+  public void openInitialConnection(ConnectionUrl connectionUrl) throws SQLException {
+    this.headPlugin.openInitialConnection(connectionUrl);
   }
 
   @Override

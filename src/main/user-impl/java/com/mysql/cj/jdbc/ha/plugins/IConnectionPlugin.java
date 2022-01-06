@@ -26,6 +26,9 @@
 
 package com.mysql.cj.jdbc.ha.plugins;
 
+import com.mysql.cj.conf.ConnectionUrl;
+
+import java.sql.SQLException;
 import java.util.concurrent.Callable;
 
 /**
@@ -39,6 +42,6 @@ public interface IConnectionPlugin extends ITransactionContextHandler {
       Callable<?> executeSqlFunc,
       Object[] args)
       throws Exception;
-
+  void openInitialConnection(ConnectionUrl connectionUrl) throws SQLException;
   void releaseResources();
 }

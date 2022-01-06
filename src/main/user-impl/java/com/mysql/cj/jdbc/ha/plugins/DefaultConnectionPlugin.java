@@ -26,9 +26,13 @@
 
 package com.mysql.cj.jdbc.ha.plugins;
 
+import com.mysql.cj.conf.ConnectionUrl;
+import com.mysql.cj.conf.HostInfo;
+import com.mysql.cj.jdbc.JdbcConnection;
 import com.mysql.cj.log.Log;
 
 import java.lang.reflect.InvocationTargetException;
+import java.sql.SQLException;
 import java.util.concurrent.Callable;
 
 /**
@@ -38,13 +42,27 @@ import java.util.concurrent.Callable;
 public class DefaultConnectionPlugin implements IConnectionPlugin {
 
   protected Log logger;
+  protected IConnectionProvider connectionProvider;
+  protected final ICurrentConnectionProvider currentConnectionProvider;
 
-  public DefaultConnectionPlugin(Log logger) {
+  public DefaultConnectionPlugin(ICurrentConnectionProvider currentConnectionProvider, Log logger) {
+    this(currentConnectionProvider, logger, new BasicConnectionProvider());
+  }
+
+  public DefaultConnectionPlugin(ICurrentConnectionProvider currentConnectionProvider, Log logger, IConnectionProvider connectionProvider) {
     if (logger == null) {
       throw new IllegalArgumentException(NullArgumentMessage.getMessage("logger"));
     }
+    if (connectionProvider == null) {
+      throw new IllegalArgumentException(NullArgumentMessage.getMessage("connectionProvider"));
+    }
+    if (currentConnectionProvider == null) {
+      throw new IllegalArgumentException(NullArgumentMessage.getMessage("currentConnectionProvider"));
+    }
 
     this.logger = logger;
+    this.connectionProvider = connectionProvider;
+    this.currentConnectionProvider = currentConnectionProvider;
   }
 
   @Override
@@ -69,6 +87,17 @@ public class DefaultConnectionPlugin implements IConnectionPlugin {
           String.format("[DefaultConnectionPlugin.execute]: method=%s.%s, exception: ", methodInvokeOn.getName(), methodName), ex);
       throw ex;
     }
+  }
+
+  @Override
+  public void openInitialConnection(ConnectionUrl connectionUrl) throws SQLException {
+    if(this.currentConnectionProvider.getCurrentConnection() != null) {
+      return;
+    }
+
+    HostInfo mainHostInfo = connectionUrl.getMainHost();
+    JdbcConnection connection = this.connectionProvider.connect(mainHostInfo);
+    this.currentConnectionProvider.setCurrentConnection(connection, mainHostInfo);
   }
 
   @Override
