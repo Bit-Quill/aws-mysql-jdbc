@@ -241,9 +241,9 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
 
     Object result = null;
 
-    updateTopologyAndConnectIfNeeded(false);
 
     try {
+      updateTopologyAndConnectIfNeeded(false);
       result = this.nextPlugin.execute(methodInvokeOn, methodName, executeSqlFunc, args);
     } catch (IllegalStateException e) {
       dealWithIllegalStateException(e);
@@ -735,17 +735,7 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
     List<HostInfo> latestTopology =
         this.topologyService.getTopology(connection, forceUpdate);
 
-    if (Util.isNullOrEmpty(latestTopology) || connection.isClosed()) {
-      pickNewConnection();
-      return;
-    }
-
     this.hosts = latestTopology;
-    if (!isConnected()) {
-      pickNewConnection();
-      return;
-    }
-
     updateHostIndex(latestTopology);
   }
 

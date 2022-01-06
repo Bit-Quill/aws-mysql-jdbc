@@ -606,7 +606,7 @@ class FailoverConnectionPluginTest {
   }
 
   @BeforeEach
-  void init() {
+  void init() throws SQLException {
     closeable = MockitoAnnotations.openMocks(this);
 
     when(mockTopologyService.getTopology(

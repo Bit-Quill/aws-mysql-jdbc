@@ -29,6 +29,7 @@ package com.mysql.cj.jdbc.ha.plugins.failover;
 import com.mysql.cj.conf.HostInfo;
 import com.mysql.cj.jdbc.JdbcConnection;
 
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Set;
 
@@ -72,7 +73,8 @@ public interface ITopologyService {
    * @return A list of hosts that describes cluster topology. A writer is always at position 0.
    *     Returns an empty list if topology isn't available or is invalid (doesn't contain a writer).
    */
-  List<HostInfo> getTopology(JdbcConnection conn, boolean forceUpdate);
+  List<HostInfo> getTopology(JdbcConnection conn, boolean forceUpdate)
+      throws SQLException;
 
   /**
    * Get cached topology.

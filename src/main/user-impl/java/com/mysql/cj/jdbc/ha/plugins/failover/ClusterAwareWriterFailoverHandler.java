@@ -370,19 +370,24 @@ public class ClusterAwareWriterFailoverHandler implements IWriterFailoverHandler
      */
     private boolean refreshTopologyAndConnectToNewWriter() throws InterruptedException {
       while (true) {
-        List<HostInfo> topology =
-            topologyService.getTopology(this.currentReaderConnection, true);
-        if (!topology.isEmpty()) {
-          this.currentTopology = topology;
-          HostInfo writerCandidate = this.currentTopology.get(WRITER_CONNECTION_INDEX);
-          logTopology();
+        try {
+          List<HostInfo> topology =
+              topologyService.getTopology(this.currentReaderConnection, true);
 
-          if (!isSame(writerCandidate, this.originalWriterHost)) {
-            // new writer is available and it's different from the previous writer
-            if (connectToWriter(writerCandidate)) {
-              return true;
+          if (!topology.isEmpty()) {
+            this.currentTopology = topology;
+            HostInfo writerCandidate = this.currentTopology.get(WRITER_CONNECTION_INDEX);
+            logTopology();
+
+            if (!isSame(writerCandidate, this.originalWriterHost)) {
+              // new writer is available and it's different from the previous writer
+              if (connectToWriter(writerCandidate)) {
+                return true;
+              }
             }
           }
+        } catch (SQLException e) {
+          // ignore
         }
 
         TimeUnit.MILLISECONDS.sleep(readTopologyIntervalMs);
