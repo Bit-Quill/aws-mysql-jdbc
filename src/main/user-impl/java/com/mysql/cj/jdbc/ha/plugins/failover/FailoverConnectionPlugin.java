@@ -217,7 +217,10 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
   @Override
   public void openInitialConnection(ConnectionUrl connectionUrl) throws SQLException {
     createConnection(connectionUrl);
-    initProxy();
+
+    if (this.enableFailoverSetting) {
+      initProxy();
+    }
   }
 
   @Override
@@ -1056,20 +1059,22 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
 
   private void createConnection(ConnectionUrl connectionUrl) throws SQLException {
 
-    // Connection isn't created - try to use cached topology to create it
-    if (this.currentConnectionProvider.getCurrentConnection() == null) {
-      final String host = connectionUrl.getMainHost().getHost();
-      if (isRdsClusterDns(host)) {
-        this.explicitlyReadOnly = isReaderClusterDns(host);
-        this.logger.logTrace(
-          Messages.getString(
-            "ClusterAwareConnectionProxy.10",
-            new Object[]{"explicitlyReadOnly", this.explicitlyReadOnly}));
+    if (this.enableFailoverSetting) {
+      // Connection isn't created - try to use cached topology to create it
+      if (this.currentConnectionProvider.getCurrentConnection() == null) {
+        final String host = connectionUrl.getMainHost().getHost();
+        if (isRdsClusterDns(host)) {
+          this.explicitlyReadOnly = isReaderClusterDns(host);
+          this.logger.logTrace(
+              Messages.getString(
+                  "ClusterAwareConnectionProxy.10",
+                  new Object[]{"explicitlyReadOnly", this.explicitlyReadOnly}));
 
-        try {
-          attemptConnectionUsingCachedTopology();
-        } catch (SQLException e) {
-          // do nothing - attempt to connect directly will be made below
+          try {
+            attemptConnectionUsingCachedTopology();
+          } catch (SQLException e) {
+            // do nothing - attempt to connect directly will be made below
+          }
         }
       }
     }
