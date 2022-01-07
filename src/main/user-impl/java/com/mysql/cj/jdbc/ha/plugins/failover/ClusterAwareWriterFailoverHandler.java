@@ -358,7 +358,7 @@ public class ClusterAwareWriterFailoverHandler implements IWriterFailoverHandler
         return false;
       }
       int connIndex = result.getConnectionIndex();
-      return connIndex != FailoverConnectionPlugin.WRITER_CONNECTION_INDEX
+      return connIndex != FailoverConnectionPlugin.NO_CONNECTION_INDEX
           && connIndex < this.currentTopology.size()
           && this.currentTopology.get(connIndex) != null;
     }
