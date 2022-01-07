@@ -320,7 +320,8 @@ The figure above shows a simplified workflow of Enhanced Failure Monitoring. Enh
 
 Enhanced Failure Monitoring is loaded in by default and can be disabled by setting parameter `failureDetectionEnabled` to `false`. 
 
-If custom connection plugins are loaded, Enhanced Failure Monitoring and Failover Connection Plugin will NOT be loaded unless explicitly included by adding `com.mysql.cj.jdbc.ha.plugins.NodeMonitoringConnectionPluginFactory` to `connectionPluginFactories`. 
+If custom connection plugins are loaded, Enhanced Failure Monitoring and Failover Connection Plugin 
+will NOT be loaded unless explicitly included by adding `com.mysql.cj.jdbc.ha.plugins.failover.FailoverConnectionPluginFactory,com.mysql.cj.jdbc.ha.plugins.NodeMonitoringConnectionPluginFactory` when setting `connectionPluginFactories`. 
 
 #### Enhanced Failure Monitoring Parameters
 `failureDetectionTime`, `failureDetectionInterval`, and `failureDetectionCount` are similar to TCP Keep Alive parameters.
