@@ -50,6 +50,7 @@ jobs:
           TEST_DB_CLUSTER_IDENTIFIER: ${{ secrets.TEST_DB_CLUSTER_IDENTIFIER }}
           TEST_USERNAME: ${{ secrets.TEST_USERNAME }}
           TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
+          TEST_DB: ${{ secrets.TEST_DB }}
       - name: 'Remove Github Action IP'
         run: |
           aws ec2 revoke-security-group-ingress --group-name ${{ env.AWS_SG_NAME }} --protocol all --port all --cidr ${{ steps.ip.outputs.ipv4 }}/32

@@ -32,7 +32,6 @@ public class AuroraMySqlIntegrationEnvTest {
 
   private static final String DB_CONN_STR_PREFIX = "jdbc:mysql://";
   private static final String DB_CONN_STR_SUFFIX = System.getenv("DB_CONN_STR_SUFFIX");
-  private static final String DB_READONLY_CONN_STR_SUFFIX = System.getenv("DB_READONLY_CONN_STR_SUFFIX");
   private static final String DB_CONN_PROP = "?enabledTLSProtocols=TLSv1.2"; // Encounters SSL errors without it on GH Actions
   private static final String TEST_DB_CLUSTER_IDENTIFIER = System.getenv("TEST_DB_CLUSTER_IDENTIFIER");
 
