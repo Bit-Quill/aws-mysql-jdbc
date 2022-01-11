@@ -1,3 +1,29 @@
+/*
+ * AWS JDBC Driver for MySQL
+ * Copyright Amazon.com Inc. or affiliates.
+ *
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice,
+ * this list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation and/or
+ * other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
+ * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT
+ * SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ */
+
 package testsuite.integration.utility;
 
 import org.slf4j.event.LoggingEvent;
@@ -53,7 +79,7 @@ public class ContainerFeedLogger extends MarkerIgnoringBase {
    * operations are done in a synchronized block.
    *
    * @param buf
-   * @param t
+   * @param t The exception whose stack trace should be logged
    */
   void write(StringBuilder buf, Throwable t) {
     System.out.print(buf.toString());
@@ -69,11 +95,6 @@ public class ContainerFeedLogger extends MarkerIgnoringBase {
 
   /**
    * For formatted messages, first substitute arguments and then log.
-   *
-   * @param level
-   * @param format
-   * @param arg1
-   * @param arg2
    */
   private void formatAndLog(int level, String format, Object arg1, Object arg2) {
     FormattingTuple tp = MessageFormatter.format(format, arg1, arg2);
@@ -82,11 +103,6 @@ public class ContainerFeedLogger extends MarkerIgnoringBase {
 
   /**
    * For formatted messages, first substitute arguments and then log.
-   *
-   * @param level
-   * @param format
-   * @param arguments
-   *            a list of 3 ore more arguments
    */
   private void formatAndLog(int level, String format, Object... arguments) {
     if (!isLevelEnabled(level)) {
@@ -328,5 +344,4 @@ public class ContainerFeedLogger extends MarkerIgnoringBase {
     FormattingTuple tp = MessageFormatter.arrayFormat(event.getMessage(), event.getArgumentArray(), event.getThrowable());
     log(levelInt, tp.getMessage(), event.getThrowable());
   }
-
 }
