@@ -181,6 +181,7 @@ tasks.assemble {
 
 tasks.named<Test>("test") {
     useJUnitPlatform()
+    filter.excludeTestsMatching("testsuite.integration.*")
 
     // Pass the property to tests
     fun passProperty(name: String, default: String? = null) {

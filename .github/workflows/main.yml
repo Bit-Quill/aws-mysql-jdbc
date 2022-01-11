@@ -32,7 +32,7 @@ jobs:
         run: docker-compose up -d && docker-compose logs
       - name: 'Build And Run Tests'
         run: |
-          ./gradlew --no-parallel --no-daemon test-non-integration
+          ./gradlew --no-parallel --no-daemon build
       - name: Archive junit results
         if: ${{ always() }}
         uses: actions/upload-artifact@v2
