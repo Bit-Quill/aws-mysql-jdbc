@@ -350,8 +350,7 @@ tasks.register<Test>("test-integration-host") {
     }
     useJUnitPlatform()
     group = "verification"
-//    filter.includeTestsMatching("testsuite.integration.host.*")
-    filter.includeTestsMatching("testsuite.integration.host.AuroraMySqlIntegrationEnvTest")
+    filter.includeTestsMatching("testsuite.integration.host.*")
 }
 
 // Run integration tests in container
