@@ -36,10 +36,13 @@ public class AuroraMySqlIntegrationEnvTest {
   private static final String DB_CONN_PROP = "?enabledTLSProtocols=TLSv1.2"; // Encounters SSL errors without it on GH Actions
   private static final String TEST_DB_CLUSTER_IDENTIFIER = System.getenv("TEST_DB_CLUSTER_IDENTIFIER");
 
+  private static final String DB_CONN_HOST_BASE = DB_CONN_STR_SUFFIX.startsWith(".") ? DB_CONN_STR_SUFFIX.substring(1) : DB_CONN_STR_SUFFIX;
+  private static final String DB_HOST_CLUSTER = TEST_DB_CLUSTER_IDENTIFIER + ".cluster-" + DB_CONN_HOST_BASE;
+  private static final String DB_HOST_CLUSTER_RO = TEST_DB_CLUSTER_IDENTIFIER + ".cluster-ro-" + DB_CONN_HOST_BASE;
+
   private static final String TEST_USERNAME = System.getenv("TEST_USERNAME");
   private static final String TEST_PASSWORD = System.getenv("TEST_PASSWORD");
-  private static final String TEST_DB_USER = System.getenv("TEST_DB_USER");
-  private static final String TEST_DB = "test"; //System.getenv("TEST_DB_USER");
+  private static final String TEST_DB = System.getenv("TEST_DB");
 
   private static final String RETRIEVE_TOPOLOGY_SQL =
       "SELECT SERVER_ID FROM information_schema.replica_host_status ";
@@ -88,7 +91,7 @@ public class AuroraMySqlIntegrationEnvTest {
   private static void setUpToxiProxy(Network network) {
     try {
       DriverManager.registerDriver(new Driver());
-      try (Connection conn = DriverManager.getConnection(DB_CONN_STR_PREFIX + getClusterEndpoint() + DB_CONN_PROP, TEST_USERNAME, TEST_PASSWORD);
+      try (Connection conn = DriverManager.getConnection(DB_CONN_STR_PREFIX + DB_HOST_CLUSTER + DB_CONN_PROP, TEST_USERNAME, TEST_PASSWORD);
           Statement stmt = conn.createStatement()) {
           // Get instances
           try (ResultSet resultSet = stmt.executeQuery(RETRIEVE_TOPOLOGY_SQL)) {
@@ -119,24 +122,19 @@ public class AuroraMySqlIntegrationEnvTest {
         .withNetwork(network)
         .withNetworkAliases(
             "toxiproxy-instance-cluster",
-            getClusterEndpoint() + PROXIED_DOMAIN_NAME_SUFFIX);
+            DB_HOST_CLUSTER + PROXIED_DOMAIN_NAME_SUFFIX);
     toxiClusterProxy.start();
-    toxiClusterProxy.getProxy(getClusterEndpoint(), MYSQL_PORT);
+    toxiClusterProxy.getProxy(DB_HOST_CLUSTER, MYSQL_PORT);
     toxiproxyContainerList.add(toxiClusterProxy);
 
     ToxiproxyContainer toxiROClusterProxy = new ToxiproxyContainer(TOXIPROXY_IMAGE)
         .withNetwork(network)
         .withNetworkAliases(
             "toxiproxy-ro-instance-cluster",
-            TEST_DB_CLUSTER_IDENTIFIER + DB_READONLY_CONN_STR_SUFFIX + PROXIED_DOMAIN_NAME_SUFFIX);
+            DB_HOST_CLUSTER_RO + PROXIED_DOMAIN_NAME_SUFFIX);
     toxiROClusterProxy.start();
-    toxiROClusterProxy.getProxy(TEST_DB_CLUSTER_IDENTIFIER + DB_READONLY_CONN_STR_SUFFIX, MYSQL_PORT);
+    toxiROClusterProxy.getProxy(DB_HOST_CLUSTER_RO, MYSQL_PORT);
     toxiproxyContainerList.add(toxiROClusterProxy);
-  }
-
-  private static String getClusterEndpoint() {
-    String suffix = DB_CONN_STR_SUFFIX.startsWith(".") ? DB_CONN_STR_SUFFIX.substring(1) : DB_CONN_STR_SUFFIX;
-    return TEST_DB_CLUSTER_IDENTIFIER + ".cluster-" + suffix;
   }
 
   private static void setUpTestContainer(Network network) {
@@ -162,10 +160,9 @@ public class AuroraMySqlIntegrationEnvTest {
         .withCopyFileToContainer(MountableFile.forHostPath("./build.gradle.kts"), "app/build.gradle.kts")
         .withEnv("TEST_USERNAME", TEST_USERNAME)
         .withEnv("TEST_PASSWORD", TEST_PASSWORD)
-        .withEnv("TEST_DB_USER", TEST_DB_USER)
         .withEnv("TEST_DB", TEST_DB)
-        .withEnv("DB_CLUSTER_CONN", getClusterEndpoint())
-        .withEnv("DB_RO_CLUSTER_CONN", TEST_DB_CLUSTER_IDENTIFIER + DB_READONLY_CONN_STR_SUFFIX)
+        .withEnv("DB_CLUSTER_CONN", DB_HOST_CLUSTER)
+        .withEnv("DB_RO_CLUSTER_CONN", DB_HOST_CLUSTER_RO)
         .withEnv("TOXIPROXY_CLUSTER_NETWORK_ALIAS", "toxiproxy-instance-cluster")
         .withEnv("TOXIPROXY_RO_CLUSTER_NETWORK_ALIAS", "toxiproxy-ro-instance-cluster")
         .withEnv("PROXIED_CLUSTER_TEMPLATE", "?" + DB_CONN_STR_SUFFIX + PROXIED_DOMAIN_NAME_SUFFIX);

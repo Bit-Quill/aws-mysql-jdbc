@@ -225,6 +225,7 @@ dependencies {
     testImplementation("org.testcontainers:junit-jupiter:1.16.2")
     testImplementation("org.testcontainers:toxiproxy:1.16.2")
     testImplementation("redis.clients:jedis:3.7.0")
+    testImplementation("org.apache.poi:poi-ooxml:5.1.0")
 
     implementation("com.amazonaws:aws-java-sdk-rds:1.12.128")
     implementation("com.google.protobuf:protobuf-java:3.19.1")

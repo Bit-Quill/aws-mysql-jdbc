@@ -3,7 +3,7 @@ name: Integration Tests
 on:
   push:
     branches:
-      - test
+      - main
   pull_request:
     branches:
       - main
@@ -60,7 +60,7 @@ jobs:
         if: always()
       - name: 'Archive junit results'
         uses: actions/upload-artifact@v2
-        if: ${{ always() }}
+        if: always()
         with:
           name: 'junit-report'
           path: build/reports/tests/
