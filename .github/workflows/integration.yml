@@ -30,7 +30,7 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-2
+          aws-region: ${{ secrets.AWS_DEFAULT_REGION }}
       - name: 'Get Github Action IP'
         id: ip
         uses: haythem/public-ip@v1.2
@@ -76,7 +76,7 @@ jobs:
           ./gradlew --no-parallel --no-daemon test-integration-host
         env:
           DB_CONN_STR_SUFFIX: ${{ secrets.DB_CONN_STR_SUFFIX }}
-          TEST_DB_CLUSTER_IDENTIFIER: ${{ secrets.TEST_DB_CLUSTER_IDENTIFIER }}
+          TEST_DB_CLUSTER_IDENTIFIER: ${{ secrets.TEST_DB_CLUSTER_IDENTIFIER }}-${{ github.run_id }}
           TEST_USERNAME: ${{ secrets.TEST_USERNAME }}
           TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
       - name: 'Delete Instances'
