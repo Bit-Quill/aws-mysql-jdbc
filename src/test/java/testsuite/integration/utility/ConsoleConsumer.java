@@ -48,9 +48,9 @@ public class ConsoleConsumer extends BaseConsumer<org.testcontainers.containers.
 
   @Override
   public void accept(OutputFrame outputFrame) {
-    OutputFrame.OutputType outputType = outputFrame.getType();
+    final OutputFrame.OutputType outputType = outputFrame.getType();
 
-    String utf8String = outputFrame.getUtf8String();
+    final String utf8String = outputFrame.getUtf8String();
 
     switch (outputType) {
       case END:

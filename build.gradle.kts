@@ -225,7 +225,6 @@ dependencies {
     testImplementation("org.testcontainers:testcontainers:1.16.2")
     testImplementation("org.testcontainers:junit-jupiter:1.16.2")
     testImplementation("org.testcontainers:toxiproxy:1.16.2")
-    testImplementation("redis.clients:jedis:3.7.0")
     testImplementation("org.apache.poi:poi-ooxml:5.1.0")
 
     implementation("com.amazonaws:aws-java-sdk-rds:1.12.128")
@@ -356,17 +355,6 @@ tasks.register<Test>("test-integration-host") {
 
 // Run integration tests in container
 // Environment (like supplementary containers) should be up and running!
-tasks.register<Test>("test-integration-container-redis") {
-    this.testLogging {
-        this.showStandardStreams = true
-    }
-    useJUnitPlatform()
-    group = "verification"
-    filter.includeTestsMatching("testsuite.integration.container.RedisIntegrationTest")
-}
-
-// Run integration tests in container
-// Environment (like supplementary containers) should be up and running!
 tasks.register<Test>("test-integration-container-aurora") {
     this.testLogging {
         this.showStandardStreams = true
@@ -384,4 +372,13 @@ tasks.register<Test>("test-non-integration") {
     useJUnitPlatform()
     group = "verification"
     filter.excludeTestsMatching("testsuite.integration.*")
+
+    // Pass the property to tests
+    fun passProperty(name: String, default: String? = null) {
+        val value = System.getProperty(name) ?: default
+        value?.let { systemProperty(name, it) }
+    }
+    passProperty("user.timezone")
+    passProperty("com.mysql.cj.testsuite.url")
+    passProperty("com.mysql.cj.testsuite.url.openssl")
 }

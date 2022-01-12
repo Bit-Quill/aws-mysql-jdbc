@@ -65,21 +65,21 @@ public class ExecInContainerUtility {
       throw new IllegalStateException("execInContainer can only be used while the Container is running");
     }
 
-    String containerId = containerInfo.getId();
-    String containerName = containerInfo.getName();
+    final String containerId = containerInfo.getId();
+    final String containerName = containerInfo.getName();
 
-    DockerClient dockerClient = DockerClientFactory.instance().client();
+    final DockerClient dockerClient = DockerClientFactory.instance().client();
 
     final ExecCreateCmdResponse execCreateCmdResponse = dockerClient.execCreateCmd(containerId)
             .withAttachStdout(true).withAttachStderr(true).withCmd(command).exec();
 
-    try (FrameConsumerResultCallback callback = new FrameConsumerResultCallback()) {
+    try (final FrameConsumerResultCallback callback = new FrameConsumerResultCallback()) {
       callback.addConsumer(OutputFrame.OutputType.STDOUT, consumer);
       callback.addConsumer(OutputFrame.OutputType.STDERR, consumer);
 
       dockerClient.execStartCmd(execCreateCmdResponse.getId()).exec(callback).awaitCompletion();
     }
-    Integer exitCode = dockerClient.inspectExecCmd(execCreateCmdResponse.getId()).exec().getExitCode();
+    final Integer exitCode = dockerClient.inspectExecCmd(execCreateCmdResponse.getId()).exec().getExitCode();
     return exitCode;
   }
 

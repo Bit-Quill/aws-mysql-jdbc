@@ -191,8 +191,9 @@ public class Monitor implements IMonitor {
         // open a new connection
         Map<String, String> monitoringConnProperties = new HashMap<>();
         // Default values for connect and socket timeout
-        monitoringConnProperties.put(PropertyKey.connectTimeout.getKeyName(), "3000");
-        monitoringConnProperties.put(PropertyKey.socketTimeout.getKeyName(), "3000");
+        final String defaultTimeout = Integer.toString(shortestFailureDetectionIntervalMillis);
+        monitoringConnProperties.put(PropertyKey.connectTimeout.getKeyName(), defaultTimeout);
+        monitoringConnProperties.put(PropertyKey.socketTimeout.getKeyName(), defaultTimeout);
         Properties originalProperties = this.propertySet.exposeAsProperties();
         if (originalProperties != null) {
           originalProperties.stringPropertyNames().stream()
