@@ -9,6 +9,8 @@ on:
   pull_request:
     branches:
       - main
+    paths-ignore:
+      - '**/*.md'
 
 jobs:
   integration-tests-on-ubuntu-latest:
@@ -68,7 +70,7 @@ jobs:
             2>&1 > /dev/null; \
           done;
       - name: 'Wait for clusters to be up'
-        run: sleep 600s
+        run: sleep 1200s
       - name: 'Run Integration Tests'
         run: |
           ./gradlew --no-parallel --no-daemon test-integration-host
@@ -97,7 +99,12 @@ jobs:
       - name: 'Remove Github Action IP'
         if: always()
         run: |
-          aws ec2 revoke-security-group-ingress --group-name ${{ secrets.AWS_SG_NAME }} --protocol all --port all --cidr ${{ steps.ip.outputs.ipv4 }}/32
+          aws ec2 revoke-security-group-ingress \
+            --group-name ${{ secrets.AWS_SG_NAME }} \
+            --protocol all \
+            --port all \
+            --cidr ${{ steps.ip.outputs.ipv4 }}/32 \
+          2>&1 > /dev/null;
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
