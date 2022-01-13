@@ -59,7 +59,6 @@ import com.mysql.cj.jdbc.exceptions.CommunicationsException;
 import com.mysql.cj.jdbc.exceptions.PacketTooBigException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import testsuite.BaseTestCase;
 
@@ -398,7 +397,6 @@ public final class PooledConnectionRegressionTest extends BaseTestCase {
         this.pstmt.close();
     }
 
-    @Disabled
     @SuppressWarnings("deprecation")
     @Test
     public void testConnectionWrapperMethods() throws Exception {
