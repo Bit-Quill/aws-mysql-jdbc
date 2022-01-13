@@ -36,7 +36,6 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import com.mysql.cj.conf.PropertyKey;
 import com.mysql.cj.util.StringUtils;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import testsuite.BaseTestCase;
 
@@ -104,7 +103,6 @@ public class BlobRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
-    @Disabled
     @Test
     public void testUpdateLongBlobGT16M() throws Exception {
         byte[] blobData = new byte[18 * 1024 * 1024]; // 18M blob
