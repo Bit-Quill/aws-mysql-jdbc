@@ -343,19 +343,28 @@ signing {
     }
 }
 
-// Run integrations tests for test host
+// Run integrations tests in container
 // Environment is being configured and started
-tasks.register<Test>("test-integration-host") {
+tasks.register<Test>("test-integration-docker") {
     this.testLogging {
         this.showStandardStreams = true
     }
     useJUnitPlatform()
     group = "verification"
-    filter.includeTestsMatching("testsuite.integration.host.*")
+    filter.includeTestsMatching("testsuite.integration.host.AuroraMySqlIntegrationEnvTest.testRunTestInContainer")
 }
 
-// Run integration tests in container
+// Run community tests in container
 // Environment (like supplementary containers) should be up and running!
+tasks.register<Test>("test-community-docker") {
+    this.testLogging {
+        this.showStandardStreams = true
+    }
+    useJUnitPlatform()
+    group = "verification"
+    filter.includeTestsMatching("testsuite.integration.host.AuroraMySqlIntegrationEnvTest.testRunCommunityTestInContainer")
+}
+
 tasks.register<Test>("test-integration-container-aurora") {
     this.testLogging {
         this.showStandardStreams = true

@@ -28,9 +28,7 @@ package testsuite.integration.host;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.BindMode;
 import org.testcontainers.containers.GenericContainer;
@@ -94,40 +92,34 @@ public class AuroraMySqlIntegrationEnvTest {
   private static GenericContainer<?> integrationTestContainer;
   private static GenericContainer<?> communityTestContainer;
 
-  @BeforeAll
-  public static void setUp() {
-    final Network network = Network.newNetwork();
-    final Network communityTestNetwork = Network.newNetwork();
-    setUpToxiProxy(network);
-    setUpTestContainer(network);
-    setupCommunityMySQLContainers(communityTestNetwork);
-    setupCommunityTestContainer(communityTestNetwork);
-  }
-
-  @AfterAll
-  public static void tearDown() {
-    for (ToxiproxyContainer proxy : toxiproxyContainerList) {
-      proxy.stop();
-    }
-
-    for (final MySQLContainer<?> dockerComposeContainer : communityContainerList) {
-      dockerComposeContainer.stop();
-    }
-
-    integrationTestContainer.stop();
-    communityTestContainer.stop();
-  }
-
   @Test
   public void testRunTestInContainer()
       throws UnsupportedOperationException, IOException, InterruptedException, SQLException {
+    final Network network = Network.newNetwork();
+    setUpToxiProxy(network);
+    setUpTestContainer(network);
+
     runTest(integrationTestContainer, "test-integration-container-aurora");
+
+    for (ToxiproxyContainer proxy : toxiproxyContainerList) {
+      proxy.stop();
+    }
+    integrationTestContainer.stop();
   }
 
   @Test
   public void testRunCommunityTestInContainer()
       throws UnsupportedOperationException, IOException, InterruptedException {
+    final Network communityTestNetwork = Network.newNetwork();
+    setupCommunityMySQLContainers(communityTestNetwork);
+    setupCommunityTestContainer(communityTestNetwork);
+
     runTest(communityTestContainer, "test-non-integration");
+
+    for (final MySQLContainer<?> dockerComposeContainer : communityContainerList) {
+      dockerComposeContainer.stop();
+    }
+    communityTestContainer.stop();
   }
 
   private void runTest(GenericContainer<?> container, String task)
