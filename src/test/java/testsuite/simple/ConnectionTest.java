@@ -1200,7 +1200,6 @@ public class ConnectionTest extends BaseTestCase {
      *
      * @throws Exception
      */
-    @Disabled
     @Test
     public void testUseCompress() throws Exception {
         this.rs = this.stmt.executeQuery("SHOW VARIABLES LIKE 'max_allowed_packet'");
@@ -1304,6 +1303,7 @@ public class ConnectionTest extends BaseTestCase {
         if (bIn != null) {
             bIn.close();
         }
+        conn1.close();
     }
 
     /**

@@ -11,8 +11,8 @@ on:
       - '**/*.md'
 
 jobs:
-  ubuntu-latest-aurora-build-and-run-tests:
-    name: 'Build Driver And Run Tests'
+  ubuntu-latest-aurora-build:
+    name: 'Build Driver'
     runs-on: ubuntu-latest
     steps:
       - name: Setup timezone
@@ -27,21 +27,12 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: 8
-      - name: 'Start Docker MySQL'
-        working-directory: docker
-        run: docker-compose up -d && docker-compose logs
-      - name: 'Build And Run Tests'
+      - name: 'Build'
         run: |
-          ./gradlew --no-parallel --no-daemon build
-      - name: Archive junit results
-        if: ${{ always() }}
-        uses: actions/upload-artifact@v2
-        with:
-          name: junit-report
-          path: build/reports/tests/
-  integration-tests-on-ubuntu-latest:
+          ./gradlew --no-parallel --no-daemon build -x test
+  ubuntu-latest-aurora-run-tests:
     concurrency: IntegrationTests
-    name: 'Run Integration Tests'
+    name: 'Run Tests'
     runs-on: ubuntu-latest
     steps:
       - name: 'Clone Repository'
@@ -143,4 +134,3 @@ jobs:
           name: 'junit-report'
           path: build/reports/tests/
           retention-days: 5
-
