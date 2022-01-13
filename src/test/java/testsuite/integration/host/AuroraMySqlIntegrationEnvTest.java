@@ -121,20 +121,20 @@ public class AuroraMySqlIntegrationEnvTest {
   @Test
   public void testRunTestInContainer()
       throws UnsupportedOperationException, IOException, InterruptedException, SQLException {
-    System.out.println("==== Container console feed ==== >>>>");
-    final Consumer<OutputFrame> consumer = new ConsoleConsumer();
-    final Integer exitCode = ExecInContainerUtility.execInContainer(
-        integrationTestContainer, consumer, "./gradlew", "test-integration-container-aurora");
-    System.out.println("==== Container console feed ==== <<<<");
-    assertEquals(0, exitCode, "Some tests failed.");
+    runTest(integrationTestContainer, "test-integration-container-aurora");
   }
 
   @Test
   public void testRunCommunityTestInContainer()
       throws UnsupportedOperationException, IOException, InterruptedException {
+    runTest(communityTestContainer, "test-non-integration");
+  }
+
+  private void runTest(GenericContainer<?> container, String task)
+      throws IOException, InterruptedException {
     System.out.println("==== Container console feed ==== >>>>");
     Consumer<OutputFrame> consumer = new ConsoleConsumer();
-    Integer exitCode = ExecInContainerUtility.execInContainer(communityTestContainer, consumer, "./gradlew", "test-non-integration");
+    Integer exitCode = ExecInContainerUtility.execInContainer(container, consumer, "./gradlew", task);
     System.out.println("==== Container console feed ==== <<<<");
     assertEquals(0, exitCode, "Some tests failed.");
   }
@@ -235,7 +235,7 @@ public class AuroraMySqlIntegrationEnvTest {
 
   private static void setupCommunityMySQLContainers(Network network) {
     final MySQLContainer<?> mySQLContainer =
-        createMySQLContainer(network, MYSQL_CONTAINER_NAME,
+        createMySQLContainer(network,
             "--log-error-verbosity=4",
             "--default-authentication-plugin=sha256_password",
             "--sha256_password_public_key_path=/home/certdir/mykey.pub",
@@ -249,7 +249,6 @@ public class AuroraMySqlIntegrationEnvTest {
 
   private static MySQLContainer<?> createMySQLContainer(
       Network network,
-      String networkAlias,
       String... commands) {
     final String[] defaultCommands = new String[] {
         "--local_infile=1",
@@ -270,7 +269,7 @@ public class AuroraMySqlIntegrationEnvTest {
 
     return new MySQLContainer<>(MYSQL_CONTAINER_IMAGE_NAME)
         .withNetwork(network)
-        .withNetworkAliases(networkAlias)
+        .withNetworkAliases(AuroraMySqlIntegrationEnvTest.MYSQL_CONTAINER_NAME)
         .withDatabaseName(TEST_DB)
         .withPassword("root")
         .withFileSystemBind(
