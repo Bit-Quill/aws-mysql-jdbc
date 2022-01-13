@@ -40,6 +40,7 @@ jobs:
           name: junit-report
           path: build/reports/tests/
   integration-tests-on-ubuntu-latest:
+    concurrency: IntegrationTests
     name: 'Run Integration Tests'
     runs-on: ubuntu-latest
     steps:
