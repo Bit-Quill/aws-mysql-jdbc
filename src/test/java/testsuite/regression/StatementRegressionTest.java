@@ -38,6 +38,48 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import com.mysql.cj.CharsetMapping;
+import com.mysql.cj.ClientPreparedQuery;
+import com.mysql.cj.MysqlConnection;
+import com.mysql.cj.Query;
+import com.mysql.cj.ServerPreparedQuery;
+import com.mysql.cj.Session;
+import com.mysql.cj.conf.PropertyDefinitions.DatabaseTerm;
+import com.mysql.cj.conf.PropertyKey;
+import com.mysql.cj.exceptions.CJCommunicationsException;
+import com.mysql.cj.exceptions.ExceptionFactory;
+import com.mysql.cj.exceptions.MysqlErrorNumbers;
+import com.mysql.cj.exceptions.WrongArgumentException;
+import com.mysql.cj.interceptors.QueryInterceptor;
+import com.mysql.cj.jdbc.ClientPreparedStatement;
+import com.mysql.cj.jdbc.ConnectionImpl;
+import com.mysql.cj.jdbc.JdbcConnection;
+import com.mysql.cj.jdbc.JdbcPreparedStatement;
+import com.mysql.cj.jdbc.JdbcStatement;
+import com.mysql.cj.jdbc.MysqlConnectionPoolDataSource;
+import com.mysql.cj.jdbc.MysqlXADataSource;
+import com.mysql.cj.jdbc.ParameterBindings;
+import com.mysql.cj.jdbc.ServerPreparedStatement;
+import com.mysql.cj.jdbc.StatementImpl;
+import com.mysql.cj.jdbc.exceptions.CommunicationsException;
+import com.mysql.cj.jdbc.exceptions.MySQLTimeoutException;
+import com.mysql.cj.jdbc.ha.ReplicationConnection;
+import com.mysql.cj.jdbc.interceptors.ResultSetScannerInterceptor;
+import com.mysql.cj.jdbc.result.CachedResultSetMetaData;
+import com.mysql.cj.jdbc.result.ResultSetInternalMethods;
+import com.mysql.cj.log.Log;
+import com.mysql.cj.protocol.ColumnDefinition;
+import com.mysql.cj.protocol.Resultset;
+import com.mysql.cj.protocol.ResultsetRows;
+import com.mysql.cj.protocol.ServerSession;
+import com.mysql.cj.util.LRUCache;
+import com.mysql.cj.util.TimeUtil;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+import testsuite.BaseQueryInterceptor;
+import testsuite.BaseTestCase;
+import testsuite.UnreliableSocketFactory;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.CharArrayReader;
@@ -104,49 +146,6 @@ import java.util.function.Supplier;
 import java.util.function.ToIntFunction;
 
 import javax.sql.XAConnection;
-
-import org.junit.jupiter.api.Test;
-
-import com.mysql.cj.CharsetMapping;
-import com.mysql.cj.ClientPreparedQuery;
-import com.mysql.cj.MysqlConnection;
-import com.mysql.cj.Query;
-import com.mysql.cj.ServerPreparedQuery;
-import com.mysql.cj.Session;
-import com.mysql.cj.conf.PropertyDefinitions.DatabaseTerm;
-import com.mysql.cj.conf.PropertyKey;
-import com.mysql.cj.exceptions.CJCommunicationsException;
-import com.mysql.cj.exceptions.ExceptionFactory;
-import com.mysql.cj.exceptions.MysqlErrorNumbers;
-import com.mysql.cj.exceptions.WrongArgumentException;
-import com.mysql.cj.interceptors.QueryInterceptor;
-import com.mysql.cj.jdbc.ClientPreparedStatement;
-import com.mysql.cj.jdbc.ConnectionImpl;
-import com.mysql.cj.jdbc.JdbcConnection;
-import com.mysql.cj.jdbc.JdbcPreparedStatement;
-import com.mysql.cj.jdbc.JdbcStatement;
-import com.mysql.cj.jdbc.MysqlConnectionPoolDataSource;
-import com.mysql.cj.jdbc.MysqlXADataSource;
-import com.mysql.cj.jdbc.ParameterBindings;
-import com.mysql.cj.jdbc.ServerPreparedStatement;
-import com.mysql.cj.jdbc.StatementImpl;
-import com.mysql.cj.jdbc.exceptions.CommunicationsException;
-import com.mysql.cj.jdbc.exceptions.MySQLTimeoutException;
-import com.mysql.cj.jdbc.ha.ReplicationConnection;
-import com.mysql.cj.jdbc.interceptors.ResultSetScannerInterceptor;
-import com.mysql.cj.jdbc.result.CachedResultSetMetaData;
-import com.mysql.cj.jdbc.result.ResultSetInternalMethods;
-import com.mysql.cj.log.Log;
-import com.mysql.cj.protocol.ColumnDefinition;
-import com.mysql.cj.protocol.Resultset;
-import com.mysql.cj.protocol.ResultsetRows;
-import com.mysql.cj.protocol.ServerSession;
-import com.mysql.cj.util.LRUCache;
-import com.mysql.cj.util.TimeUtil;
-
-import testsuite.BaseQueryInterceptor;
-import testsuite.BaseTestCase;
-import testsuite.UnreliableSocketFactory;
 
 /**
  * Regression tests for the Statement class
@@ -5310,6 +5309,7 @@ public class StatementRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug41532() throws Exception {
         createTable("testBug41532", "(ID INTEGER, S1 VARCHAR(100), S2 VARCHAR(100), S3 VARCHAR(100), D1 DATETIME, D2 DATETIME, D3 DATETIME, "
@@ -7009,6 +7009,7 @@ public class StatementRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug68916() throws Exception {
         // Prepare common test objects
@@ -8847,6 +8848,7 @@ public class StatementRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled
     @Test
     public void testBug74998() throws Exception {
         int maxAllowedPacketAtServer = Integer.parseInt(((JdbcConnection) this.conn).getSession().getServerSession().getServerVariable("max_allowed_packet"));

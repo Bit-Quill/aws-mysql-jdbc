@@ -223,6 +223,7 @@ dependencies {
     testImplementation("org.mockito:mockito-inline:4.1.0")
     testImplementation("org.hamcrest:hamcrest:2.2")
     testImplementation("org.testcontainers:testcontainers:1.16.2")
+    testImplementation("org.testcontainers:mysql:1.16.2")
     testImplementation("org.testcontainers:junit-jupiter:1.16.2")
     testImplementation("org.testcontainers:toxiproxy:1.16.2")
     testImplementation("org.apache.poi:poi-ooxml:5.1.0")
@@ -370,9 +371,6 @@ tasks.register<Test>("test-non-integration") {
         this.showStandardStreams = true
     }
     useJUnitPlatform()
-    group = "verification"
-    filter.excludeTestsMatching("testsuite.integration.*")
-
     // Pass the property to tests
     fun passProperty(name: String, default: String? = null) {
         val value = System.getProperty(name) ?: default
@@ -380,5 +378,8 @@ tasks.register<Test>("test-non-integration") {
     }
     passProperty("user.timezone")
     passProperty("com.mysql.cj.testsuite.url")
-    passProperty("com.mysql.cj.testsuite.url.openssl")
+
+    group = "verification"
+    filter.excludeTestsMatching("testsuite.integration.*")
+    filter.excludeTestsMatching("testsuite.failover.*")
 }

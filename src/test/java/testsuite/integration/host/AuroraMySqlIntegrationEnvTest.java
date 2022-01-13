@@ -26,18 +26,25 @@
 
 package testsuite.integration.host;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.BindMode;
 import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.containers.Network;
 import org.testcontainers.containers.ToxiproxyContainer;
 import org.testcontainers.containers.output.OutputFrame;
 import org.testcontainers.images.builder.ImageFromDockerfile;
+import org.testcontainers.shaded.com.google.common.collect.ObjectArrays;
 import org.testcontainers.utility.DockerImageName;
 import org.testcontainers.utility.MountableFile;
+import software.aws.rds.jdbc.mysql.Driver;
+import testsuite.integration.utility.ConsoleConsumer;
+import testsuite.integration.utility.ExecInContainerUtility;
 
 import java.io.IOException;
 import java.sql.Connection;
@@ -48,11 +55,6 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
-
-import software.aws.rds.jdbc.mysql.Driver;
-import testsuite.integration.utility.ConsoleConsumer;
-import testsuite.integration.utility.ExecInContainerUtility;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class AuroraMySqlIntegrationEnvTest {
 
@@ -67,6 +69,7 @@ public class AuroraMySqlIntegrationEnvTest {
 
   private static final String TEST_USERNAME = System.getenv("TEST_USERNAME");
   private static final String TEST_PASSWORD = System.getenv("TEST_PASSWORD");
+  private static final String TEST_DB = "test";
 
   private static final String RETRIEVE_TOPOLOGY_SQL =
       "SELECT SERVER_ID FROM information_schema.replica_host_status ";
@@ -76,22 +79,29 @@ public class AuroraMySqlIntegrationEnvTest {
   private static final String PROXIED_DOMAIN_NAME_SUFFIX = ".proxied";
 
   private static final List<ToxiproxyContainer> toxiproxyContainerList = new ArrayList<>();
+  private static final List<MySQLContainer<?>> communityContainerList = new ArrayList<>();
 
   private static final List<String> mySqlInstances = new ArrayList<>();
   private static final int MYSQL_PORT = 3306;
   private static int mySQLProxyPort;
 
   private static final String TEST_CONTAINER_IMAGE_NAME = "openjdk:8-jdk-alpine";
+  private static final String MYSQL_CONTAINER_IMAGE_NAME = "mysql:8.0.21";
+  private static final String MYSQL_CONTAINER_NAME = "mysql-container";
 
   private static final DockerImageName TOXIPROXY_IMAGE = DockerImageName.parse("shopify/toxiproxy:2.1.0");
 
-  private static GenericContainer<?> testContainer;
+  private static GenericContainer<?> integrationTestContainer;
+  private static GenericContainer<?> communityTestContainer;
 
   @BeforeAll
   public static void setUp() {
-    Network network = Network.newNetwork();
+    final Network network = Network.newNetwork();
+    final Network communityTestNetwork = Network.newNetwork();
     setUpToxiProxy(network);
     setUpTestContainer(network);
+    setupCommunityMySQLContainers(communityTestNetwork);
+    setupCommunityTestContainer(communityTestNetwork);
   }
 
   @AfterAll
@@ -99,15 +109,32 @@ public class AuroraMySqlIntegrationEnvTest {
     for (ToxiproxyContainer proxy : toxiproxyContainerList) {
       proxy.stop();
     }
-    testContainer.stop();
+
+    for (final MySQLContainer<?> dockerComposeContainer : communityContainerList) {
+      dockerComposeContainer.stop();
+    }
+
+    integrationTestContainer.stop();
+    communityTestContainer.stop();
   }
 
   @Test
   public void testRunTestInContainer()
       throws UnsupportedOperationException, IOException, InterruptedException, SQLException {
+    runTest(integrationTestContainer, "test-integration-container-aurora");
+  }
+
+  @Test
+  public void testRunCommunityTestInContainer()
+      throws UnsupportedOperationException, IOException, InterruptedException {
+    runTest(communityTestContainer, "test-non-integration");
+  }
+
+  private void runTest(GenericContainer<?> container, String task)
+      throws IOException, InterruptedException {
     System.out.println("==== Container console feed ==== >>>>");
-    final Consumer<OutputFrame> consumer = new ConsoleConsumer();
-    final Integer exitCode = ExecInContainerUtility.execInContainer(testContainer, consumer, "./gradlew", "test-integration-container-aurora");
+    Consumer<OutputFrame> consumer = new ConsoleConsumer();
+    Integer exitCode = ExecInContainerUtility.execInContainer(container, consumer, "./gradlew", task);
     System.out.println("==== Container console feed ==== <<<<");
     assertEquals(0, exitCode, "Some tests failed.");
   }
@@ -162,8 +189,105 @@ public class AuroraMySqlIntegrationEnvTest {
   }
 
   private static void setUpTestContainer(Network network) {
-    testContainer = new GenericContainer<>(
-        new ImageFromDockerfile("bq/rds-test-container", true)
+    integrationTestContainer = createTestContainerTemplate("bq/rds-test-container")
+        .withNetworkAliases(TEST_CONTAINER_NETWORK_ALIAS)
+        .withNetwork(network)
+        .withEnv("DB_CLUSTER_CONN", DB_HOST_CLUSTER)
+        .withEnv("DB_RO_CLUSTER_CONN", DB_HOST_CLUSTER_RO)
+        .withEnv("TOXIPROXY_CLUSTER_NETWORK_ALIAS", "toxiproxy-instance-cluster")
+        .withEnv("TOXIPROXY_RO_CLUSTER_NETWORK_ALIAS", "toxiproxy-ro-instance-cluster")
+        .withEnv("PROXIED_CLUSTER_TEMPLATE", "?" + DB_CONN_STR_SUFFIX + PROXIED_DOMAIN_NAME_SUFFIX);
+
+    // Add mysql instances & proxies to container env
+    for (int i = 0; i < mySqlInstances.size(); i++) {
+      // Add instance
+      integrationTestContainer.addEnv(
+          "MYSQL_INSTANCE_" + (i + 1) + "_URL",
+          mySqlInstances.get(i));
+
+      // Add proxies
+      integrationTestContainer.addEnv(
+          "TOXIPROXY_INSTANCE_" + (i + 1) + "_NETWORK_ALIAS",
+          "toxiproxy-instance-" + (i + 1));
+    }
+    integrationTestContainer.addEnv("MYSQL_PORT", Integer.toString(MYSQL_PORT));
+    integrationTestContainer.addEnv("PROXIED_DOMAIN_NAME_SUFFIX", PROXIED_DOMAIN_NAME_SUFFIX);
+    integrationTestContainer.addEnv("MYSQL_PROXY_PORT", Integer.toString(mySQLProxyPort));
+
+    System.out.println("Toxyproxy Instances port: " + mySQLProxyPort);
+    System.out.println("Instances Proxied: " + mySqlInstances.size());
+
+    integrationTestContainer.start();
+  }
+
+  private static void setupCommunityTestContainer(final Network network) {
+    communityTestContainer = createTestContainerTemplate("bq/community-test-container")
+        .withNetworkAliases("community-" + TEST_CONTAINER_NETWORK_ALIAS)
+        .withNetwork(network);
+    communityTestContainer.addEnv(
+        "TEST_MYSQL_PORT",
+        String.valueOf(MYSQL_PORT));
+    communityTestContainer.addEnv(
+        "TEST_MYSQL_DOMAIN",
+        MYSQL_CONTAINER_NAME);
+    communityTestContainer.start();
+  }
+
+  private static void setupCommunityMySQLContainers(Network network) {
+    final MySQLContainer<?> mySQLContainer =
+        createMySQLContainer(network, MYSQL_CONTAINER_NAME,
+            "--log-error-verbosity=4",
+            "--default-authentication-plugin=sha256_password",
+            "--sha256_password_public_key_path=/home/certdir/mykey.pub",
+            "--sha256_password_private_key_path=/home/certdir/mykey.pem",
+            "--caching_sha2_password_public_key_path=/home/certdir/mykey.pub",
+            "--caching_sha2_password_private_key_path=/home/certdir/mykey.pem");
+
+    mySQLContainer.start();
+    communityContainerList.add(mySQLContainer);
+  }
+
+  private static MySQLContainer<?> createMySQLContainer(
+      Network network,
+      String networkAlias,
+      String... commands) {
+    final String[] defaultCommands = new String[] {
+        "--local_infile=1",
+        "--max_allowed_packet=40M",
+        "--max-connections=2048",
+        "--secure-file-priv=/var/lib/mysql",
+        "--ssl-key=/home/certdir/server-key.pem",
+        "--ssl-cert=/home/certdir/server-cert.pem",
+        "--ssl-ca=/home/certdir/ca-cert.pem",
+        "--plugin_dir=/home/plugin_dir"
+    };
+
+    String[] fullCommands = defaultCommands;
+
+    if (commands.length != 0) {
+      fullCommands = ObjectArrays.concat(defaultCommands, commands, String.class);
+    }
+
+    return new MySQLContainer<>(MYSQL_CONTAINER_IMAGE_NAME)
+        .withNetwork(network)
+        .withNetworkAliases(networkAlias)
+        .withDatabaseName(TEST_DB)
+        .withPassword("root")
+        .withFileSystemBind(
+            "src/test/config/ssl-test-certs/",
+            "/home/certdir/",
+            BindMode.READ_WRITE)
+        .withFileSystemBind("src/test/config/plugins/", "/home/plugin_dir/", BindMode.READ_WRITE)
+        .withFileSystemBind(
+            "src/test/config/docker-entrypoint-initdb.d",
+            "/docker-entrypoint-initdb.d",
+            BindMode.READ_WRITE)
+        .withCommand(fullCommands);
+  }
+
+  private static GenericContainer<?> createTestContainerTemplate(String dockerImageName) {
+    return new GenericContainer<>(
+        new ImageFromDockerfile(dockerImageName, true)
             .withDockerfileFromBuilder(builder ->
                 builder
                     .from(TEST_CONTAINER_IMAGE_NAME)
@@ -171,8 +295,6 @@ public class AuroraMySqlIntegrationEnvTest {
                     .workDir("/app")
                     .entryPoint("/bin/sh -c \"while true; do sleep 30; done;\"")
                     .build()))
-        .withNetworkAliases(TEST_CONTAINER_NETWORK_ALIAS)
-        .withNetwork(network)
         .withFileSystemBind("./.git", "/app/.git", BindMode.READ_WRITE)
         .withFileSystemBind("./build", "/app/build", BindMode.READ_WRITE)
         .withFileSystemBind("./config", "/app/config", BindMode.READ_WRITE)
@@ -183,32 +305,6 @@ public class AuroraMySqlIntegrationEnvTest {
         .withCopyFileToContainer(MountableFile.forHostPath("./gradle.properties"), "app/gradle.properties")
         .withCopyFileToContainer(MountableFile.forHostPath("./build.gradle.kts"), "app/build.gradle.kts")
         .withEnv("TEST_USERNAME", TEST_USERNAME)
-        .withEnv("TEST_PASSWORD", TEST_PASSWORD)
-        .withEnv("DB_CLUSTER_CONN", DB_HOST_CLUSTER)
-        .withEnv("DB_RO_CLUSTER_CONN", DB_HOST_CLUSTER_RO)
-        .withEnv("TOXIPROXY_CLUSTER_NETWORK_ALIAS", "toxiproxy-instance-cluster")
-        .withEnv("TOXIPROXY_RO_CLUSTER_NETWORK_ALIAS", "toxiproxy-ro-instance-cluster")
-        .withEnv("PROXIED_CLUSTER_TEMPLATE", "?" + DB_CONN_STR_SUFFIX + PROXIED_DOMAIN_NAME_SUFFIX);
-
-    // Add mysql instances & proxies to container env
-    for (int i = 0; i < mySqlInstances.size(); i++) {
-      // Add instance
-      testContainer.addEnv(
-          "MYSQL_INSTANCE_" + (i + 1) + "_URL",
-          mySqlInstances.get(i));
-
-      // Add proxies
-      testContainer.addEnv(
-          "TOXIPROXY_INSTANCE_" + (i + 1) + "_NETWORK_ALIAS",
-          "toxiproxy-instance-" + (i + 1));
-    }
-    testContainer.addEnv("MYSQL_PORT", Integer.toString(MYSQL_PORT));
-    testContainer.addEnv("PROXIED_DOMAIN_NAME_SUFFIX", PROXIED_DOMAIN_NAME_SUFFIX);
-    testContainer.addEnv("MYSQL_PROXY_PORT", Integer.toString(mySQLProxyPort));
-
-    System.out.println("Toxyproxy Instances port: " + mySQLProxyPort);
-    System.out.println("Instances Proxied: " + mySqlInstances.size());
-
-    testContainer.start();
+        .withEnv("TEST_PASSWORD", TEST_PASSWORD);
   }
 }
