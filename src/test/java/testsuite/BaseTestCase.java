@@ -174,8 +174,8 @@ public abstract class BaseTestCase {
         if ((newDbUrl != null) && (newDbUrl.trim().length() != 0)) {
             dbUrl = newDbUrl;
             dbUrl = dbUrl
-                .replace("domain", DOMAIN_NAME)
-                .replace("port", TEST_MYSQL_PORT);
+                .replace("{domain}", DOMAIN_NAME)
+                .replace("{port}", TEST_MYSQL_PORT);
         }
         timeZoneFreeDbUrl = dbUrl.replaceAll(PropertyKey.connectionTimeZone.getKeyName() + "=", PropertyKey.connectionTimeZone.getKeyName() + "VOID=")
                 .replaceAll("serverTimezone=", "serverTimezoneVOID=");
