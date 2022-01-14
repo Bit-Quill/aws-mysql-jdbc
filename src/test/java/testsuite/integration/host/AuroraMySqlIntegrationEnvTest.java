@@ -190,6 +190,8 @@ public class AuroraMySqlIntegrationEnvTest {
     integrationTestContainer = createTestContainerTemplate("bq/rds-test-container")
         .withNetworkAliases(TEST_CONTAINER_NETWORK_ALIAS)
         .withNetwork(network)
+        .withEnv("TEST_USERNAME", TEST_USERNAME)
+        .withEnv("TEST_PASSWORD", TEST_PASSWORD)
         .withEnv("DB_CLUSTER_CONN", dbHostCluster)
         .withEnv("DB_RO_CLUSTER_CONN", dbHostClusterRo)
         .withEnv("TOXIPROXY_CLUSTER_NETWORK_ALIAS", "toxiproxy-instance-cluster")
@@ -301,8 +303,6 @@ public class AuroraMySqlIntegrationEnvTest {
         .withFileSystemBind("./gradle", "/app/gradle", BindMode.READ_WRITE)
         .withCopyFileToContainer(MountableFile.forHostPath("./gradlew"), "app/gradlew")
         .withCopyFileToContainer(MountableFile.forHostPath("./gradle.properties"), "app/gradle.properties")
-        .withCopyFileToContainer(MountableFile.forHostPath("./build.gradle.kts"), "app/build.gradle.kts")
-        .withEnv("TEST_USERNAME", TEST_USERNAME)
-        .withEnv("TEST_PASSWORD", TEST_PASSWORD);
+        .withCopyFileToContainer(MountableFile.forHostPath("./build.gradle.kts"), "app/build.gradle.kts");
   }
 }

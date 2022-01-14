@@ -139,9 +139,6 @@ jobs:
       - name: 'Run Community Tests'
         run: |
           ./gradlew --no-parallel --no-daemon test-community-docker
-        env:
-          TEST_USERNAME: ${{ secrets.TEST_USERNAME }}
-          TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
       - name: 'Archive junit results'
         if: always()
         uses: actions/upload-artifact@v2
