@@ -94,17 +94,16 @@ public class AuroraMySqlIntegrationEnvTest {
   @Test
   public void testRunTestInContainer()
       throws UnsupportedOperationException, IOException, InterruptedException, SQLException {
-    final Network network = Network.newNetwork();
-    setUpToxiProxy(network);
-    setUpTestContainer(network);
-
     final String dbConnHostBase =
         DB_CONN_STR_SUFFIX.startsWith(".")
             ? DB_CONN_STR_SUFFIX.substring(1)
             : DB_CONN_STR_SUFFIX;
     dbHostCluster = TEST_DB_CLUSTER_IDENTIFIER + ".cluster-" + dbConnHostBase;
     dbHostClusterRo = TEST_DB_CLUSTER_IDENTIFIER + ".cluster-ro-" + dbConnHostBase;
+    final Network network = Network.newNetwork();
 
+    setUpToxiProxy(network);
+    setUpTestContainer(network);
     runTest(integrationTestContainer, "test-integration-container-aurora");
 
     for (ToxiproxyContainer proxy : toxiproxyContainerList) {
