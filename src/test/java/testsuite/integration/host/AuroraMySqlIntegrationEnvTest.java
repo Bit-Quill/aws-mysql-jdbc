@@ -61,10 +61,6 @@ public class AuroraMySqlIntegrationEnvTest {
   private static final String DB_CONN_PROP = "?enabledTLSProtocols=TLSv1.2"; // Encounters SSL errors without it on GH Actions
   private static final String TEST_DB_CLUSTER_IDENTIFIER = System.getenv("TEST_DB_CLUSTER_IDENTIFIER");
 
-  private static final String DB_CONN_HOST_BASE = DB_CONN_STR_SUFFIX.startsWith(".") ? DB_CONN_STR_SUFFIX.substring(1) : DB_CONN_STR_SUFFIX;
-  private static final String DB_HOST_CLUSTER = TEST_DB_CLUSTER_IDENTIFIER + ".cluster-" + DB_CONN_HOST_BASE;
-  private static final String DB_HOST_CLUSTER_RO = TEST_DB_CLUSTER_IDENTIFIER + ".cluster-ro-" + DB_CONN_HOST_BASE;
-
   private static final String TEST_USERNAME = System.getenv("TEST_USERNAME");
   private static final String TEST_PASSWORD = System.getenv("TEST_PASSWORD");
   private static final String TEST_DB = "test";
@@ -92,12 +88,22 @@ public class AuroraMySqlIntegrationEnvTest {
   private static GenericContainer<?> integrationTestContainer;
   private static GenericContainer<?> communityTestContainer;
 
+  private static String dbHostCluster = "";
+  private static String dbHostClusterRo = "";
+
   @Test
   public void testRunTestInContainer()
       throws UnsupportedOperationException, IOException, InterruptedException, SQLException {
     final Network network = Network.newNetwork();
     setUpToxiProxy(network);
     setUpTestContainer(network);
+
+    final String dbConnHostBase =
+        DB_CONN_STR_SUFFIX.startsWith(".")
+            ? DB_CONN_STR_SUFFIX.substring(1)
+            : DB_CONN_STR_SUFFIX;
+    dbHostCluster = TEST_DB_CLUSTER_IDENTIFIER + ".cluster-" + dbConnHostBase;
+    dbHostClusterRo = TEST_DB_CLUSTER_IDENTIFIER + ".cluster-ro-" + dbConnHostBase;
 
     runTest(integrationTestContainer, "test-integration-container-aurora");
 
@@ -134,8 +140,9 @@ public class AuroraMySqlIntegrationEnvTest {
   private static void setUpToxiProxy(Network network) {
     try {
       DriverManager.registerDriver(new Driver());
-      try (final Connection conn = DriverManager.getConnection(DB_CONN_STR_PREFIX + DB_HOST_CLUSTER + DB_CONN_PROP, TEST_USERNAME, TEST_PASSWORD);
-          final Statement stmt = conn.createStatement()) {
+      try (final Connection conn = DriverManager.getConnection(DB_CONN_STR_PREFIX + dbHostCluster
+          + DB_CONN_PROP, TEST_USERNAME, TEST_PASSWORD);
+           final Statement stmt = conn.createStatement()) {
           // Get instances
           try (final ResultSet resultSet = stmt.executeQuery(RETRIEVE_TOPOLOGY_SQL)) {
             int instanceCount = 0;
@@ -165,18 +172,18 @@ public class AuroraMySqlIntegrationEnvTest {
         .withNetwork(network)
         .withNetworkAliases(
             "toxiproxy-instance-cluster",
-            DB_HOST_CLUSTER + PROXIED_DOMAIN_NAME_SUFFIX);
+            dbHostCluster + PROXIED_DOMAIN_NAME_SUFFIX);
     toxiClusterProxy.start();
-    toxiClusterProxy.getProxy(DB_HOST_CLUSTER, MYSQL_PORT);
+    toxiClusterProxy.getProxy(dbHostCluster, MYSQL_PORT);
     toxiproxyContainerList.add(toxiClusterProxy);
 
     final ToxiproxyContainer toxiROClusterProxy = new ToxiproxyContainer(TOXIPROXY_IMAGE)
         .withNetwork(network)
         .withNetworkAliases(
             "toxiproxy-ro-instance-cluster",
-            DB_HOST_CLUSTER_RO + PROXIED_DOMAIN_NAME_SUFFIX);
+            dbHostClusterRo + PROXIED_DOMAIN_NAME_SUFFIX);
     toxiROClusterProxy.start();
-    toxiROClusterProxy.getProxy(DB_HOST_CLUSTER_RO, MYSQL_PORT);
+    toxiROClusterProxy.getProxy(dbHostClusterRo, MYSQL_PORT);
     toxiproxyContainerList.add(toxiROClusterProxy);
   }
 
@@ -184,8 +191,8 @@ public class AuroraMySqlIntegrationEnvTest {
     integrationTestContainer = createTestContainerTemplate("bq/rds-test-container")
         .withNetworkAliases(TEST_CONTAINER_NETWORK_ALIAS)
         .withNetwork(network)
-        .withEnv("DB_CLUSTER_CONN", DB_HOST_CLUSTER)
-        .withEnv("DB_RO_CLUSTER_CONN", DB_HOST_CLUSTER_RO)
+        .withEnv("DB_CLUSTER_CONN", dbHostCluster)
+        .withEnv("DB_RO_CLUSTER_CONN", dbHostClusterRo)
         .withEnv("TOXIPROXY_CLUSTER_NETWORK_ALIAS", "toxiproxy-instance-cluster")
         .withEnv("TOXIPROXY_RO_CLUSTER_NETWORK_ALIAS", "toxiproxy-ro-instance-cluster")
         .withEnv("PROXIED_CLUSTER_TEMPLATE", "?" + DB_CONN_STR_SUFFIX + PROXIED_DOMAIN_NAME_SUFFIX);
