@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2002, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify it under
  * the terms of the GNU General Public License, version 2.0, as published by the
@@ -41,6 +41,8 @@ import java.security.KeyManagementException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
+import java.security.Signature;
+import java.security.SignatureException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertPath;
 import java.security.cert.CertPathValidator;
@@ -53,11 +55,14 @@ import java.security.cert.PKIXParameters;
 import java.security.cert.TrustAnchor;
 import java.security.cert.X509CertSelector;
 import java.security.cert.X509Certificate;
+import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
+import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collection;
 import java.util.List;
 import java.util.Properties;
@@ -94,6 +99,7 @@ import com.mysql.cj.exceptions.FeatureNotAvailableException;
 import com.mysql.cj.exceptions.RSAException;
 import com.mysql.cj.exceptions.SSLParamsException;
 import com.mysql.cj.exceptions.WrongArgumentException;
+import com.mysql.cj.log.Log;
 import com.mysql.cj.util.Base64Decoder;
 import com.mysql.cj.util.StringUtils;
 import com.mysql.cj.util.Util;
@@ -116,9 +122,19 @@ public class ExportControlled {
         try {
             Properties tlsSettings = new Properties();
             tlsSettings.load(ExportControlled.class.getResourceAsStream(TLS_SETTINGS_RESOURCE));
-            Arrays.stream(tlsSettings.getProperty("TLSCiphers.Mandatory").split("\\s*,\\s*")).forEach(s -> ALLOWED_CIPHERS.add(s.trim()));
-            Arrays.stream(tlsSettings.getProperty("TLSCiphers.Approved").split("\\s*,\\s*")).forEach(s -> ALLOWED_CIPHERS.add(s.trim()));
-            Arrays.stream(tlsSettings.getProperty("TLSCiphers.Deprecated").split("\\s*,\\s*")).forEach(s -> ALLOWED_CIPHERS.add(s.trim()));
+            // Ciphers prefixed with "TLS_" are used by Oracle Java while the ones prefixed with "SSL_" are used by IBM Java
+            Arrays.stream(tlsSettings.getProperty("TLSCiphers.Mandatory").split("\\s*,\\s*")).forEach(s -> {
+                ALLOWED_CIPHERS.add("TLS_" + s.trim());
+                ALLOWED_CIPHERS.add("SSL_" + s.trim());
+            });
+            Arrays.stream(tlsSettings.getProperty("TLSCiphers.Approved").split("\\s*,\\s*")).forEach(s -> {
+                ALLOWED_CIPHERS.add("TLS_" + s.trim());
+                ALLOWED_CIPHERS.add("SSL_" + s.trim());
+            });
+            Arrays.stream(tlsSettings.getProperty("TLSCiphers.Deprecated").split("\\s*,\\s*")).forEach(s -> {
+                ALLOWED_CIPHERS.add("TLS_" + s.trim());
+                ALLOWED_CIPHERS.add("SSL_" + s.trim());
+            });
             Arrays.stream(tlsSettings.getProperty("TLSCiphers.Unacceptable.Mask").split("\\s*,\\s*")).forEach(s -> RESTRICTED_CIPHER_SUBSTR.add(s.trim()));
         } catch (IOException e) {
             throw ExceptionFactory.createException("Unable to load TlsSettings.properties");
@@ -163,7 +179,7 @@ public class ExportControlled {
         // TLSv1.2 yaSSL just closes the socket instead of re-attempting handshake with lower TLS version. So here we allow all protocols only
         // for server versions which are known to be compiled with OpenSSL.
         else if (serverVersion == null) {
-            // X Protocol doesn't provide server version, but we prefer to use most recent TLS version, though it also mean that X Protocol
+            // X Protocol doesn't provide server version, but we prefer to use most recent TLS version, though it also means that X Protocol
             // connection to old MySQL 5.7 GPL releases will fail by default, user must use enabledTLSProtocols=TLSv1.1 to connect them.
             tryProtocols = TLS_PROTOCOLS;
         } else if (serverVersion.meetsMinimum(new ServerVersion(5, 7, 28))
@@ -279,6 +295,8 @@ public class ExportControlled {
      *            the Protocol instance containing the socket to convert to an SSLSocket.
      * @param serverVersion
      *            ServerVersion object
+     * @param log
+     *            Logger
      * @return SSL socket
      * @throws IOException
      *             if i/o exception occurs
@@ -287,7 +305,7 @@ public class ExportControlled {
      * @throws FeatureNotAvailableException
      *             if TLS is not supported
      */
-    public static Socket performTlsHandshake(Socket rawSocket, SocketConnection socketConnection, ServerVersion serverVersion)
+    public static Socket performTlsHandshake(Socket rawSocket, SocketConnection socketConnection, ServerVersion serverVersion, Log log)
             throws IOException, SSLParamsException, FeatureNotAvailableException {
         PropertySet pset = socketConnection.getPropertySet();
 
@@ -315,6 +333,13 @@ public class ExportControlled {
         }
 
         sslSocket.startHandshake();
+
+        if (log != null) {
+            String tlsVersion = sslSocket.getSession().getProtocol();
+            if (TLSv1.equalsIgnoreCase(tlsVersion) || TLSv1_1.equalsIgnoreCase(tlsVersion)) {
+                log.logWarn("This connection is using " + tlsVersion + " which is now deprecated and will be removed in a future release of Connector/J.");
+            }
+        }
 
         return sslSocket;
     }
@@ -665,5 +690,32 @@ public class ExportControlled {
 
     public static byte[] encryptWithRSAPublicKey(byte[] source, RSAPublicKey key) throws RSAException {
         return encryptWithRSAPublicKey(source, key, "RSA/ECB/OAEPWithSHA-1AndMGF1Padding");
+    }
+
+    public static RSAPrivateKey decodeRSAPrivateKey(String key) throws RSAException {
+        if (key == null) {
+            throw ExceptionFactory.createException(RSAException.class, "Key parameter is null");
+        }
+
+        String keyData = key.replace("-----BEGIN PRIVATE KEY-----", "").replaceAll("\\R", "").replace("-----END PRIVATE KEY-----", "");
+        byte[] decodedKeyData = Base64.getDecoder().decode(keyData);
+
+        try {
+            KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+            return (RSAPrivateKey) keyFactory.generatePrivate(new PKCS8EncodedKeySpec(decodedKeyData));
+        } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
+            throw ExceptionFactory.createException(RSAException.class, "Unable to decode private key", e);
+        }
+    }
+
+    public static byte[] sign(byte[] source, RSAPrivateKey privateKey) throws RSAException {
+        try {
+            Signature signature = Signature.getInstance("SHA256withRSA");
+            signature.initSign(privateKey);
+            signature.update(source);
+            return signature.sign();
+        } catch (NoSuchAlgorithmException | InvalidKeyException | SignatureException e) {
+            throw ExceptionFactory.createException(RSAException.class, e.getMessage(), e);
+        }
     }
 }

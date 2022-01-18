@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify it under
  * the terms of the GNU General Public License, version 2.0, as published by the
@@ -36,7 +36,6 @@ import com.mysql.cj.conf.HostInfo;
 import com.mysql.cj.conf.PropertyKey;
 import com.mysql.cj.exceptions.OperationCancelledException;
 import com.mysql.cj.protocol.a.NativeMessageBuilder;
-import com.mysql.cj.util.StringUtils;
 
 //TODO should not be protocol-specific
 
@@ -89,8 +88,8 @@ public class CancelQueryTaskImpl extends TimerTask implements CancelQueryTask {
                             long origConnId = session.getThreadId();
                             HostInfo hostInfo = session.getHostInfo();
                             String database = hostInfo.getDatabase();
-                            String user = StringUtils.isNullOrEmpty(hostInfo.getUser()) ? "" : hostInfo.getUser();
-                            String password = StringUtils.isNullOrEmpty(hostInfo.getPassword()) ? "" : hostInfo.getPassword();
+                            String user = hostInfo.getUser();
+                            String password = hostInfo.getPassword();
 
                             NativeSession newSession = new NativeSession(hostInfo, session.getPropertySet());
                             newSession.connect(hostInfo, user, password, database, 30000, new TransactionEventHandler() {
@@ -101,8 +100,8 @@ public class CancelQueryTaskImpl extends TimerTask implements CancelQueryTask {
                                 public void transactionBegun() {
                                 }
                             });
-                            newSession.sendCommand(new NativeMessageBuilder().buildComQuery(newSession.getSharedSendPacket(), "KILL QUERY " + origConnId),
-                                    false, 0);
+                            newSession.sendCommand(new NativeMessageBuilder(newSession.getServerSession().supportsQueryAttributes())
+                                    .buildComQuery(newSession.getSharedSendPacket(), "KILL QUERY " + origConnId), false, 0);
 
                             localQueryToCancel.setCancelStatus(CancelStatus.CANCELED_BY_TIMEOUT);
                         }

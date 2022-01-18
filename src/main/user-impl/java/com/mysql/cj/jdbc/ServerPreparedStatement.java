@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2002, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify it under
  * the terms of the GNU General Public License, version 2.0, as published by the
@@ -45,6 +45,7 @@ import java.util.ArrayList;
 import com.mysql.cj.CancelQueryTask;
 import com.mysql.cj.Messages;
 import com.mysql.cj.MysqlType;
+import com.mysql.cj.NativeSession;
 import com.mysql.cj.ParseInfo;
 import com.mysql.cj.PreparedQuery;
 import com.mysql.cj.ServerPreparedQuery;
@@ -174,9 +175,7 @@ public class ServerPreparedStatement extends ClientPreparedStatement {
 
     @Override
     public String asSql(boolean quoteStreamsAndUnknowns) throws SQLException {
-
         synchronized (checkClosed().getConnectionMutex()) {
-
             ClientPreparedStatement pStmtForSub = null;
 
             try {
@@ -273,6 +272,7 @@ public class ServerPreparedStatement extends ClientPreparedStatement {
 
             if (this.isCacheable && isPoolable()) {
                 clearParameters();
+                clearAttributes();
 
                 this.isClosed = true;
 
@@ -477,7 +477,6 @@ public class ServerPreparedStatement extends ClientPreparedStatement {
     @Override
     public java.sql.ResultSetMetaData getMetaData() throws SQLException {
         synchronized (checkClosed().getConnectionMutex()) {
-
             ColumnDefinition resultFields = ((ServerPreparedQuery) this.query).getResultFields();
 
             return resultFields == null || resultFields.getFields() == null ? null
@@ -490,7 +489,6 @@ public class ServerPreparedStatement extends ClientPreparedStatement {
     @Override
     public ParameterMetaData getParameterMetaData() throws SQLException {
         synchronized (checkClosed().getConnectionMutex()) {
-
             if (this.parameterMetaData == null) {
                 this.parameterMetaData = new MysqlParameterMetadata(this.session, ((ServerPreparedQuery) this.query).getParameterFields(),
                         ((PreparedQuery<?>) this.query).getParameterCount(), this.exceptionInterceptor);
@@ -508,15 +506,12 @@ public class ServerPreparedStatement extends ClientPreparedStatement {
     @Override
     public void realClose(boolean calledExplicitly, boolean closeOpenResults) throws SQLException {
         JdbcConnection locallyScopedConn = this.connection;
-
         if (locallyScopedConn == null) {
             return; // already closed
         }
 
         synchronized (locallyScopedConn.getConnectionMutex()) {
-
             if (this.connection != null) {
-
                 //
                 // Don't communicate with the server if we're being called from the finalizer...
                 // 
@@ -526,24 +521,26 @@ public class ServerPreparedStatement extends ClientPreparedStatement {
 
                 CJException exceptionDuringClose = null;
 
-                if (calledExplicitly && !this.connection.isClosed()) {
-                    synchronized (this.connection.getConnectionMutex()) {
+                if (this.isCached) {
+                    locallyScopedConn.decachePreparedStatement(this);
+                    this.isCached = false;
+                }
+
+                super.realClose(calledExplicitly, closeOpenResults);
+
+                ((ServerPreparedQuery) this.query).clearParameters(false);
+
+                // Finally deallocate the prepared statement.
+                if (calledExplicitly && !locallyScopedConn.isClosed()) {
+                    synchronized (locallyScopedConn.getConnectionMutex()) {
                         try {
-                            this.session.sendCommand(this.commandBuilder.buildComStmtClose(null, ((ServerPreparedQuery) this.query).getServerStatementId()),
-                                    true, 0);
+                            ((NativeSession) locallyScopedConn.getSession()).sendCommand(
+                                    this.commandBuilder.buildComStmtClose(null, ((ServerPreparedQuery) this.query).getServerStatementId()), true, 0);
                         } catch (CJException sqlEx) {
                             exceptionDuringClose = sqlEx;
                         }
                     }
                 }
-
-                if (this.isCached) {
-                    this.connection.decachePreparedStatement(this);
-                    this.isCached = false;
-                }
-                super.realClose(calledExplicitly, closeOpenResults);
-
-                ((ServerPreparedQuery) this.query).clearParameters(false);
 
                 if (exceptionDuringClose != null) {
                     throw exceptionDuringClose;
@@ -723,15 +720,24 @@ public class ServerPreparedStatement extends ClientPreparedStatement {
                 if (paramArg[j].isStream()) {
                     Object value = paramArg[j].value;
 
-                    if (value instanceof InputStream) {
+                    if (value instanceof byte[]) {
+                        batchedStatement.setBytes(batchedParamIndex++, (byte[]) value);
+                    } else if (value instanceof InputStream) {
                         batchedStatement.setBinaryStream(batchedParamIndex++, (InputStream) value, paramArg[j].getStreamLength());
-                    } else {
+                    } else if (value instanceof java.sql.Blob) {
+                        try {
+                            batchedStatement.setBinaryStream(batchedParamIndex++, ((java.sql.Blob) value).getBinaryStream(), paramArg[j].getStreamLength());
+                        } catch (Throwable t) {
+                            throw ExceptionFactory.createException(t.getMessage(), this.session.getExceptionInterceptor());
+                        }
+                    } else if (value instanceof Reader) {
                         batchedStatement.setCharacterStream(batchedParamIndex++, (Reader) value, paramArg[j].getStreamLength());
+                    } else {
+                        throw ExceptionFactory.createException(WrongArgumentException.class,
+                                Messages.getString("ServerPreparedStatement.18") + value.getClass().getName() + "'", this.session.getExceptionInterceptor());
                     }
                 } else {
-
                     switch (paramArg[j].bufferType) {
-
                         case MysqlType.FIELD_TYPE_TINY:
                             batchedStatement.setByte(batchedParamIndex++, ((Long) paramArg[j].value).byteValue());
                             break;
@@ -807,6 +813,8 @@ public class ServerPreparedStatement extends ClientPreparedStatement {
                 ClientPreparedStatement pstmt = ((Wrapper) localConn.prepareStatement(((PreparedQuery<?>) this.query).getParseInfo().getSqlForBatch(numBatches),
                         this.resultSetConcurrency, this.query.getResultType().getIntValue())).unwrap(ClientPreparedStatement.class);
                 pstmt.setRetrieveGeneratedKeys(this.retrieveGeneratedKeys);
+
+                getQueryAttributesBindings().runThroughAll(a -> ((JdbcStatement) pstmt).setAttribute(a.getName(), a.getValue()));
 
                 return pstmt;
             } catch (UnsupportedEncodingException e) {

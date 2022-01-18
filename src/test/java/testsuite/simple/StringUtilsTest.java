@@ -29,6 +29,10 @@
 
 package testsuite.simple;
 
+import com.mysql.cj.util.LazyString;
+import com.mysql.cj.util.SearchMode;
+import com.mysql.cj.util.StringUtils;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -43,10 +47,6 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 
 import org.junit.jupiter.api.Test;
-
-import com.mysql.cj.util.LazyString;
-import com.mysql.cj.util.StringUtils;
-import com.mysql.cj.util.StringUtils.SearchMode;
 
 import testsuite.BaseTestCase;
 
@@ -115,18 +115,16 @@ public class StringUtilsTest extends BaseTestCase {
          * searchMode) using search modes SEARCH_MODE__BSESC_MRK_WS or SEARCH_MODE__MRK_WS
          */
         // basic test set
-        assertEquals(-1, StringUtils.indexOfIgnoreCase(0, null, (String) null, markerStart, markerEnd, StringUtils.SEARCH_MODE__BSESC_MRK_WS));
-        assertEquals(-1, StringUtils.indexOfIgnoreCase(0, null, "abc", markerStart, markerEnd, StringUtils.SEARCH_MODE__BSESC_MRK_WS));
-        assertEquals(-1, StringUtils.indexOfIgnoreCase(0, "abc", (String) null, markerStart, markerEnd, StringUtils.SEARCH_MODE__BSESC_MRK_WS));
-        assertEquals(-1, StringUtils.indexOfIgnoreCase(0, "abc", "", markerStart, markerEnd, StringUtils.SEARCH_MODE__BSESC_MRK_WS));
-        assertEquals(-1, StringUtils.indexOfIgnoreCase(0, "abc", "bcd", markerStart, markerEnd, StringUtils.SEARCH_MODE__BSESC_MRK_WS));
-        assertEquals(6, StringUtils.indexOfIgnoreCase(0, "ab -- abc", "abc", markerStart, markerEnd, StringUtils.SEARCH_MODE__BSESC_MRK_WS));
-        assertEquals(5, StringUtils.indexOfIgnoreCase(0, "ab # abc", "abc", markerStart, markerEnd, StringUtils.SEARCH_MODE__BSESC_MRK_WS));
-        assertEquals(-1, StringUtils.indexOfIgnoreCase(0, "ab/*/* /c", "abc", markerStart, markerEnd, StringUtils.SEARCH_MODE__BSESC_MRK_WS));
-        assertEquals(-1, StringUtils.indexOfIgnoreCase(0, "ab/**/c", "abc", markerStart, markerEnd, StringUtils.SEARCH_MODE__BSESC_MRK_WS));
-        assertEquals(5, StringUtils.indexOfIgnoreCase(0, "ab/* abc */c", "abc", markerStart, markerEnd, StringUtils.SEARCH_MODE__BSESC_MRK_WS));
-        assertEquals(0, StringUtils.indexOfIgnoreCase(0, "abc", "abc", markerStart, markerEnd, StringUtils.SEARCH_MODE__BSESC_MRK_WS));
-        assertEquals(3, StringUtils.indexOfIgnoreCase(0, "abc d efg", " d ", markerStart, markerEnd, StringUtils.SEARCH_MODE__BSESC_MRK_WS));
+        assertEquals(-1, StringUtils.indexOfIgnoreCase(0, "abc", (String) null, markerStart, markerEnd, SearchMode.__BSE_MRK_WS));
+        assertEquals(-1, StringUtils.indexOfIgnoreCase(0, "abc", "", markerStart, markerEnd, SearchMode.__BSE_MRK_WS));
+        assertEquals(-1, StringUtils.indexOfIgnoreCase(0, "abc", "bcd", markerStart, markerEnd, SearchMode.__BSE_MRK_WS));
+        assertEquals(6, StringUtils.indexOfIgnoreCase(0, "ab -- abc", "abc", markerStart, markerEnd, SearchMode.__BSE_MRK_WS));
+        assertEquals(5, StringUtils.indexOfIgnoreCase(0, "ab # abc", "abc", markerStart, markerEnd, SearchMode.__BSE_MRK_WS));
+        assertEquals(-1, StringUtils.indexOfIgnoreCase(0, "ab/*/* /c", "abc", markerStart, markerEnd, SearchMode.__BSE_MRK_WS));
+        assertEquals(-1, StringUtils.indexOfIgnoreCase(0, "ab/**/c", "abc", markerStart, markerEnd, SearchMode.__BSE_MRK_WS));
+        assertEquals(5, StringUtils.indexOfIgnoreCase(0, "ab/* abc */c", "abc", markerStart, markerEnd, SearchMode.__BSE_MRK_WS));
+        assertEquals(0, StringUtils.indexOfIgnoreCase(0, "abc", "abc", markerStart, markerEnd, SearchMode.__BSE_MRK_WS));
+        assertEquals(3, StringUtils.indexOfIgnoreCase(0, "abc d efg", " d ", markerStart, markerEnd, SearchMode.__BSE_MRK_WS));
 
         // exhaustive test set
         searchInMulti = new String[] { "A \"strange \"STRONG SsStRiNg to be searched in", "A 'strange 'STRONG SsStRiNg to be searched in",
@@ -137,17 +135,17 @@ public class StringUtilsTest extends BaseTestCase {
             for (int j = 0; j < searchInMulti.length; j++) {
                 // multiple markers
                 assertEquals(expectedIdx[i],
-                        StringUtils.indexOfIgnoreCase(0, searchInMulti[j], searchForMulti[i], markerStart, markerEnd, StringUtils.SEARCH_MODE__MRK_WS),
+                        StringUtils.indexOfIgnoreCase(0, searchInMulti[j], searchForMulti[i], markerStart, markerEnd, SearchMode.__MRK_WS),
                         "Test C." + j + "." + i);
                 assertEquals(expectedIdx[i],
-                        StringUtils.indexOfIgnoreCase(0, searchInMulti[j], searchForMulti[i], markerStart, markerEnd, StringUtils.SEARCH_MODE__BSESC_MRK_WS),
+                        StringUtils.indexOfIgnoreCase(0, searchInMulti[j], searchForMulti[i], markerStart, markerEnd, SearchMode.__BSE_MRK_WS),
                         "Test C." + j + "." + i);
 
                 // single marker
                 assertEquals(expectedIdx[i], StringUtils.indexOfIgnoreCase(0, searchInMulti[j], searchForMulti[i], markerStart.substring(j, j + 1),
-                        markerEnd.substring(j, j + 1), StringUtils.SEARCH_MODE__MRK_WS), "Test C." + j + "." + i);
+                        markerEnd.substring(j, j + 1), SearchMode.__MRK_WS), "Test C." + j + "." + i);
                 assertEquals(expectedIdx[i], StringUtils.indexOfIgnoreCase(0, searchInMulti[j], searchForMulti[i], markerStart.substring(j, j + 1),
-                        markerEnd.substring(j, j + 1), StringUtils.SEARCH_MODE__BSESC_MRK_WS), "Test C." + j + "." + i);
+                        markerEnd.substring(j, j + 1), SearchMode.__BSE_MRK_WS), "Test C." + j + "." + i);
             }
         }
 
@@ -157,10 +155,10 @@ public class StringUtilsTest extends BaseTestCase {
         for (int i = 0; i < searchForMulti.length; i++) {
             // multiple markers
             assertEquals(expectedIdx[i],
-                    StringUtils.indexOfIgnoreCase(0, searchIn, searchForMulti[i], markerStart, markerEnd, StringUtils.SEARCH_MODE__BSESC_MRK_WS),
+                    StringUtils.indexOfIgnoreCase(0, searchIn, searchForMulti[i], markerStart, markerEnd, SEARCH_MODE__BSESC_MRK_WS),
                     "Test C.4." + i);
             // single marker
-            assertEquals(expectedIdx[i], StringUtils.indexOfIgnoreCase(0, searchIn, searchForMulti[i], "'", "'", StringUtils.SEARCH_MODE__BSESC_MRK_WS),
+            assertEquals(expectedIdx[i], StringUtils.indexOfIgnoreCase(0, searchIn, searchForMulti[i], "'", "'", SEARCH_MODE__BSESC_MRK_WS),
                     "Test C.5." + i);
         }
 
@@ -170,10 +168,10 @@ public class StringUtilsTest extends BaseTestCase {
         for (int i = 0; i < searchForMulti.length; i++) {
             // multiple markers
             assertEquals(expectedIdx[i],
-                    StringUtils.indexOfIgnoreCase(0, searchIn, searchForMulti[i], markerStart, markerEnd, StringUtils.SEARCH_MODE__BSESC_MRK_WS),
+                    StringUtils.indexOfIgnoreCase(0, searchIn, searchForMulti[i], markerStart, markerEnd, SEARCH_MODE__BSESC_MRK_WS),
                     "Test C.6." + i);
             // single marker
-            assertEquals(expectedIdx[i], StringUtils.indexOfIgnoreCase(0, searchIn, searchForMulti[i], "'", "'", StringUtils.SEARCH_MODE__BSESC_MRK_WS),
+            assertEquals(expectedIdx[i], StringUtils.indexOfIgnoreCase(0, searchIn, searchForMulti[i], "'", "'", SEARCH_MODE__BSESC_MRK_WS),
                     "Test C.7." + i);
         }
 

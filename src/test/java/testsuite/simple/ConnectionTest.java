@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2002, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify it under
  * the terms of the GNU General Public License, version 2.0, as published by the
@@ -37,52 +37,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeFalse;
-
-import com.mysql.cj.CharsetMapping;
-import com.mysql.cj.MysqlConnection;
-import com.mysql.cj.NativeSession;
-import com.mysql.cj.PreparedQuery;
-import com.mysql.cj.Query;
-import com.mysql.cj.conf.ConnectionUrl;
-import com.mysql.cj.conf.PropertyDefinitions;
-import com.mysql.cj.conf.PropertyDefinitions.DatabaseTerm;
-import com.mysql.cj.conf.PropertyDefinitions.SslMode;
-import com.mysql.cj.conf.PropertyKey;
-import com.mysql.cj.exceptions.ExceptionFactory;
-import com.mysql.cj.exceptions.InvalidConnectionAttributeException;
-import com.mysql.cj.exceptions.MysqlErrorNumbers;
-import com.mysql.cj.jdbc.ClientPreparedStatement;
-import com.mysql.cj.jdbc.JdbcConnection;
-import com.mysql.cj.jdbc.JdbcPropertySet;
-import com.mysql.cj.jdbc.MysqlConnectionPoolDataSource;
-import com.mysql.cj.jdbc.NonRegisteringDriver;
-import com.mysql.cj.jdbc.exceptions.CommunicationsException;
-import com.mysql.cj.protocol.MessageReader;
-import com.mysql.cj.protocol.MessageSender;
-import com.mysql.cj.protocol.Resultset;
-import com.mysql.cj.protocol.a.DebugBufferingPacketReader;
-import com.mysql.cj.protocol.a.DebugBufferingPacketSender;
-import com.mysql.cj.protocol.a.MultiPacketReader;
-import com.mysql.cj.protocol.a.NativePacketHeader;
-import com.mysql.cj.protocol.a.NativePacketPayload;
-import com.mysql.cj.protocol.a.NativeProtocol;
-import com.mysql.cj.protocol.a.SimplePacketReader;
-import com.mysql.cj.protocol.a.SimplePacketSender;
-import com.mysql.cj.protocol.a.TimeTrackingPacketReader;
-import com.mysql.cj.protocol.a.TimeTrackingPacketSender;
-import com.mysql.cj.protocol.a.TracingPacketReader;
-import com.mysql.cj.protocol.a.TracingPacketSender;
-import com.mysql.cj.util.TimeUtil;
-import com.mysql.cj.util.Util;
-import com.mysql.jdbc.Driver;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
-import testsuite.BaseQueryInterceptor;
-import testsuite.BaseTestCase;
-import testsuite.BufferingLogger;
-import testsuite.TestUtils;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -124,7 +79,57 @@ import java.util.Properties;
 import java.util.Random;
 import java.util.concurrent.Callable;
 import java.util.function.Supplier;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+
+import com.mysql.cj.CharsetMappingWrapper;
+import com.mysql.cj.MysqlConnection;
+import com.mysql.cj.NativeSession;
+import com.mysql.cj.PreparedQuery;
+import com.mysql.cj.Query;
+import com.mysql.cj.conf.ConnectionUrl;
+import com.mysql.cj.conf.PropertyDefinitions;
+import com.mysql.cj.conf.PropertyDefinitions.DatabaseTerm;
+import com.mysql.cj.conf.PropertyDefinitions.SslMode;
+import com.mysql.cj.conf.PropertyKey;
+import com.mysql.cj.exceptions.ExceptionFactory;
+import com.mysql.cj.exceptions.InvalidConnectionAttributeException;
+import com.mysql.cj.exceptions.MysqlErrorNumbers;
+import com.mysql.cj.jdbc.ClientPreparedStatement;
+import com.mysql.cj.jdbc.JdbcConnection;
+import com.mysql.cj.jdbc.JdbcPropertySet;
+import com.mysql.cj.jdbc.MysqlConnectionPoolDataSource;
+import com.mysql.cj.jdbc.NonRegisteringDriver;
+import com.mysql.cj.jdbc.exceptions.CommunicationsException;
+import com.mysql.cj.protocol.MessageReader;
+import com.mysql.cj.protocol.MessageSender;
+import com.mysql.cj.protocol.Resultset;
+import com.mysql.cj.protocol.a.DebugBufferingPacketReader;
+import com.mysql.cj.protocol.a.DebugBufferingPacketSender;
+import com.mysql.cj.protocol.a.MultiPacketReader;
+import com.mysql.cj.protocol.a.NativePacketHeader;
+import com.mysql.cj.protocol.a.NativePacketPayload;
+import com.mysql.cj.protocol.a.NativeProtocol;
+import com.mysql.cj.protocol.a.NativeServerSession;
+import com.mysql.cj.protocol.a.SimplePacketReader;
+import com.mysql.cj.protocol.a.SimplePacketSender;
+import com.mysql.cj.protocol.a.TimeTrackingPacketReader;
+import com.mysql.cj.protocol.a.TimeTrackingPacketSender;
+import com.mysql.cj.protocol.a.TracingPacketReader;
+import com.mysql.cj.protocol.a.TracingPacketSender;
+import com.mysql.cj.util.TimeUtil;
+import com.mysql.cj.util.Util;
+import com.mysql.jdbc.Driver;
+
+import testsuite.BaseQueryInterceptor;
+import testsuite.BaseTestCase;
+import testsuite.BufferingLogger;
+import testsuite.TestUtils;
 
 /**
  * Tests java.sql.Connection functionality
@@ -202,62 +207,63 @@ public class ConnectionTest extends BaseTestCase {
     public void testClusterConnection() throws Exception {
         String url = System.getProperty(PropertyDefinitions.SYSP_testsuite_url_cluster);
 
-        if ((url != null) && (url.length() > 0)) {
-            Object versionNumObj = getSingleValueWithQuery("SHOW VARIABLES LIKE 'version'");
+        assumeTrue(url != null && url.length() > 0,
+                "This test requires a two-node cluster URL specified in " + PropertyDefinitions.SYSP_testsuite_url_cluster + " system property");
 
-            if ((versionNumObj != null) && (versionNumObj.toString().indexOf("cluster") != -1)) {
-                Connection clusterConn = null;
-                Statement clusterStmt = null;
+        Object versionNumObj = getSingleValueWithQuery("SHOW VARIABLES LIKE 'version'");
+
+        if ((versionNumObj != null) && (versionNumObj.toString().indexOf("cluster") != -1)) {
+            Connection clusterConn = null;
+            Statement clusterStmt = null;
+
+            try {
+                clusterConn = new NonRegisteringDriver().connect(url, null);
+
+                clusterStmt = clusterConn.createStatement();
+                clusterStmt.executeUpdate("DROP TABLE IF EXISTS testClusterConn");
+                clusterStmt.executeUpdate("CREATE TABLE testClusterConn (field1 INT) ENGINE=ndbcluster");
+                clusterStmt.executeUpdate("INSERT INTO testClusterConn VALUES (1)");
+
+                clusterConn.setAutoCommit(false);
+
+                clusterStmt.execute("SELECT * FROM testClusterConn");
+                clusterStmt.executeUpdate("UPDATE testClusterConn SET field1=4");
+
+                // Kill the connection
+                @SuppressWarnings("unused")
+                String connectionId = getSingleValueWithQuery("SELECT CONNECTION_ID()").toString();
+
+                System.out.println("Please kill the MySQL server now and press return...");
+                System.in.read();
+
+                System.out.println("Waiting for TCP/IP timeout...");
+                Thread.sleep(10);
+
+                System.out.println("Attempting auto reconnect");
 
                 try {
-                    clusterConn = new NonRegisteringDriver().connect(url, null);
-
-                    clusterStmt = clusterConn.createStatement();
-                    clusterStmt.executeUpdate("DROP TABLE IF EXISTS testClusterConn");
-                    clusterStmt.executeUpdate("CREATE TABLE testClusterConn (field1 INT) ENGINE=ndbcluster");
-                    clusterStmt.executeUpdate("INSERT INTO testClusterConn VALUES (1)");
-
+                    clusterConn.setAutoCommit(true);
                     clusterConn.setAutoCommit(false);
+                } catch (SQLException sqlEx) {
+                    System.out.println(sqlEx);
+                }
 
-                    clusterStmt.execute("SELECT * FROM testClusterConn");
-                    clusterStmt.executeUpdate("UPDATE testClusterConn SET field1=4");
+                //
+                // Test that this 'new' connection is not read-only
+                //
+                clusterStmt.executeUpdate("UPDATE testClusterConn SET field1=5");
 
-                    // Kill the connection
-                    @SuppressWarnings("unused")
-                    String connectionId = getSingleValueWithQuery("SELECT CONNECTION_ID()").toString();
+                ResultSet rset = clusterStmt.executeQuery("SELECT * FROM testClusterConn WHERE field1=5");
 
-                    System.out.println("Please kill the MySQL server now and press return...");
-                    System.in.read();
+                assertTrue(rset.next(), "One row should be returned");
+            } finally {
+                if (clusterStmt != null) {
+                    clusterStmt.executeUpdate("DROP TABLE IF EXISTS testClusterConn");
+                    clusterStmt.close();
+                }
 
-                    System.out.println("Waiting for TCP/IP timeout...");
-                    Thread.sleep(10);
-
-                    System.out.println("Attempting auto reconnect");
-
-                    try {
-                        clusterConn.setAutoCommit(true);
-                        clusterConn.setAutoCommit(false);
-                    } catch (SQLException sqlEx) {
-                        System.out.println(sqlEx);
-                    }
-
-                    //
-                    // Test that this 'new' connection is not read-only
-                    //
-                    clusterStmt.executeUpdate("UPDATE testClusterConn SET field1=5");
-
-                    ResultSet rset = clusterStmt.executeQuery("SELECT * FROM testClusterConn WHERE field1=5");
-
-                    assertTrue(rset.next(), "One row should be returned");
-                } finally {
-                    if (clusterStmt != null) {
-                        clusterStmt.executeUpdate("DROP TABLE IF EXISTS testClusterConn");
-                        clusterStmt.close();
-                    }
-
-                    if (clusterConn != null) {
-                        clusterConn.close();
-                    }
+                if (clusterConn != null) {
+                    clusterConn.close();
                 }
             }
         }
@@ -281,6 +287,8 @@ public class ConnectionTest extends BaseTestCase {
             this.conn.setAutoCommit(false);
 
             Properties props = new Properties();
+            props.setProperty(PropertyKey.sslMode.getKeyName(), "DISABLED");
+            props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
             props.setProperty(PropertyKey.includeInnodbStatusInDeadlockExceptions.getKeyName(), "true");
             props.setProperty(PropertyKey.includeThreadDumpInDeadlockExceptions.getKeyName(), "true");
 
@@ -313,9 +321,7 @@ public class ConnectionTest extends BaseTestCase {
             assertTrue(sqlEx.getErrorCode() == 1205);
             // Make sure INNODB Status is getting dumped into error message
 
-            if (sqlEx.getMessage().indexOf("PROCESS privilege") != -1) {
-                fail("This test requires user with process privilege");
-            }
+            assertFalse(sqlEx.getMessage().indexOf("PROCESS privilege") != -1, "This test requires user with process privilege");
 
             assertTrue(sqlEx.getMessage().indexOf("INNODB MONITOR") != -1, "Can't find INNODB MONITOR in:\n\n" + sqlEx.getMessage());
 
@@ -709,7 +715,7 @@ public class ConnectionTest extends BaseTestCase {
 
     /**
      * Tests the ability to set the connection collation via properties.
-     * 
+     *
      * @throws Exception
      */
     @Test
@@ -744,6 +750,8 @@ public class ConnectionTest extends BaseTestCase {
     @Test
     public void testDumpQueriesOnException() throws Exception {
         Properties props = new Properties();
+        props.setProperty(PropertyKey.sslMode.getKeyName(), "DISABLED");
+        props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.dumpQueriesOnException.getKeyName(), "true");
         String bogusSQL = "SELECT 1 TO BAZ";
         Connection dumpConn = getConnectionWithProps(props);
@@ -803,6 +811,8 @@ public class ConnectionTest extends BaseTestCase {
      */
     @Test
     public void testLocalInfileWithUrl() throws Exception {
+        assumeTrue(supportsLoadLocalInfile(this.stmt), "This test requires the server started with --local-infile=ON");
+
         File infile = File.createTempFile("foo", "txt");
         infile.deleteOnExit();
         String url = infile.toURI().toURL().toExternalForm();
@@ -814,18 +824,20 @@ public class ConnectionTest extends BaseTestCase {
         createTable("testLocalInfileWithUrl", "(field1 LONGTEXT)");
 
         Properties props = new Properties();
+        props.setProperty(PropertyKey.sslMode.getKeyName(), "DISABLED");
+        props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.allowLoadLocalInfile.getKeyName(), "true");
         props.setProperty(PropertyKey.allowUrlInLocalInfile.getKeyName(), "true");
 
         Connection loadConn = getConnectionWithProps(props);
         Statement loadStmt = loadConn.createStatement();
 
-        String charset = " CHARACTER SET " + CharsetMapping.getMysqlCharsetForJavaEncoding(
+        String charset = " CHARACTER SET " + CharsetMappingWrapper.getStaticMysqlCharsetForJavaEncoding(
                 ((MysqlConnection) loadConn).getPropertySet().getStringProperty(PropertyKey.characterEncoding).getValue(),
                 ((JdbcConnection) loadConn).getServerVersion());
 
         try {
-            loadStmt.executeQuery("LOAD DATA LOCAL INFILE '" + url + "' INTO TABLE testLocalInfileWithUrl" + charset);
+            loadStmt.execute("LOAD DATA LOCAL INFILE '" + url + "' INTO TABLE testLocalInfileWithUrl" + charset);
         } catch (SQLException sqlEx) {
             sqlEx.printStackTrace();
 
@@ -857,7 +869,7 @@ public class ConnectionTest extends BaseTestCase {
         assertTrue("Test".equals(this.rs.getString(1)));
 
         try {
-            loadStmt.executeQuery("LOAD DATA LOCAL INFILE 'foo:///' INTO TABLE testLocalInfileWithUrl" + charset);
+            loadStmt.execute("LOAD DATA LOCAL INFILE 'foo:///' INTO TABLE testLocalInfileWithUrl" + charset);
         } catch (SQLException sqlEx) {
             assertTrue(sqlEx.getMessage() != null);
             assertTrue(sqlEx.getMessage().indexOf("FileNotFoundException") != -1);
@@ -866,6 +878,8 @@ public class ConnectionTest extends BaseTestCase {
 
     @Test
     public void testLocalInfileDisabled() throws Exception {
+        assumeTrue(supportsLoadLocalInfile(this.stmt), "This test requires the server started with --local-infile=ON");
+
         createTable("testLocalInfileDisabled", "(field1 varchar(255))");
 
         File infile = File.createTempFile("foo", "txt");
@@ -885,6 +899,8 @@ public class ConnectionTest extends BaseTestCase {
 
         // Test load local infile support enabled via client capabilities but disabled on the connector.
         Properties props = new Properties();
+        props.setProperty(PropertyKey.sslMode.getKeyName(), "DISABLED");
+        props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.allowLoadLocalInfile.getKeyName(), "true");
         Connection loadConn = getConnectionWithProps(props);
 
@@ -910,6 +926,8 @@ public class ConnectionTest extends BaseTestCase {
     public void testServerConfigurationCache() throws Exception {
         Properties props = new Properties();
 
+        props.setProperty(PropertyKey.sslMode.getKeyName(), "DISABLED");
+        props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.cacheServerConfiguration.getKeyName(), "true");
         props.setProperty(PropertyKey.profileSQL.getKeyName(), "true");
         props.setProperty(PropertyKey.logger.getKeyName(), BufferingLogger.class.getName());
@@ -951,6 +969,8 @@ public class ConnectionTest extends BaseTestCase {
     public void testUseLocalSessionState() throws Exception {
         Properties props = new Properties();
 
+        props.setProperty(PropertyKey.sslMode.getKeyName(), "DISABLED");
+        props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.useLocalSessionState.getKeyName(), "true");
         props.setProperty(PropertyKey.profileSQL.getKeyName(), "true");
         props.setProperty(PropertyKey.logger.getKeyName(), BufferingLogger.class.getName());
@@ -983,6 +1003,8 @@ public class ConnectionTest extends BaseTestCase {
 
         if (!isServerRunningOnWindows()) { // windows sockets don't work for this test
             Properties props = new Properties();
+            props.setProperty(PropertyKey.sslMode.getKeyName(), "DISABLED");
+            props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
             props.setProperty(PropertyKey.autoReconnect.getKeyName(), "true");
             props.setProperty(PropertyKey.failOverReadOnly.getKeyName(), "false");
 
@@ -1003,12 +1025,12 @@ public class ConnectionTest extends BaseTestCase {
 
                 Thread.sleep(3000);
 
-                try {
-                    failoverConnection.createStatement().execute("SELECT 1");
-                    fail("We expect an exception here, because the connection should be gone until the reconnect code picks it up again");
-                } catch (SQLException sqlEx) {
-                    // do-nothing
-                }
+                Connection localFailoverConnection = failoverConnection;
+                assertThrows("We expect an exception here, because the connection should be gone until the reconnect code picks it up again",
+                        SQLException.class, () -> {
+                            localFailoverConnection.createStatement().execute("SELECT 1");
+                            return null;
+                        });
 
                 // Tickle re-connect
 
@@ -1056,6 +1078,8 @@ public class ConnectionTest extends BaseTestCase {
     @Test
     public void testDontTrackOpenResources() throws Exception {
         Properties props = new Properties();
+        props.setProperty(PropertyKey.sslMode.getKeyName(), "DISABLED");
+        props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
 
         props.setProperty(PropertyKey.dontTrackOpenResources.getKeyName(), "true");
         Connection noTrackConn = null;
@@ -1097,22 +1121,22 @@ public class ConnectionTest extends BaseTestCase {
 
     @Test
     public void testPing() throws SQLException {
-        Connection conn2 = getConnectionWithProps((String) null);
+        Properties props = new Properties();
+        props.setProperty(PropertyKey.sslMode.getKeyName(), "DISABLED");
+        props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
+        Connection conn2 = getConnectionWithProps(props);
 
         ((com.mysql.cj.jdbc.JdbcConnection) conn2).ping();
         conn2.close();
 
-        try {
+        assertThrows(SQLException.class, () -> {
             ((com.mysql.cj.jdbc.JdbcConnection) conn2).ping();
-            fail("Should have failed with an exception");
-        } catch (SQLException sqlEx) {
-            // ignore for now
-        }
+            return null;
+        });
 
         //
         // This feature caused BUG#8975, so check for that too!
 
-        Properties props = new Properties();
         props.setProperty(PropertyKey.autoReconnect.getKeyName(), "true");
 
         getConnectionWithProps(props);
@@ -1125,6 +1149,8 @@ public class ConnectionTest extends BaseTestCase {
         int newWaitTimeout = Integer.parseInt(getInitialWaitTimeout) + 10000;
 
         Properties props = new Properties();
+        props.setProperty(PropertyKey.sslMode.getKeyName(), "DISABLED");
+        props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.sessionVariables.getKeyName(), "wait_timeout=" + newWaitTimeout);
         props.setProperty(PropertyKey.profileSQL.getKeyName(), "true");
 
@@ -1153,17 +1179,16 @@ public class ConnectionTest extends BaseTestCase {
         this.stmt.executeUpdate("DROP DATABASE IF EXISTS " + databaseName);
 
         Properties props = new Properties();
+        props.setProperty(PropertyKey.sslMode.getKeyName(), "DISABLED");
+        props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.createDatabaseIfNotExist.getKeyName(), "true");
         props.setProperty(PropertyKey.DBNAME.getKeyName(), databaseName);
 
         Connection con = getConnectionWithProps(props);
 
         this.rs = this.stmt.executeQuery("show databases like '" + databaseName + "'");
-        if (this.rs.next()) {
-            assertEquals(databaseName, this.rs.getString(1));
-        } else {
-            fail("Database " + databaseName + " is not found.");
-        }
+        assertTrue(this.rs.next(), "Database " + databaseName + " is not found.");
+        assertEquals(databaseName, this.rs.getString(1));
 
         con.createStatement().executeUpdate("DROP DATABASE IF EXISTS " + databaseName);
     }
@@ -1177,6 +1202,8 @@ public class ConnectionTest extends BaseTestCase {
     public void testGatherPerfMetrics() throws Exception {
         try {
             Properties props = new Properties();
+            props.setProperty(PropertyKey.sslMode.getKeyName(), "DISABLED");
+            props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
             props.setProperty(PropertyKey.autoReconnect.getKeyName(), "true");
             props.setProperty(PropertyKey.logSlowQueries.getKeyName(), "true");
             props.setProperty(PropertyKey.slowQueryThresholdMillis.getKeyName(), "2000");
@@ -1218,7 +1245,7 @@ public class ConnectionTest extends BaseTestCase {
             this.rs = this.stmt.executeQuery("SHOW VARIABLES LIKE 'innodb_log_file_size'");
             this.rs.next();
             assumeFalse(this.rs.getInt(2) < 1024 * 1024 * 32 * 10,
-                "You need to increase innodb_log_file_size to at least " + (1024 * 1024 * 32 * 10) + " before running this test!");
+                    "You need to increase innodb_log_file_size to at least " + (1024 * 1024 * 32 * 10) + " before running this test!");
         }
 
         try {
@@ -1421,6 +1448,8 @@ public class ConnectionTest extends BaseTestCase {
 
         try {
             Properties props = new Properties();
+            props.setProperty(PropertyKey.sslMode.getKeyName(), "DISABLED");
+            props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
             props.setProperty(PropertyKey.useUsageAdvisor.getKeyName(), "true");
             props.setProperty(PropertyKey.resultSetSizeThreshold.getKeyName(), "4");
             props.setProperty(PropertyKey.logger.getKeyName(), BufferingLogger.class.getName());
@@ -1443,11 +1472,11 @@ public class ConnectionTest extends BaseTestCase {
 
     @Test
     public void testUseLocalSessionStateRollback() throws Exception {
-        if (!versionMeetsMinimum(5, 5, 0)) {
-            return;
-        }
+        assumeTrue(versionMeetsMinimum(5, 5, 0), "MySQL 5.5+ is required to run this test.");
 
         Properties props = new Properties();
+        props.setProperty(PropertyKey.sslMode.getKeyName(), "DISABLED");
+        props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.useLocalSessionState.getKeyName(), "true");
         props.setProperty(PropertyKey.useLocalTransactionState.getKeyName(), "true");
         props.setProperty(PropertyKey.profileSQL.getKeyName(), "true");
@@ -1528,11 +1557,13 @@ public class ConnectionTest extends BaseTestCase {
 
         try {
             Properties props = new Properties();
+            props.setProperty(PropertyKey.sslMode.getKeyName(), "DISABLED");
+            props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
             props.setProperty(PropertyKey.useServerPrepStmts.getKeyName(), "false"); // force the issue
             props.setProperty(PropertyKey.useCursorFetch.getKeyName(), "true");
             fetchConn = getConnectionWithProps(props);
 
-            String classname = com.mysql.cj.jdbc.ServerPreparedStatement.class.getName();
+            String classname = "com.mysql.cj.jdbc.ServerPreparedStatement";
 
             assertEquals(classname, fetchConn.prepareStatement("SELECT 1").getClass().getName());
         } finally {
@@ -1544,9 +1575,14 @@ public class ConnectionTest extends BaseTestCase {
 
     @Test
     public void testInterfaceImplementation() throws Exception {
-        testInterfaceImplementation(getConnectionWithProps((Properties) null));
+        Properties props = new Properties();
+        props.setProperty(PropertyKey.sslMode.getKeyName(), "DISABLED");
+        props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
+        testInterfaceImplementation(getConnectionWithProps(props));
         MysqlConnectionPoolDataSource cpds = new MysqlConnectionPoolDataSource();
         cpds.setUrl(dbUrl);
+        cpds.getStringProperty(PropertyKey.sslMode.getKeyName()).setValue("DISABLED");
+        cpds.getBooleanProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName()).setValue(true);
         testInterfaceImplementation(cpds.getPooledConnection().getConnection());
     }
 
@@ -1612,6 +1648,11 @@ public class ConnectionTest extends BaseTestCase {
 
     @Test
     public void testNonVerifyServerCert() throws Exception {
+        assumeTrue((((MysqlConnection) this.conn).getSession().getServerSession().getCapabilities().getCapabilityFlags() & NativeServerSession.CLIENT_SSL) != 0,
+                "This test requires server with SSL support.");
+        assumeTrue(supportsTestCertificates(this.stmt),
+                "This test requires the server configured with SSL certificates from ConnectorJ/src/test/config/ssl-test-certs");
+
         Properties props = new Properties();
         props.setProperty(PropertyKey.useSSL.getKeyName(), "true");
         props.setProperty(PropertyKey.verifyServerCertificate.getKeyName(), "false");
@@ -1621,7 +1662,11 @@ public class ConnectionTest extends BaseTestCase {
 
     @Test
     public void testSelfDestruct() throws Exception {
-        Connection selfDestructingConn = getConnectionWithProps("selfDestructOnPingMaxOperations=2");
+        Properties props = new Properties();
+        props.setProperty(PropertyKey.sslMode.getKeyName(), "DISABLED");
+        props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
+        props.setProperty(PropertyKey.selfDestructOnPingMaxOperations.getKeyName(), "2");
+        Connection selfDestructingConn = getConnectionWithProps(props);
 
         boolean failed = false;
 
@@ -1641,13 +1686,13 @@ public class ConnectionTest extends BaseTestCase {
             }
         }
 
-        if (!failed) {
-            fail("Connection should've self-destructed");
-        }
+        assertTrue(failed, "Connection should've self-destructed");
 
         failed = false;
 
-        selfDestructingConn = getConnectionWithProps("selfDestructOnPingSecondsLifetime=1");
+        props.remove(PropertyKey.selfDestructOnPingMaxOperations.getKeyName());
+        props.setProperty(PropertyKey.selfDestructOnPingSecondsLifetime.getKeyName(), "1");
+        selfDestructingConn = getConnectionWithProps(props);
 
         for (int i = 0; i < 20; i++) {
             selfDestructingConn.createStatement().execute("SELECT SLEEP(1)");
@@ -1665,9 +1710,7 @@ public class ConnectionTest extends BaseTestCase {
             }
         }
 
-        if (!failed) {
-            fail("Connection should've self-destructed");
-        }
+        assertTrue(failed, "Connection should've self-destructed");
     }
 
     @Test
@@ -1676,7 +1719,11 @@ public class ConnectionTest extends BaseTestCase {
         Connection liConn = null;
 
         try {
-            liConn = getConnectionWithProps("connectionLifecycleInterceptors=testsuite.simple.TestLifecycleInterceptor");
+            Properties props = new Properties();
+            props.setProperty(PropertyKey.sslMode.getKeyName(), "DISABLED");
+            props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
+            props.setProperty(PropertyKey.connectionLifecycleInterceptors.getKeyName(), TestLifecycleInterceptor.class.getName());
+            liConn = getConnectionWithProps(props);
             liConn.setAutoCommit(false);
 
             liConn.createStatement().executeUpdate("INSERT INTO testLifecycleInterceptor VALUES (1)");
@@ -1709,6 +1756,8 @@ public class ConnectionTest extends BaseTestCase {
                 user != null ? user : "", password != null ? password : "", database);
 
         Properties props = getHostFreePropertiesFromTestsuiteUrl();
+        props.setProperty(PropertyKey.sslMode.getKeyName(), "DISABLED");
+        props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.remove(PropertyKey.USER.getKeyName());
         props.remove(PropertyKey.PASSWORD.getKeyName());
         props.remove(PropertyKey.DBNAME.getKeyName());
@@ -1722,23 +1771,42 @@ public class ConnectionTest extends BaseTestCase {
 
     @Test
     public void testCompression() throws Exception {
-        Connection compressedConn = getConnectionWithProps("useCompression=true,maxAllowedPacket=33554432");
-        Statement compressedStmt = compressedConn.createStatement();
-        compressedStmt.setFetchSize(Integer.MIN_VALUE);
-        this.rs = compressedStmt.executeQuery("select repeat('a', 256 * 256 * 256 - 5)");
+        this.rs = this.stmt.executeQuery("SHOW VARIABLES LIKE 'max_allowed_packet'");
         this.rs.next();
-        String str = this.rs.getString(1);
+        long len = 33554432;
+        long defaultMaxAllowedPacket = this.rs.getInt(2);
+        boolean changeMaxAllowedPacket = defaultMaxAllowedPacket < len;
 
-        assertEquals((256 * 256 * 256 - 5), str.length());
+        try {
+            if (changeMaxAllowedPacket) {
+                this.stmt.executeUpdate("SET GLOBAL max_allowed_packet=" + 1024 * 1024 * 32);
+            }
+            Properties props = new Properties();
+            props.setProperty(PropertyKey.sslMode.getKeyName(), "DISABLED");
+            props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
+            props.setProperty(PropertyKey.useCompression.getKeyName(), "true");
+            props.setProperty(PropertyKey.maxAllowedPacket.getKeyName(), "33554432");
+            Connection compressedConn = getConnectionWithProps(props);
+            Statement compressedStmt = compressedConn.createStatement();
+            compressedStmt.setFetchSize(Integer.MIN_VALUE);
+            this.rs = compressedStmt.executeQuery("select repeat('a', 256 * 256 * 256 - 5)");
+            this.rs.next();
+            String str = this.rs.getString(1);
 
-        for (int i = 0; i < str.length(); i++) {
-            if (str.charAt(i) != 'a') {
-                fail();
+            assertEquals((256 * 256 * 256 - 5), str.length());
+
+            for (int i = 0; i < str.length(); i++) {
+                if (str.charAt(i) != 'a') {
+                    fail();
+                }
+            }
+        } finally {
+            if (changeMaxAllowedPacket) {
+                this.stmt.executeUpdate("SET GLOBAL max_allowed_packet=" + defaultMaxAllowedPacket);
             }
         }
     }
 
-    @Disabled
     @Test
     public void testIsLocal() throws Exception {
         Properties parsedProps = getPropertiesFromTestsuiteUrl();
@@ -1752,11 +1820,16 @@ public class ConnectionTest extends BaseTestCase {
 
     @Test
     public void testReadOnly56() throws Exception {
-        if (!versionMeetsMinimum(5, 6, 5)) {
-            return;
-        }
+        assumeTrue(versionMeetsMinimum(5, 6, 5), "MySQL 5.6.5+ is required to run this test.");
+
+        Properties props = new Properties();
+        props.setProperty(PropertyKey.sslMode.getKeyName(), "DISABLED");
+        props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
+        props.setProperty(PropertyKey.profileSQL.getKeyName(), "true");
+        props.setProperty(PropertyKey.logger.getKeyName(), BufferingLogger.class.getName());
+
         try {
-            Connection notLocalState = getConnectionWithProps("profileSQL=true,logger=" + BufferingLogger.class.getName());
+            Connection notLocalState = getConnectionWithProps(props);
 
             for (int i = 0; i < 2; i++) {
                 BufferingLogger.startLoggingToBuffer();
@@ -1774,7 +1847,8 @@ public class ConnectionTest extends BaseTestCase {
                 assertTrue(notLocalState.isReadOnly());
             }
 
-            Connection localState = getConnectionWithProps("profileSQL=true,useLocalSessionState=true,logger=" + BufferingLogger.class.getName());
+            props.setProperty(PropertyKey.useLocalSessionState.getKeyName(), "true");
+            Connection localState = getConnectionWithProps(props);
 
             String s = versionMeetsMinimum(8, 0, 3) ? "@@session.transaction_read_only" : "@@session.tx_read_only";
 
@@ -1791,7 +1865,9 @@ public class ConnectionTest extends BaseTestCase {
                 assertTrue(BufferingLogger.getBuffer().toString().indexOf("select @@session." + s) == -1);
             }
 
-            Connection noOptimization = getConnectionWithProps("profileSQL=true,readOnlyPropagatesToServer=false,logger=" + BufferingLogger.class.getName());
+            props.remove(PropertyKey.useLocalSessionState.getKeyName());
+            props.setProperty(PropertyKey.readOnlyPropagatesToServer.getKeyName(), "false");
+            Connection noOptimization = getConnectionWithProps(props);
 
             for (int i = 0; i < 2; i++) {
                 BufferingLogger.startLoggingToBuffer();
@@ -1812,24 +1888,25 @@ public class ConnectionTest extends BaseTestCase {
      * @throws Exception
      */
     @Test
-    @Disabled // This test is disabled since Github Actions doesn't support IPv6
+ @Disabled // This test is disabled since Github Actions doesn't support IPv6
     public void testIPv6() throws Exception {
-        if (!versionMeetsMinimum(5, 6)) {
-            return;
-            // this test could work with MySQL 5.5 but requires specific server configuration, e.g. "--bind-address=::"
-        }
+        assumeTrue(versionMeetsMinimum(5, 6), "MySQL 5.6+ is required to run this test."); // this test could work with MySQL 5.5 but requires specific server configuration, e.g. "--bind-address=::"
 
         String testUser = "testIPv6User";
         createUser("'" + testUser + "'@'%'", "IDENTIFIED BY '" + testUser + "'");
         this.stmt.execute("GRANT ALL ON *.* TO '" + testUser + "'@'%'");
 
         Properties connProps = getHostFreePropertiesFromTestsuiteUrl();
+        connProps.setProperty(PropertyKey.sslMode.getKeyName(), "DISABLED");
+        connProps.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         connProps.setProperty(PropertyKey.USER.getKeyName(), testUser);
         connProps.setProperty(PropertyKey.PASSWORD.getKeyName(), testUser);
 
-        List<Inet6Address> ipv6List = TestUtils.getIpv6List();
+        List<Inet6Address> ipv6List = isMysqlRunningLocally() ? TestUtils.getIpv6List() : TestUtils.getIpv6List(getHostFromTestsuiteUrl());
         List<String> ipv6Addrs = ipv6List.stream().map((e) -> e.getHostAddress()).collect(Collectors.toList());
-        ipv6Addrs.add("::1"); // IPv6 loopback
+        if (isMysqlRunningLocally()) {
+            ipv6Addrs.add("::1"); // IPv6 loopback
+        }
         int port = getPortFromTestsuiteUrl();
 
         boolean atLeastOne = false;
@@ -1856,7 +1933,8 @@ public class ConnectionTest extends BaseTestCase {
         }
 
         if (!atLeastOne) {
-            fail("None of the tested hosts have server sockets listening on the port " + port + ". This test requires a MySQL server running in local host.");
+            assertFalse(isMysqlRunningLocally(), "None of the tested hosts have server sockets listening on the port " + port + ".");
+            System.err.println("None of the tested hosts have server sockets listening on the port " + port + ".");
         }
     }
 
@@ -1911,7 +1989,9 @@ public class ConnectionTest extends BaseTestCase {
     public void testDriverConnectPropertiesPrecedence() throws Exception {
         assertThrows(SQLException.class, "Access denied for user 'dummy'@'[^']+' \\(using password: YES\\)", new Callable<Void>() {
             public Void call() throws Exception {
-                DriverManager.getConnection(BaseTestCase.dbUrl, "dummy", "dummy");
+                DriverManager.getConnection(
+                        (BaseTestCase.dbUrl.endsWith("?") ? BaseTestCase.dbUrl : BaseTestCase.dbUrl + "&") + "sslMode=DISABLED&allowPublicKeyRetrieval=true",
+                        "dummy", "dummy");
                 return null;
             }
         });
@@ -1929,6 +2009,9 @@ public class ConnectionTest extends BaseTestCase {
             }
             testUrl = testUrl.substring(0, b) + testUrl.substring(e, testUrl.length());
         }
+
+        // disable SSL
+        testUrl = (testUrl.endsWith("?") ? testUrl : testUrl + "&") + "sslMode=DISABLED&allowPublicKeyRetrieval=true";
 
         Properties props = new Properties();
         props.setProperty(PropertyKey.maxRows.getKeyName(), "123");
@@ -2000,6 +2083,8 @@ public class ConnectionTest extends BaseTestCase {
             boolean useServerPrepStmts = (tst & 0x4) != 0;
 
             Properties props = new Properties();
+            props.setProperty(PropertyKey.sslMode.getKeyName(), "DISABLED");
+            props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
             props.setProperty(PropertyKey.queryInterceptors.getKeyName(), TestEnableEscapeProcessingQueryInterceptor.class.getName());
             props.setProperty(PropertyKey.enableEscapeProcessing.getKeyName(), Boolean.toString(enableEscapeProcessing));
             props.setProperty(PropertyKey.processEscapeCodesForPrepStmts.getKeyName(), Boolean.toString(processEscapeCodesForPrepStmts));
@@ -2093,6 +2178,8 @@ public class ConnectionTest extends BaseTestCase {
 
         try {
             Properties props = new Properties();
+            props.setProperty(PropertyKey.sslMode.getKeyName(), "DISABLED");
+            props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
             props.setProperty(PropertyKey.useCompression.getKeyName(), "false");
             props.setProperty(PropertyKey.maintainTimeStats.getKeyName(), "true");
             props.setProperty(PropertyKey.traceProtocol.getKeyName(), "true");
@@ -2214,9 +2301,9 @@ public class ConnectionTest extends BaseTestCase {
      */
     @Test
     public void testUserRequireSSL() throws Exception {
-        if (!versionMeetsMinimum(5, 7, 6)) {
-            return;
-        }
+        assumeTrue(versionMeetsMinimum(5, 7, 6), "MySQL 5.7.6+ is required to run this test.");
+        assumeTrue(supportsTestCertificates(this.stmt),
+                "This test requires the server configured with SSL certificates from ConnectorJ/src/test/config/ssl-test-certs");
 
         Connection testConn;
         Statement testStmt;
@@ -2307,9 +2394,9 @@ public class ConnectionTest extends BaseTestCase {
      */
     @Test
     public void testUserRequireX509() throws Exception {
-        if (!versionMeetsMinimum(5, 7, 6)) {
-            return;
-        }
+        assumeTrue(versionMeetsMinimum(5, 7, 6), "MySQL 5.7.6+ is required to run this test.");
+        assumeTrue(supportsTestCertificates(this.stmt),
+                "This test requires the server configured with SSL certificates from ConnectorJ/src/test/config/ssl-test-certs");
 
         Connection testConn;
         Statement testStmt;
@@ -2397,6 +2484,11 @@ public class ConnectionTest extends BaseTestCase {
      */
     @Test
     public void testSslConnectionOptions() throws Exception {
+        assumeTrue((((MysqlConnection) this.conn).getSession().getServerSession().getCapabilities().getCapabilityFlags() & NativeServerSession.CLIENT_SSL) != 0,
+                "This test requires server with SSL support.");
+        assumeTrue(supportsTestCertificates(this.stmt),
+                "This test requires the server configured with SSL certificates from ConnectorJ/src/test/config/ssl-test-certs");
+
         Connection testConn;
         JdbcPropertySet propSet;
 
@@ -2461,6 +2553,9 @@ public class ConnectionTest extends BaseTestCase {
      */
     @Test
     public void testFallbackToSystemTrustStore() throws Exception {
+        assumeTrue(supportsTestCertificates(this.stmt),
+                "This test requires the server configured with SSL certificates from ConnectorJ/src/test/config/ssl-test-certs");
+
         Connection testConn;
 
         /*
@@ -2545,9 +2640,9 @@ public class ConnectionTest extends BaseTestCase {
      */
     @Test
     public void testFallbackToSystemKeyStore() throws Exception {
-        if (!versionMeetsMinimum(5, 7, 6)) {
-            return;
-        }
+        assumeTrue(versionMeetsMinimum(5, 7, 6), "MySQL 5.7.6+ is required to run this test.");
+        assumeTrue(supportsTestCertificates(this.stmt),
+                "This test requires the server configured with SSL certificates from ConnectorJ/src/test/config/ssl-test-certs");
 
         final String user = "testFbToSysKS";
         createUser(user, "IDENTIFIED BY 'password' REQUIRE X509");
@@ -2636,6 +2731,8 @@ public class ConnectionTest extends BaseTestCase {
      */
     @Test
     public void testAllowLoadLocalInfileInPath() throws Exception {
+        assumeTrue(supportsLoadLocalInfile(this.stmt), "This test requires the server started with --local-infile=ON");
+
         Path tmpDir = Paths.get(System.getProperty("java.io.tmpdir"));
 
         /*
@@ -2687,6 +2784,8 @@ public class ConnectionTest extends BaseTestCase {
 
         createTable("testAllowLoadLocalInfileInPath", "(data VARCHAR(100))");
         Properties props = new Properties();
+        props.setProperty(PropertyKey.sslMode.getKeyName(), "DISABLED");
+        props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
 
         // Default behavior: 'allowLoadLocalInfile' not set (false) & 'allowLoadLocalInfile' not set (NULL) & 'allowUrlInLocalInfile' not set (false).
         try (Connection testConn = getConnectionWithProps(props)) {
@@ -2694,7 +2793,7 @@ public class ConnectionTest extends BaseTestCase {
             assertThrows(SQLSyntaxErrorException.class,
                     versionMeetsMinimum(8, 0, 19) ? "Loading local data is disabled; this must be enabled on both the client and server sides"
                             : "The used command is not allowed with this MySQL version",
-                    () -> testStmt.executeQuery("LOAD DATA LOCAL INFILE '" + dataPath1 + "' INTO TABLE testAllowLoadLocalInfileInPath"));
+                    () -> testStmt.execute("LOAD DATA LOCAL INFILE '" + dataPath1 + "' INTO TABLE testAllowLoadLocalInfileInPath"));
         }
 
         // 'allowLoadLocalInfile=false' & 'allowLoadLocalInfile' not set (NULL) & 'allowUrlInLocalInfile' not set (false).
@@ -2704,7 +2803,7 @@ public class ConnectionTest extends BaseTestCase {
             assertThrows(SQLSyntaxErrorException.class,
                     versionMeetsMinimum(8, 0, 19) ? "Loading local data is disabled; this must be enabled on both the client and server sides"
                             : "The used command is not allowed with this MySQL version",
-                    () -> testStmt.executeQuery("LOAD DATA LOCAL INFILE '" + dataPath1 + "' INTO TABLE testAllowLoadLocalInfileInPath"));
+                    () -> testStmt.execute("LOAD DATA LOCAL INFILE '" + dataPath1 + "' INTO TABLE testAllowLoadLocalInfileInPath"));
         }
 
         // 'allowLoadLocalInfile=true' & 'allowLoadLocalInfile' not set or set with any value & 'allowUrlInLocalInfile' not set (false).
@@ -2712,31 +2811,31 @@ public class ConnectionTest extends BaseTestCase {
         props.setProperty(PropertyKey.allowLoadLocalInfile.getKeyName(), "true");
         try (Connection testConn = getConnectionWithProps(props)) {
             Statement testStmt = testConn.createStatement();
-            testStmt.executeQuery("LOAD DATA LOCAL INFILE '" + dataPath1 + "' INTO TABLE testAllowLoadLocalInfileInPath");
+            testStmt.execute("LOAD DATA LOCAL INFILE '" + dataPath1 + "' INTO TABLE testAllowLoadLocalInfileInPath");
             testAllowLoadLocalInfileInPathCheckAndDelete();
         }
         props.setProperty(PropertyKey.allowLoadLocalInfileInPath.getKeyName(), ""); // Empty dir name.
         try (Connection testConn = getConnectionWithProps(props)) {
             Statement testStmt = testConn.createStatement();
-            testStmt.executeQuery("LOAD DATA LOCAL INFILE '" + dataPath1 + "' INTO TABLE testAllowLoadLocalInfileInPath");
+            testStmt.execute("LOAD DATA LOCAL INFILE '" + dataPath1 + "' INTO TABLE testAllowLoadLocalInfileInPath");
             testAllowLoadLocalInfileInPathCheckAndDelete();
         }
         props.setProperty(PropertyKey.allowLoadLocalInfileInPath.getKeyName(), "   "); // Dir name with spaces.
         try (Connection testConn = getConnectionWithProps(props)) {
             Statement testStmt = testConn.createStatement();
-            testStmt.executeQuery("LOAD DATA LOCAL INFILE '" + dataPath1 + "' INTO TABLE testAllowLoadLocalInfileInPath");
+            testStmt.execute("LOAD DATA LOCAL INFILE '" + dataPath1 + "' INTO TABLE testAllowLoadLocalInfileInPath");
             testAllowLoadLocalInfileInPathCheckAndDelete();
         }
         props.setProperty(PropertyKey.allowLoadLocalInfileInPath.getKeyName(), tmpDir1.toString() + File.separator + "sub_12"); // Non-existing dir.
         try (Connection testConn = getConnectionWithProps(props)) {
             Statement testStmt = testConn.createStatement();
-            testStmt.executeQuery("LOAD DATA LOCAL INFILE '" + dataPath1 + "' INTO TABLE testAllowLoadLocalInfileInPath");
+            testStmt.execute("LOAD DATA LOCAL INFILE '" + dataPath1 + "' INTO TABLE testAllowLoadLocalInfileInPath");
             testAllowLoadLocalInfileInPathCheckAndDelete();
         }
         props.setProperty(PropertyKey.allowLoadLocalInfileInPath.getKeyName(), tmpDir2.toString()); // File not in the dir.
         try (Connection testConn = getConnectionWithProps(props)) {
             Statement testStmt = testConn.createStatement();
-            testStmt.executeQuery("LOAD DATA LOCAL INFILE '" + dataPath1 + "' INTO TABLE testAllowLoadLocalInfileInPath");
+            testStmt.execute("LOAD DATA LOCAL INFILE '" + dataPath1 + "' INTO TABLE testAllowLoadLocalInfileInPath");
             testAllowLoadLocalInfileInPathCheckAndDelete();
         }
 
@@ -2766,44 +2865,44 @@ public class ConnectionTest extends BaseTestCase {
             props.setProperty(PropertyKey.allowLoadLocalInfileInPath.getKeyName(), tmpDir.toString());
             try (Connection testConn = getConnectionWithProps(props)) {
                 Statement testStmt = testConn.createStatement();
-                testStmt.executeQuery("LOAD DATA LOCAL INFILE '" + fileRef1 + "' INTO TABLE testAllowLoadLocalInfileInPath");
+                testStmt.execute("LOAD DATA LOCAL INFILE '" + fileRef1 + "' INTO TABLE testAllowLoadLocalInfileInPath");
                 testAllowLoadLocalInfileInPathCheckAndDelete();
             }
             try (Connection testConn = getConnectionWithProps(props)) {
                 Statement testStmt = testConn.createStatement();
-                testStmt.executeQuery("LOAD DATA LOCAL INFILE '" + fileRef2 + "' INTO TABLE testAllowLoadLocalInfileInPath");
+                testStmt.execute("LOAD DATA LOCAL INFILE '" + fileRef2 + "' INTO TABLE testAllowLoadLocalInfileInPath");
                 testAllowLoadLocalInfileInPathCheckAndDelete();
             }
             props.setProperty(PropertyKey.allowLoadLocalInfileInPath.getKeyName(), tmpDir1.toString());
             try (Connection testConn = getConnectionWithProps(props)) {
                 Statement testStmt = testConn.createStatement();
-                testStmt.executeQuery("LOAD DATA LOCAL INFILE '" + fileRef1 + "' INTO TABLE testAllowLoadLocalInfileInPath");
+                testStmt.execute("LOAD DATA LOCAL INFILE '" + fileRef1 + "' INTO TABLE testAllowLoadLocalInfileInPath");
                 testAllowLoadLocalInfileInPathCheckAndDelete();
             }
             props.setProperty(PropertyKey.allowLoadLocalInfileInPath.getKeyName(), tmpSDir1.toString());
             try (Connection testConn = getConnectionWithProps(props)) {
                 Statement testStmt = testConn.createStatement();
-                testStmt.executeQuery("LOAD DATA LOCAL INFILE '" + fileRef1 + "' INTO TABLE testAllowLoadLocalInfileInPath");
+                testStmt.execute("LOAD DATA LOCAL INFILE '" + fileRef1 + "' INTO TABLE testAllowLoadLocalInfileInPath");
                 testAllowLoadLocalInfileInPathCheckAndDelete();
             }
             props.setProperty(PropertyKey.allowLoadLocalInfileInPath.getKeyName(), tmpSSDir1.toString());
             try (Connection testConn = getConnectionWithProps(props)) {
                 Statement testStmt = testConn.createStatement();
-                testStmt.executeQuery("LOAD DATA LOCAL INFILE '" + fileRef1 + "' INTO TABLE testAllowLoadLocalInfileInPath");
+                testStmt.execute("LOAD DATA LOCAL INFILE '" + fileRef1 + "' INTO TABLE testAllowLoadLocalInfileInPath");
                 testAllowLoadLocalInfileInPathCheckAndDelete();
             }
             props.setProperty(PropertyKey.allowLoadLocalInfileInPath.getKeyName(),
                     tmpDir2.toString() + File.separator + ".." + File.separator + tmpDir1.getFileName());
             try (Connection testConn = getConnectionWithProps(props)) {
                 Statement testStmt = testConn.createStatement();
-                testStmt.executeQuery("LOAD DATA LOCAL INFILE '" + fileRef1 + "' INTO TABLE testAllowLoadLocalInfileInPath");
+                testStmt.execute("LOAD DATA LOCAL INFILE '" + fileRef1 + "' INTO TABLE testAllowLoadLocalInfileInPath");
                 testAllowLoadLocalInfileInPathCheckAndDelete();
             }
             if (!skipLinkCheck) {
                 props.setProperty(PropertyKey.allowLoadLocalInfileInPath.getKeyName(), tmpLink2.toString());
                 try (Connection testConn = getConnectionWithProps(props)) {
                     Statement testStmt = testConn.createStatement();
-                    testStmt.executeQuery("LOAD DATA LOCAL INFILE '" + fileRef1 + "' INTO TABLE testAllowLoadLocalInfileInPath");
+                    testStmt.execute("LOAD DATA LOCAL INFILE '" + fileRef1 + "' INTO TABLE testAllowLoadLocalInfileInPath");
                     testAllowLoadLocalInfileInPathCheckAndDelete();
                 }
             }
@@ -2814,33 +2913,33 @@ public class ConnectionTest extends BaseTestCase {
             try (Connection testConn = getConnectionWithProps(props)) {
                 Statement testStmt = testConn.createStatement();
                 assertThrows(SQLException.class, "(?i)The file '" + dataPath2 + "' is not under the safe path '.*'\\.",
-                        () -> testStmt.executeQuery("LOAD DATA LOCAL INFILE '" + fileRef2 + "' INTO TABLE testAllowLoadLocalInfileInPath"));
+                        () -> testStmt.execute("LOAD DATA LOCAL INFILE '" + fileRef2 + "' INTO TABLE testAllowLoadLocalInfileInPath"));
             }
             props.setProperty(PropertyKey.allowLoadLocalInfileInPath.getKeyName(), tmpSDir1.toString());
             try (Connection testConn = getConnectionWithProps(props)) {
                 Statement testStmt = testConn.createStatement();
                 assertThrows(SQLException.class, "(?i)The file '" + dataPath2 + "' is not under the safe path '.*'\\.",
-                        () -> testStmt.executeQuery("LOAD DATA LOCAL INFILE '" + fileRef2 + "' INTO TABLE testAllowLoadLocalInfileInPath"));
+                        () -> testStmt.execute("LOAD DATA LOCAL INFILE '" + fileRef2 + "' INTO TABLE testAllowLoadLocalInfileInPath"));
             }
             props.setProperty(PropertyKey.allowLoadLocalInfileInPath.getKeyName(), tmpSSDir1.toString());
             try (Connection testConn = getConnectionWithProps(props)) {
                 Statement testStmt = testConn.createStatement();
                 assertThrows(SQLException.class, "(?i)The file '" + dataPath2 + "' is not under the safe path '.*'\\.",
-                        () -> testStmt.executeQuery("LOAD DATA LOCAL INFILE '" + fileRef2 + "' INTO TABLE testAllowLoadLocalInfileInPath"));
+                        () -> testStmt.execute("LOAD DATA LOCAL INFILE '" + fileRef2 + "' INTO TABLE testAllowLoadLocalInfileInPath"));
             }
             props.setProperty(PropertyKey.allowLoadLocalInfileInPath.getKeyName(),
                     tmpDir2.toString() + File.separator + ".." + File.separator + tmpDir1.getFileName());
             try (Connection testConn = getConnectionWithProps(props)) {
                 Statement testStmt = testConn.createStatement();
                 assertThrows(SQLException.class, "(?i)The file '" + dataPath2 + "' is not under the safe path '.*'\\.",
-                        () -> testStmt.executeQuery("LOAD DATA LOCAL INFILE '" + fileRef2 + "' INTO TABLE testAllowLoadLocalInfileInPath"));
+                        () -> testStmt.execute("LOAD DATA LOCAL INFILE '" + fileRef2 + "' INTO TABLE testAllowLoadLocalInfileInPath"));
             }
             if (!skipLinkCheck) {
                 props.setProperty(PropertyKey.allowLoadLocalInfileInPath.getKeyName(), tmpLink2.toString());
                 try (Connection testConn = getConnectionWithProps(props)) {
                     Statement testStmt = testConn.createStatement();
                     assertThrows(SQLException.class, "(?i)The file '" + dataPath2 + "' is not under the safe path '.*'\\.",
-                            () -> testStmt.executeQuery("LOAD DATA LOCAL INFILE '" + fileRef2 + "' INTO TABLE testAllowLoadLocalInfileInPath"));
+                            () -> testStmt.execute("LOAD DATA LOCAL INFILE '" + fileRef2 + "' INTO TABLE testAllowLoadLocalInfileInPath"));
                 }
             }
 
@@ -2850,23 +2949,23 @@ public class ConnectionTest extends BaseTestCase {
             try (Connection testConn = getConnectionWithProps(props)) {
                 Statement testStmt = testConn.createStatement();
                 assertThrows(SQLException.class, "The path '' specified in 'allowLoadLocalInfileInPath' does not exist\\.",
-                        () -> testStmt.executeQuery("LOAD DATA LOCAL INFILE '" + fileRef1 + "' INTO TABLE testAllowLoadLocalInfileInPath"));
+                        () -> testStmt.execute("LOAD DATA LOCAL INFILE '" + fileRef1 + "' INTO TABLE testAllowLoadLocalInfileInPath"));
             }
             try (Connection testConn = getConnectionWithProps(props)) {
                 Statement testStmt = testConn.createStatement();
                 assertThrows(SQLException.class, "The path '' specified in 'allowLoadLocalInfileInPath' does not exist\\.",
-                        () -> testStmt.executeQuery("LOAD DATA LOCAL INFILE '" + fileRef2 + "' INTO TABLE testAllowLoadLocalInfileInPath"));
+                        () -> testStmt.execute("LOAD DATA LOCAL INFILE '" + fileRef2 + "' INTO TABLE testAllowLoadLocalInfileInPath"));
             }
             props.setProperty(PropertyKey.allowLoadLocalInfileInPath.getKeyName(), "   "); // Dir name with spaces.
             try (Connection testConn = getConnectionWithProps(props)) {
                 Statement testStmt = testConn.createStatement();
                 assertThrows(SQLException.class, "The path '   ' specified in 'allowLoadLocalInfileInPath' does not exist\\.",
-                        () -> testStmt.executeQuery("LOAD DATA LOCAL INFILE '" + fileRef1 + "' INTO TABLE testAllowLoadLocalInfileInPath"));
+                        () -> testStmt.execute("LOAD DATA LOCAL INFILE '" + fileRef1 + "' INTO TABLE testAllowLoadLocalInfileInPath"));
             }
             try (Connection testConn = getConnectionWithProps(props)) {
                 Statement testStmt = testConn.createStatement();
                 assertThrows(SQLException.class, "The path '   ' specified in 'allowLoadLocalInfileInPath' does not exist\\.",
-                        () -> testStmt.executeQuery("LOAD DATA LOCAL INFILE '" + fileRef2 + "' INTO TABLE testAllowLoadLocalInfileInPath"));
+                        () -> testStmt.execute("LOAD DATA LOCAL INFILE '" + fileRef2 + "' INTO TABLE testAllowLoadLocalInfileInPath"));
             }
             props.setProperty(PropertyKey.allowLoadLocalInfileInPath.getKeyName(), tmpDir1.toString() + File.separator + "sub_12"); // Non-existing dir.
             try (Connection testConn = getConnectionWithProps(props)) {
@@ -2874,14 +2973,14 @@ public class ConnectionTest extends BaseTestCase {
                 assertThrows(SQLException.class,
                         "(?i)The path '" + (tmpDir1.toString() + File.separator + "sub_12").replace("\\", "\\\\")
                                 + "' specified in 'allowLoadLocalInfileInPath' does not exist\\.",
-                        () -> testStmt.executeQuery("LOAD DATA LOCAL INFILE '" + fileRef1 + "' INTO TABLE testAllowLoadLocalInfileInPath"));
+                        () -> testStmt.execute("LOAD DATA LOCAL INFILE '" + fileRef1 + "' INTO TABLE testAllowLoadLocalInfileInPath"));
             }
             try (Connection testConn = getConnectionWithProps(props)) {
                 Statement testStmt = testConn.createStatement();
                 assertThrows(SQLException.class,
                         "(?i)The path '" + (tmpDir1.toString() + File.separator + "sub_12").replace("\\", "\\\\")
                                 + "' specified in 'allowLoadLocalInfileInPath' does not exist\\.",
-                        () -> testStmt.executeQuery("LOAD DATA LOCAL INFILE '" + fileRef2 + "' INTO TABLE testAllowLoadLocalInfileInPath"));
+                        () -> testStmt.execute("LOAD DATA LOCAL INFILE '" + fileRef2 + "' INTO TABLE testAllowLoadLocalInfileInPath"));
             }
         } while ((inclALLI = !inclALLI) || (inclAUILI = !inclAUILI));
 
@@ -2892,13 +2991,13 @@ public class ConnectionTest extends BaseTestCase {
         props.setProperty(PropertyKey.allowUrlInLocalInfile.getKeyName(), "true");
         try (Connection testConn = getConnectionWithProps(props)) {
             Statement testStmt = testConn.createStatement();
-            testStmt.executeQuery("LOAD DATA LOCAL INFILE '" + dataPath1 + "' INTO TABLE testAllowLoadLocalInfileInPath");
+            testStmt.execute("LOAD DATA LOCAL INFILE '" + dataPath1 + "' INTO TABLE testAllowLoadLocalInfileInPath");
             testAllowLoadLocalInfileInPathCheckAndDelete();
         }
         try (Connection testConn = getConnectionWithProps(props)) {
             String filePrefix = Util.isRunningOnWindows() ? "file://localhost/" : "file://localhost";
             Statement testStmt = testConn.createStatement();
-            testStmt.executeQuery("LOAD DATA LOCAL INFILE '" + filePrefix + dataPath1 + "' INTO TABLE testAllowLoadLocalInfileInPath");
+            testStmt.execute("LOAD DATA LOCAL INFILE '" + filePrefix + dataPath1 + "' INTO TABLE testAllowLoadLocalInfileInPath");
             testAllowLoadLocalInfileInPathCheckAndDelete();
         }
         try (Connection testConn = getConnectionWithProps(props)) {
@@ -2907,13 +3006,13 @@ public class ConnectionTest extends BaseTestCase {
             assertThrows(SQLException.class,
                     "Cannot read from '.*'\\. Only local host names are supported when 'allowLoadLocalInfileInPath' is set\\. "
                             + "Consider using the loopback network interface \\('localhost'\\)\\.",
-                    () -> testStmt.executeQuery("LOAD DATA LOCAL INFILE '" + filePrefix + dataPath1 + "' INTO TABLE testAllowLoadLocalInfileInPath"));
+                    () -> testStmt.execute("LOAD DATA LOCAL INFILE '" + filePrefix + dataPath1 + "' INTO TABLE testAllowLoadLocalInfileInPath"));
         }
         try (Connection testConn = getConnectionWithProps(props)) {
             String ftpPrefix = Util.isRunningOnWindows() ? "ftp://localhost/" : "ftp://localhost";
             Statement testStmt = testConn.createStatement();
             assertThrows(SQLException.class, "Unsupported protocol 'ftp'\\. Only protocol 'file' is supported when 'allowLoadLocalInfileInPath' is set\\.",
-                    () -> testStmt.executeQuery("LOAD DATA LOCAL INFILE '" + ftpPrefix + dataPath1 + "' INTO TABLE testAllowLoadLocalInfileInPath"));
+                    () -> testStmt.execute("LOAD DATA LOCAL INFILE '" + ftpPrefix + dataPath1 + "' INTO TABLE testAllowLoadLocalInfileInPath"));
         }
     }
 
@@ -2923,4 +3022,104 @@ public class ConnectionTest extends BaseTestCase {
         assertEquals("TEST DATA", this.rs.getString(1));
         assertEquals(1, this.stmt.executeUpdate("DELETE FROM testAllowLoadLocalInfileInPath"));
     }
+
+    /**
+     * Tests WL#14392, Improve timeout error messages [classic].
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testTimeoutErrors() throws Exception {
+        assumeTrue((((MysqlConnection) this.conn).getSession().getServerSession().getCapabilities().getCapabilityFlags() & NativeServerSession.CLIENT_SSL) != 0,
+                "This test requires server with SSL support.");
+        assumeTrue(supportsTestCertificates(this.stmt),
+                "This test requires the server configured with SSL certificates from ConnectorJ/src/test/config/ssl-test-certs");
+
+        int seconds = 2;
+        Properties props = new Properties();
+        props.setProperty(PropertyKey.sslMode.getKeyName(), "REQUIRED"); // server reports timeout message only with SSL on
+        props.setProperty(PropertyKey.sessionVariables.getKeyName(), "wait_timeout=" + seconds);
+
+        Connection timeoutConn = getConnectionWithProps(props);
+        Thread.sleep(1500 * seconds);
+        if (versionMeetsMinimum(8, 0, 24) && !(isServerRunningOnWindows() && System.getProperty("os.name").contains("Windows"))) { // server reports timeout
+            // TS.1.1 Create a connection to a MySQL configured with a short session timeout value.
+            // Sleep for a time longer than the specified timeout and assess that the error message obtained is the new one.
+            assertThrows(CommunicationsException.class,
+                    "The client was disconnected by the server because of inactivity. See wait_timeout and interactive_timeout for configuring this behavior.",
+                    () -> timeoutConn.createStatement().executeQuery("SELECT 1"));
+        } else {
+            // TS.2.1 Create a connection to a MySQL configured with a short session timeout value.
+            // Sleep for a time longer than the specified timeout and assess that the error message obtained is the old one.
+            assertThrows(CommunicationsException.class,
+                    "The last packet successfully received from the server was .+ milliseconds ago.+"
+                            + "The last packet sent successfully to the server was .+ milliseconds ago.+"
+                            + "is longer than the server configured value of 'wait_timeout'.+",
+                    () -> timeoutConn.createStatement().executeQuery("SELECT 1"));
+        }
+
+        // TS.1.2 & TS.2.2 Create a connection to a MySQL configured with a short session timeout value.
+        // Before the timeout runs out, use a second connection to kill the previous session.
+        // Assess that the error message obtained is the old one.
+        final Connection toBeKilledConn = getConnectionWithProps(props);
+        long connId = ((MysqlConnection) toBeKilledConn).getSession().getThreadId();
+        this.stmt.execute("KILL CONNECTION " + connId);
+        Thread.sleep(1500 * seconds);
+        assertThrows(CommunicationsException.class,
+                "The last packet successfully received from the server was .+ milliseconds ago."
+                        + " The last packet sent successfully to the server was .+ milliseconds ago.+",
+                () -> toBeKilledConn.createStatement().executeQuery("SELECT 1"));
+    }
+
+    /**
+     * Tests fix for WL#14559, Deprecate TLS 1.0 and 1.1.
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testTLSVersionDeprecation() throws Exception {
+        assumeTrue((((MysqlConnection) this.conn).getSession().getServerSession().getCapabilities().getCapabilityFlags() & NativeServerSession.CLIENT_SSL) != 0,
+                "This test requires server with SSL support.");
+        assumeTrue(supportsTestCertificates(this.stmt),
+                "This test requires the server configured with SSL certificates from ConnectorJ/src/test/config/ssl-test-certs");
+
+        Properties props = new Properties();
+        props.setProperty(PropertyKey.sslMode.getKeyName(), "REQUIRED");
+        props.setProperty(PropertyKey.logger.getKeyName(), BufferingLogger.class.getName());
+
+        // TS.FR1_3. Create X DevAPI connection with "sslMode=REQUIRED & enabledTLSProtocols=TLSv1,TLSv1.1".
+        //           Ensure that the deprecation warning "This connection is using TLSvX[.Y] which is now deprecated and will be removed in a future release of Connector/J." was logged.
+        // TS.FR1_4. Create X DevAPI connection with "xdevapi.ssl-mode=REQUIRED & xdevapi.tls-versions=TLSv1,TLSv1.1".
+        //           Ensure that the deprecation warning "This connection is using TLSvX[.Y] which is now deprecated and will be removed in a future release of Connector/J." was logged.
+
+        Connection con = null;
+        try {
+            // TS.FR1_1.
+            if (!versionMeetsMinimum(5, 6)) {
+                BufferingLogger.startLoggingToBuffer();
+                con = getConnectionWithProps(props);
+                assertTrue(Pattern.matches(".+ This connection is using TLSv.+ which is now deprecated and will be removed in a future release of Connector/J.",
+                        BufferingLogger.getBuffer().toString()));
+                BufferingLogger.dropBuffer();
+                con.close();
+            }
+
+            // TS.FR1_2.
+            BufferingLogger.startLoggingToBuffer();
+            props.setProperty(PropertyKey.enabledTLSProtocols.getKeyName(), "TLSv1,TLSv1.1");
+            con = getConnectionWithProps(props);
+            assertTrue(Pattern.matches(".+ This connection is using TLSv.+ which is now deprecated and will be removed in a future release of Connector/J.",
+                    BufferingLogger.getBuffer().toString()));
+            BufferingLogger.dropBuffer();
+            con.close();
+
+        } finally {
+            BufferingLogger.dropBuffer();
+            if (con != null) {
+                con.close();
+            }
+        }
+
+    }
+
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify it under
  * the terms of the GNU General Public License, version 2.0, as published by the
@@ -100,6 +100,7 @@ public enum PropertyKey {
     connectTimeout("connectTimeout", true), //
     continueBatchOnError("continueBatchOnError", true), //
     createDatabaseIfNotExist("createDatabaseIfNotExist", true), //
+    customCharsetMapping("customCharsetMapping", true), //
     databaseTerm("databaseTerm", true), //
     defaultAuthenticationPlugin("defaultAuthenticationPlugin", true), //
     defaultFetchSize("defaultFetchSize", true), //
@@ -165,6 +166,7 @@ public enum PropertyKey {
     noAccessToProcedureBodies("noAccessToProcedureBodies", true), //
     noDatetimeStringSync("noDatetimeStringSync", true), //
     nullDatabaseMeansCurrent("nullDatabaseMeansCurrent", "nullCatalogMeansCurrent", true), //
+    ociConfigFile("ociConfigFile", true), //
     overrideSupportsIntegrityEnhancementFacility("overrideSupportsIntegrityEnhancementFacility", true), //
     packetDebugBufferSize("packetDebugBufferSize", true), //
     padCharsWithSpace("padCharsWithSpace", true), //
@@ -196,6 +198,7 @@ public enum PropertyKey {
     retriesAllDown("retriesAllDown", true), //
     rewriteBatchedStatements("rewriteBatchedStatements", true), //
     rollbackOnPooledClose("rollbackOnPooledClose", true), //
+    scrollTolerantForwardOnly("scrollTolerantForwardOnly", true), //
     secondsBeforeRetrySource("secondsBeforeRetrySource", "secondsBeforeRetryMaster", true), //
     selfDestructOnPingMaxOperations("selfDestructOnPingMaxOperations", true), //
     selfDestructOnPingSecondsLifetime("selfDestructOnPingSecondsLifetime", true), //
@@ -205,6 +208,7 @@ public enum PropertyKey {
     serverConfigCacheFactory("serverConfigCacheFactory", true), //
     serverRSAPublicKeyFile("serverRSAPublicKeyFile", true), //
     sessionVariables("sessionVariables", true), //
+    trackSessionState("trackSessionState", true), //
     slowQueryThresholdMillis("slowQueryThresholdMillis", true), //
     slowQueryThresholdNanos("slowQueryThresholdNanos", true), //
     socketFactory("socketFactory", true), //

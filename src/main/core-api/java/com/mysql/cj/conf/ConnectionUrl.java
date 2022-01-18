@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify it under
  * the terms of the GNU General Public License, version 2.0, as published by the
@@ -442,14 +442,14 @@ public abstract class ConnectionUrl implements DatabaseUrlContainer {
     }
 
     /**
-     * Some acceptable property values have changed in c/J 8.0 but old values remain hardcoded in a widely used software.
-     * So we need to accept old values and translate them to new ones.
+     * Some acceptable property values have changed in c/J 8.0 but old values remain hard-coded in widely used software.
+     * So, old values must be accepted and translated to new ones.
      * 
      * @param props
      *            the host properties map to fix
      */
     protected void replaceLegacyPropertyValues(Map<String, String> props) {
-        // Workaround for zeroDateTimeBehavior=convertToNull hardcoded in NetBeans
+        // Workaround for zeroDateTimeBehavior=convertToNull hard-coded in NetBeans
         String zeroDateTimeBehavior = props.get(PropertyKey.zeroDateTimeBehavior.getKeyName());
         if (zeroDateTimeBehavior != null && zeroDateTimeBehavior.equalsIgnoreCase("convertToNull")) {
             props.put(PropertyKey.zeroDateTimeBehavior.getKeyName(), "CONVERT_TO_NULL");
@@ -568,8 +568,7 @@ public abstract class ConnectionUrl implements DatabaseUrlContainer {
      * @return the default user
      */
     public String getDefaultUser() {
-        String user = this.properties.get(PropertyKey.USER.getKeyName());
-        return isNullOrEmpty(user) ? "" : user;
+        return this.properties.get(PropertyKey.USER.getKeyName());
     }
 
     /**
@@ -579,8 +578,7 @@ public abstract class ConnectionUrl implements DatabaseUrlContainer {
      * @return the default password
      */
     public String getDefaultPassword() {
-        String password = this.properties.get(PropertyKey.PASSWORD.getKeyName());
-        return isNullOrEmpty(password) ? "" : password;
+        return this.properties.get(PropertyKey.PASSWORD.getKeyName());
     }
 
     /**
@@ -593,7 +591,7 @@ public abstract class ConnectionUrl implements DatabaseUrlContainer {
         String protocol = hostProps.get(PropertyKey.PROTOCOL.getKeyName());
         if (!isNullOrEmpty(protocol) && protocol.equalsIgnoreCase("PIPE")) {
             if (!hostProps.containsKey(PropertyKey.socketFactory.getKeyName())) {
-                hostProps.put(PropertyKey.socketFactory.getKeyName(), com.mysql.cj.protocol.NamedPipeSocketFactory.class.getName());
+                hostProps.put(PropertyKey.socketFactory.getKeyName(), "com.mysql.cj.protocol.NamedPipeSocketFactory");
             }
         }
     }
@@ -730,12 +728,16 @@ public abstract class ConnectionUrl implements DatabaseUrlContainer {
 
             props.setProperty(PropertyKey.HOST.getKeyName(), host);
             props.setProperty(PropertyKey.PORT.getKeyName(), String.valueOf(port));
-            props.setProperty(PropertyKey.USER.getKeyName(), user);
-            props.setProperty(PropertyKey.PASSWORD.getKeyName(), password);
+            if (user != null) {
+                props.setProperty(PropertyKey.USER.getKeyName(), user);
+            }
+            if (password != null) {
+                props.setProperty(PropertyKey.PASSWORD.getKeyName(), password);
+            }
 
             Properties transformedProps = this.propertiesTransformer.transformProperties(props);
 
-            host = transformedProps.getProperty(PropertyKey.PORT.getKeyName());
+            host = transformedProps.getProperty(PropertyKey.HOST.getKeyName());
             try {
                 port = Integer.parseInt(transformedProps.getProperty(PropertyKey.PORT.getKeyName()));
             } catch (NumberFormatException e) {

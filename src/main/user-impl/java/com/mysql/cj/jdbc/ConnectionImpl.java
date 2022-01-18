@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2002, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify it under
  * the terms of the GNU General Public License, version 2.0, as published by the
@@ -28,6 +28,34 @@
  */
 
 package com.mysql.cj.jdbc;
+
+import java.io.Serializable;
+import java.lang.ref.WeakReference;
+import java.lang.reflect.InvocationHandler;
+import java.sql.Blob;
+import java.sql.Clob;
+import java.sql.DatabaseMetaData;
+import java.sql.DriverManager;
+import java.sql.NClob;
+import java.sql.ResultSet;
+import java.sql.SQLClientInfoException;
+import java.sql.SQLException;
+import java.sql.SQLPermission;
+import java.sql.SQLWarning;
+import java.sql.SQLXML;
+import java.sql.Savepoint;
+import java.sql.Struct;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Random;
+import java.util.Stack;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Executor;
+import java.util.stream.Collectors;
 
 import com.mysql.cj.CacheAdapter;
 import com.mysql.cj.CacheAdapterFactory;
@@ -62,38 +90,11 @@ import com.mysql.cj.jdbc.result.ResultSetInternalMethods;
 import com.mysql.cj.jdbc.result.UpdatableResultSet;
 import com.mysql.cj.log.ProfilerEvent;
 import com.mysql.cj.log.StandardLogger;
+import com.mysql.cj.protocol.ServerSessionStateController;
 import com.mysql.cj.protocol.SocksProxySocketFactory;
 import com.mysql.cj.util.LRUCache;
 import com.mysql.cj.util.StringUtils;
 import com.mysql.cj.util.Util;
-
-import java.io.Serializable;
-import java.lang.ref.WeakReference;
-import java.lang.reflect.InvocationHandler;
-import java.sql.Blob;
-import java.sql.Clob;
-import java.sql.DatabaseMetaData;
-import java.sql.DriverManager;
-import java.sql.NClob;
-import java.sql.ResultSet;
-import java.sql.SQLClientInfoException;
-import java.sql.SQLException;
-import java.sql.SQLPermission;
-import java.sql.SQLWarning;
-import java.sql.SQLXML;
-import java.sql.Savepoint;
-import java.sql.Struct;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Random;
-import java.util.Stack;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.Executor;
-import java.util.stream.Collectors;
 
 /**
  * A Connection represents a session with a specific database. Within the context of a Connection, SQL statements are executed and results are returned.
@@ -211,12 +212,6 @@ public class ConnectionImpl implements JdbcConnection, SessionEventListener, Ser
             return this.hashCode;
         }
     }
-
-    /**
-     * The mapping between MySQL charset names and Java charset names.
-     * Initialized by loadCharacterSetMapping()
-     */
-    public static Map<?, ?> charsetMap;
 
     /** Default logger class name */
     protected static final String DEFAULT_LOGGER_CLASS = StandardLogger.class.getName();
@@ -396,8 +391,8 @@ public class ConnectionImpl implements JdbcConnection, SessionEventListener, Ser
             this.origPortToConnectTo = hostInfo.getPort();
 
             this.database = hostInfo.getDatabase();
-            this.user = StringUtils.isNullOrEmpty(hostInfo.getUser()) ? "" : hostInfo.getUser();
-            this.password = StringUtils.isNullOrEmpty(hostInfo.getPassword()) ? "" : hostInfo.getPassword();
+            this.user = hostInfo.getUser();
+            this.password = hostInfo.getPassword();
 
             this.props = hostInfo.exposeAsProperties();
 
@@ -571,7 +566,7 @@ public class ConnectionImpl implements JdbcConnection, SessionEventListener, Ser
             this.user = userName;
             this.password = newPassword;
 
-            this.session.configureClientCharacterSet(true);
+            this.session.getServerSession().getCharsetSettings().configurePostHandshake(true);
 
             this.session.setSessionVariables();
 
@@ -825,8 +820,8 @@ public class ConnectionImpl implements JdbcConnection, SessionEventListener, Ser
     @Override
     public void createNewIO(boolean isForReconnect) {
         synchronized (getConnectionMutex()) {
-            // Synchronization Not needed for *new* connections, but defintely for connections going through fail-over, since we might get the new connection up
-            // and running *enough* to start sending cached or still-open server-side prepared statements over to the backend before we get a chance to
+            // Synchronization Not needed for *new* connections, but definitely for connections going through fail-over, since we might get the new connection
+            // up and running *enough* to start sending cached or still-open server-side prepared statements over to the backend before we get a chance to
             // re-prepare them...
 
             try {
@@ -1144,7 +1139,7 @@ public class ConnectionImpl implements JdbcConnection, SessionEventListener, Ser
     @Override
     public String getCharacterSetMetadata() {
         synchronized (getConnectionMutex()) {
-            return this.session.getServerSession().getCharacterSetMetadata();
+            return this.session.getServerSession().getCharsetSettings().getMetadataEncoding();
         }
     }
 
@@ -1187,8 +1182,8 @@ public class ConnectionImpl implements JdbcConnection, SessionEventListener, Ser
                 this.nullStatementResultSetFactory);
 
         if (getSession() != null && getSession().getProtocol() != null) {
-            dbmeta.setMetadataEncoding(getSession().getServerSession().getCharacterSetMetadata());
-            dbmeta.setMetadataCollationIndex(getSession().getServerSession().getMetadataCollationIndex());
+            dbmeta.setMetadataEncoding(getSession().getServerSession().getCharsetSettings().getMetadataEncoding());
+            dbmeta.setMetadataCollationIndex(getSession().getServerSession().getCharsetSettings().getMetadataCollationIndex());
         }
 
         return dbmeta;
@@ -1317,8 +1312,6 @@ public class ConnectionImpl implements JdbcConnection, SessionEventListener, Ser
 
         this.autoIncrementIncrement = this.session.getServerSession().getServerVariable("auto_increment_increment", 1);
 
-        this.session.buildCollationMapping();
-
         try {
             LicenseConfiguration.checkLicenseType(this.session.getServerSession().getServerVariables());
         } catch (CJException e) {
@@ -1329,20 +1322,11 @@ public class ConnectionImpl implements JdbcConnection, SessionEventListener, Ser
 
         checkTransactionIsolationLevel();
 
-        this.session.checkForCharsetMismatch();
-
-        this.session.configureClientCharacterSet(false);
-
         handleAutoCommitDefaults();
 
-        //
-        // We need to figure out what character set metadata and error messages will be returned in, and then map them to Java encoding names
-        //
-        // We've already set it, and it might be different than what was originally on the server, which is why we use the "special" key to retrieve it
-        this.session.getServerSession().configureCharacterSets();
-
-        ((com.mysql.cj.jdbc.DatabaseMetaData) this.dbmd).setMetadataEncoding(getSession().getServerSession().getCharacterSetMetadata());
-        ((com.mysql.cj.jdbc.DatabaseMetaData) this.dbmd).setMetadataCollationIndex(getSession().getServerSession().getMetadataCollationIndex());
+        ((com.mysql.cj.jdbc.DatabaseMetaData) this.dbmd).setMetadataEncoding(this.session.getServerSession().getCharsetSettings().getMetadataEncoding());
+        ((com.mysql.cj.jdbc.DatabaseMetaData) this.dbmd)
+                .setMetadataCollationIndex(this.session.getServerSession().getCharsetSettings().getMetadataCollationIndex());
 
         //
         // Server can do this more efficiently for us
@@ -2469,6 +2453,7 @@ public class ConnectionImpl implements JdbcConnection, SessionEventListener, Ser
     @Override
     public void setSessionMaxRows(int max) throws SQLException {
         synchronized (getConnectionMutex()) {
+            checkClosed();
             if (this.session.getSessionMaxRows() != max) {
                 this.session.setSessionMaxRows(max);
                 this.session.execSQL(null, "SET SQL_SELECT_LIMIT=" + (this.session.getSessionMaxRows() == -1 ? "DEFAULT" : this.session.getSessionMaxRows()),
@@ -2740,6 +2725,11 @@ public class ConnectionImpl implements JdbcConnection, SessionEventListener, Ser
     @Override
     public void handleCleanup(Throwable whyCleanedUp) {
         cleanup(whyCleanedUp);
+    }
+
+    @Override
+    public ServerSessionStateController getServerSessionStateController() {
+        return this.session.getServerSession().getServerSessionStateController();
     }
 
 }
