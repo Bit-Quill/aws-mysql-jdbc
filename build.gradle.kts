@@ -352,7 +352,7 @@ tasks.register<Test>("test-integration-docker") {
     }
     useJUnitPlatform()
     group = "verification"
-    filter.includeTestsMatching("testsuite.integration.host.AuroraMySqlIntegrationEnvTest.testRunTestInContainer")
+    filter.includeTestsMatching("testsuite.integration.host.AuroraIntegrationContainerTest")
 }
 
 // Run community tests in container
@@ -363,7 +363,7 @@ tasks.register<Test>("test-community-docker") {
     }
     useJUnitPlatform()
     group = "verification"
-    filter.includeTestsMatching("testsuite.integration.host.AuroraMySqlIntegrationEnvTest.testRunCommunityTestInContainer")
+    filter.includeTestsMatching("testsuite.integration.host.CommunityContainerTest")
 }
 
 tasks.register<Test>("test-integration-container-aurora") {
