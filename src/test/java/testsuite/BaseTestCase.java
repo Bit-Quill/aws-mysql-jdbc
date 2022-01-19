@@ -87,10 +87,10 @@ import software.aws.rds.jdbc.mysql.Driver;
 public abstract class BaseTestCase {
 
     /**
-     * JDBC URL, initialized from com.mysql.cj.testsuite.url system property, or defaults to jdbc:mysql:///test and its connection URL.
+     * JDBC URL, initialized from com.mysql.cj.testsuite.url system property, or defaults to jdbc:mysql:aws///test and its connection URL.
      */
-    public static String dbUrl = "jdbc:mysql:///test";
-    public static String timeZoneFreeDbUrl = "jdbc:mysql:///test";
+    public static String dbUrl = "jdbc:mysql:aws///test";
+    public static String timeZoneFreeDbUrl = "jdbc:mysql:aws///test";
     protected static ConnectionUrl mainConnectionUrl = null;
     protected boolean isOpenSSL = false;
 
@@ -107,7 +107,7 @@ public abstract class BaseTestCase {
     private List<String[]> createdObjects;
 
     /** The driver to use */
-    protected String dbClass = "com.mysql.cj.jdbc.Driver";
+    protected String dbClass = software.aws.rds.jdbc.mysql.Driver.class.getName();
 
     /** My instance number */
     private int myInstanceNumber = 0;
@@ -162,7 +162,7 @@ public abstract class BaseTestCase {
         String newDbUrl = System.getProperty(PropertyDefinitions.SYSP_testsuite_url);
 
         if ((newDbUrl != null) && (newDbUrl.trim().length() != 0)) {
-            dbUrl = sanitizeDbName(newDbUrl);
+            dbUrl = newDbUrl;
             dbUrl = dbUrl
                 .replace("{domain}", DOMAIN_NAME)
                 .replace("{port}", TEST_MYSQL_PORT);
@@ -171,25 +171,6 @@ public abstract class BaseTestCase {
                 .replaceAll("serverTimezone=", "serverTimezoneVOID=");
         mainConnectionUrl = ConnectionUrl.getConnectionUrlInstance(dbUrl, null);
         this.dbName = mainConnectionUrl.getDatabase();
-    }
-
-    private String sanitizeDbName(String url) {
-        ConnectionUrl parsedUrl = ConnectionUrl.getConnectionUrlInstance(url, null);
-        if (StringUtils.isNullOrEmpty(parsedUrl.getDatabase())) {
-            List<String> splitUp = StringUtils.split(url, "\\?", true);
-            StringBuilder value = new StringBuilder();
-            for (int i = 0; i < splitUp.size(); i++) {
-                value.append(splitUp.get(i));
-                if (i == 0) {
-                    if (!splitUp.get(i).endsWith("/")) {
-                        value.append("/");
-                    }
-                    value.append("cjtest_8_0?");
-                }
-            }
-            url = value.toString();
-        }
-        return url;
     }
 
     protected void createSchemaObject(String objectType, String objectName, String columnsAndOtherStuff) throws SQLException {
