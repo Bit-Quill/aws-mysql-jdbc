@@ -568,7 +568,8 @@ public abstract class ConnectionUrl implements DatabaseUrlContainer {
      * @return the default user
      */
     public String getDefaultUser() {
-        return this.properties.get(PropertyKey.USER.getKeyName());
+        String user = this.properties.get(PropertyKey.USER.getKeyName());
+        return isNullOrEmpty(user) ? "" : user;
     }
 
     /**
@@ -578,7 +579,8 @@ public abstract class ConnectionUrl implements DatabaseUrlContainer {
      * @return the default password
      */
     public String getDefaultPassword() {
-        return this.properties.get(PropertyKey.PASSWORD.getKeyName());
+        String password = this.properties.get(PropertyKey.PASSWORD.getKeyName());
+        return isNullOrEmpty(password) ? "" : password;
     }
 
     /**
@@ -728,12 +730,8 @@ public abstract class ConnectionUrl implements DatabaseUrlContainer {
 
             props.setProperty(PropertyKey.HOST.getKeyName(), host);
             props.setProperty(PropertyKey.PORT.getKeyName(), String.valueOf(port));
-            if (user != null) {
-                props.setProperty(PropertyKey.USER.getKeyName(), user);
-            }
-            if (password != null) {
-                props.setProperty(PropertyKey.PASSWORD.getKeyName(), password);
-            }
+            props.setProperty(PropertyKey.USER.getKeyName(), user);
+            props.setProperty(PropertyKey.PASSWORD.getKeyName(), password);
 
             Properties transformedProps = this.propertiesTransformer.transformProperties(props);
 

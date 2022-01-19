@@ -5280,6 +5280,7 @@ public class StatementRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled() // TODO REMOVE BEFORE PUSHING
     @Test
     public void testBug41532() throws Exception {
         this.rs = this.stmt.executeQuery("SHOW VARIABLES LIKE 'max_allowed_packet'");
@@ -7060,6 +7061,7 @@ public class StatementRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled() // TODO REMOVE BEFORE PUSHING
     @Test
     public void testBug68916() throws Exception {
         assumeTrue(supportsTimeZoneNames(this.stmt), "This test requies the server with populated time zone tables.");
@@ -8910,6 +8912,7 @@ public class StatementRegressionTest extends BaseTestCase {
      * 
      * @throws Exception
      */
+    @Disabled() // TODO REMOVE BEFORE PUSHING
     @Test
     public void testBug74998() throws Exception {
         int maxAllowedPacketAtServer = Integer.parseInt(((JdbcConnection) this.conn).getSession().getServerSession().getServerVariable("max_allowed_packet"));

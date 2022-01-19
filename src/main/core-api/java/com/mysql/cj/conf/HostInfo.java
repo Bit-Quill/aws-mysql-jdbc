@@ -230,12 +230,8 @@ public class HostInfo implements DatabaseUrlContainer {
         this.hostProperties.entrySet().stream().forEach(e -> props.setProperty(e.getKey(), e.getValue() == null ? "" : e.getValue()));
         props.setProperty(PropertyKey.HOST.getKeyName(), getHost());
         props.setProperty(PropertyKey.PORT.getKeyName(), String.valueOf(getPort()));
-        if (getUser() != null) {
-            props.setProperty(PropertyKey.USER.getKeyName(), getUser());
-        }
-        if (getPassword() != null) {
-            props.setProperty(PropertyKey.PASSWORD.getKeyName(), getPassword());
-        }
+        props.setProperty(PropertyKey.USER.getKeyName(), getUser());
+        props.setProperty(PropertyKey.PASSWORD.getKeyName(), getPassword());
         return props;
     }
 
