@@ -87,10 +87,10 @@ import software.aws.rds.jdbc.mysql.Driver;
 public abstract class BaseTestCase {
 
     /**
-     * JDBC URL, initialized from com.mysql.cj.testsuite.url system property, or defaults to jdbc:mysql:aws///test and its connection URL.
+     * JDBC URL, initialized from com.mysql.cj.testsuite.url system property, or defaults to jdbc:mysql:///test and its connection URL.
      */
-    public static String dbUrl = "jdbc:mysql:aws///test";
-    public static String timeZoneFreeDbUrl = "jdbc:mysql:aws///test";
+    public static String dbUrl = "jdbc:mysql:///test";
+    public static String timeZoneFreeDbUrl = "jdbc:mysql:///test";
     protected static ConnectionUrl mainConnectionUrl = null;
     protected boolean isOpenSSL = false;
 
@@ -107,7 +107,7 @@ public abstract class BaseTestCase {
     private List<String[]> createdObjects;
 
     /** The driver to use */
-    protected String dbClass = software.aws.rds.jdbc.mysql.Driver.class.getName();
+    protected String dbClass = com.mysql.cj.jdbc.Driver.class.getName();
 
     /** My instance number */
     private int myInstanceNumber = 0;

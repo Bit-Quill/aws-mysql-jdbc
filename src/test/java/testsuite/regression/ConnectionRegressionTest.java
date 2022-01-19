@@ -221,23 +221,6 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
  * Regression tests for Connections
  */
 public class ConnectionRegressionTest extends BaseTestCase {
-    private int oldLoginTimeout;
-
-    @BeforeEach
-    void beforeEach() throws SQLException {
-        oldLoginTimeout = DriverManager.getLoginTimeout();
-
-        // Deregister Driver
-        Driver registeredDriver = DriverManager.getDriver("jdbc:mysql://localhost");
-        if (registeredDriver instanceof software.aws.rds.jdbc.mysql.Driver) {
-            DriverManager.deregisterDriver(registeredDriver);
-        }
-    }
-
-    @AfterEach
-    void afterEach() {
-        DriverManager.setLoginTimeout(oldLoginTimeout);
-    }
 
     @Test
     public void testBug1914() throws Exception {
@@ -8850,6 +8833,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         props.put(PropertyKey.PASSWORD.getKeyName(), password);
         props.put(PropertyKey.DBNAME.getKeyName(), database);
         props.put(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
+        props.put(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.put(PropertyKey.loadBalanceHostRemovalGracePeriod.getKeyName(), "0"); // Speed up the test execution.
         // Replicate the properties used in FabricMySQLConnectionProxy.getActiveConnection().
         props.put(PropertyKey.retriesAllDown.getKeyName(), "1");
@@ -11126,6 +11110,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.cacheDefaultTimeZone.getKeyName(), "false");
         props.setProperty(PropertyKey.connectionTimeZone.getKeyName(), "SERVER");
+        props.setProperty(PropertyKey.enableClusterAwareFailover.getKeyName(), "false");
 
         try (Connection testConn = getConnectionWithProps(props)) {
             TimeZone serverTz = (TimeZone) f.get(((MysqlConnection) testConn).getSession().getServerSession());

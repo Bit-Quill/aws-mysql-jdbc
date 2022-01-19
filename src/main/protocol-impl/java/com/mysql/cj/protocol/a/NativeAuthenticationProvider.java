@@ -285,8 +285,8 @@ public class NativeAuthenticationProvider implements AuthenticationProvider<Nati
                 .getPropertyDefinition()
                 .getDefaultValue();
 
-            if (this.clientDefaultAuthenticationPluginName.equals(defaultPluginClassName)) {
-                this.clientDefaultAuthenticationPluginName = AwsIamAuthenticationPlugin.class.getName();
+            if (defaultAuthenticationPluginValue.equals(defaultPluginClassName)) {
+                defaultAuthenticationPluginValue = AwsIamAuthenticationPlugin.class.getName();
             }
         } else {
             pluginsToInit.add(new MysqlNativePasswordPlugin());

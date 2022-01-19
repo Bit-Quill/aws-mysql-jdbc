@@ -210,12 +210,14 @@ public class MysqlSQLXML implements SQLXML {
 
             try {
                 XMLReader reader = XMLReaderFactory.createXMLReader();
-                // According to https://cheatsheetseries.owasp.org/cheatsheets/XML_External_Entity_Prevention_Cheat_Sheet.html
-                reader.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
-                setFeature(reader, "http://apache.org/xml/features/disallow-doctype-decl", true);
-                setFeature(reader, "http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
-                setFeature(reader, "http://xml.org/sax/features/external-general-entities", false);
-                setFeature(reader, "http://xml.org/sax/features/external-parameter-entities", false);
+                if (!this.allowXmlUnsafeExternalEntity) {
+                    // According to https://cheatsheetseries.owasp.org/cheatsheets/XML_External_Entity_Prevention_Cheat_Sheet.html
+                    reader.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+                    setFeature(reader, "http://apache.org/xml/features/disallow-doctype-decl", true);
+                    setFeature(reader, "http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
+                    setFeature(reader, "http://xml.org/sax/features/external-general-entities", false);
+                    setFeature(reader, "http://xml.org/sax/features/external-parameter-entities", false);
+                }
 
                 return (T) new SAXSource(reader, this.fromResultSet ? new InputSource(this.owningResultSet.getCharacterStream(this.columnIndexOfXml))
                         : new InputSource(new StringReader(this.stringRep)));
@@ -229,16 +231,18 @@ public class MysqlSQLXML implements SQLXML {
                 DocumentBuilderFactory builderFactory = DocumentBuilderFactory.newInstance();
                 builderFactory.setNamespaceAware(true);
 
-                // According to https://cheatsheetseries.owasp.org/cheatsheets/XML_External_Entity_Prevention_Cheat_Sheet.html
-                setFeature(builderFactory, XMLConstants.FEATURE_SECURE_PROCESSING, true);
-                setFeature(builderFactory, "http://apache.org/xml/features/disallow-doctype-decl", true);
-                setFeature(builderFactory, "http://xml.org/sax/features/external-general-entities", false);
-                setFeature(builderFactory, "http://xml.org/sax/features/external-parameter-entities", false);
-                setFeature(builderFactory, "http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
-                builderFactory.setXIncludeAware(false);
-                builderFactory.setExpandEntityReferences(false);
+                if (!this.allowXmlUnsafeExternalEntity) {
+                    // According to https://cheatsheetseries.owasp.org/cheatsheets/XML_External_Entity_Prevention_Cheat_Sheet.html
+                    setFeature(builderFactory, XMLConstants.FEATURE_SECURE_PROCESSING, true);
+                    setFeature(builderFactory, "http://apache.org/xml/features/disallow-doctype-decl", true);
+                    setFeature(builderFactory, "http://xml.org/sax/features/external-general-entities", false);
+                    setFeature(builderFactory, "http://xml.org/sax/features/external-parameter-entities", false);
+                    setFeature(builderFactory, "http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
+                    builderFactory.setXIncludeAware(false);
+                    builderFactory.setExpandEntityReferences(false);
 
-                builderFactory.setAttribute(XMLConstants.ACCESS_EXTERNAL_SCHEMA, "");
+                    builderFactory.setAttribute(XMLConstants.ACCESS_EXTERNAL_SCHEMA, "");
+                }
 
                 DocumentBuilder builder = builderFactory.newDocumentBuilder();
 

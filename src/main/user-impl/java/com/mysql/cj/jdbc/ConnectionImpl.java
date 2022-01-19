@@ -71,6 +71,7 @@ import com.mysql.cj.conf.HostInfo;
 import com.mysql.cj.conf.PropertyDefinitions.DatabaseTerm;
 import com.mysql.cj.conf.PropertyKey;
 import com.mysql.cj.conf.RuntimeProperty;
+import com.mysql.cj.exceptions.CJCommunicationsException;
 import com.mysql.cj.exceptions.CJException;
 import com.mysql.cj.exceptions.ExceptionFactory;
 import com.mysql.cj.exceptions.ExceptionInterceptor;
@@ -391,8 +392,8 @@ public class ConnectionImpl implements JdbcConnection, SessionEventListener, Ser
             this.origPortToConnectTo = hostInfo.getPort();
 
             this.database = hostInfo.getDatabase();
-            this.user = hostInfo.getUser();
-            this.password = hostInfo.getPassword();
+            this.user = StringUtils.isNullOrEmpty(hostInfo.getUser()) ? "" : hostInfo.getUser();
+            this.password = StringUtils.isNullOrEmpty(hostInfo.getPassword()) ? "" : hostInfo.getPassword();
 
             this.props = hostInfo.exposeAsProperties();
 
@@ -2060,10 +2061,10 @@ public class ConnectionImpl implements JdbcConnection, SessionEventListener, Ser
                 this.autoReconnect.setValue(true);
             }
 
+            boolean isAutocommit = this.session.getServerSession().isAutocommit();
             try {
                 boolean needsSetOnServer = true;
-
-                if (this.useLocalSessionState.getValue() && this.session.getServerSession().isAutoCommit() == autoCommitFlag) {
+                if (this.useLocalSessionState.getValue() && isAutocommit == autoCommitFlag) {
                     needsSetOnServer = false;
                 } else if (!this.autoReconnect.getValue()) {
                     needsSetOnServer = getSession().isSetNeededForAutoCommitMode(autoCommitFlag);
@@ -2078,6 +2079,13 @@ public class ConnectionImpl implements JdbcConnection, SessionEventListener, Ser
                     this.session.execSQL(null, autoCommitFlag ? "SET autocommit=1" : "SET autocommit=0", -1, null, false, this.nullStatementResultSetFactory,
                             null, false);
                 }
+            } catch (CJCommunicationsException e) {
+                throw e;
+            } catch (CJException e) {
+                // Reset to current autocommit value in case of an exception different than a communication exception occurs.
+                this.session.getServerSession().setAutoCommit(isAutocommit);
+                // Update the stacktrace.
+                throw SQLError.createSQLException(e.getMessage(), e.getSQLState(), e.getVendorCode(), e.isTransient(), e, getExceptionInterceptor());
             } finally {
                 if (this.autoReconnectForPools.getValue()) {
                     this.autoReconnect.setValue(false);

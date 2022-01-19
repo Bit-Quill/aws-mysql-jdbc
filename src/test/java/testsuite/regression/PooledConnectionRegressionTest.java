@@ -394,7 +394,6 @@ public final class PooledConnectionRegressionTest extends BaseTestCase {
     }
 
     @SuppressWarnings("deprecation")
-    @Disabled() // TODO REMOVE BEFORE PUSHING
     @Test
     public void testConnectionWrapperMethods() throws Exception {
         PooledConnection pc = null;

@@ -908,7 +908,6 @@ public class ConnectionTest extends BaseTestCase {
      *
      * @throws Exception
      */
-    @Disabled() // TODO REMOVE BEFORE PUSHING
     @Test
     public void testUseCompress() throws Exception {
         this.rs = this.stmt.executeQuery("SHOW VARIABLES LIKE 'max_allowed_packet'");
