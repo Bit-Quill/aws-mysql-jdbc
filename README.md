@@ -413,41 +413,45 @@ You can now make changes in the repository.
 
 ### Building the AWS JDBC Driver for MySQL
 
-To build the AWS JDBC Driver without running the tests, navigate into the aws-mysql-jdbc directory and run the following command:
-
-```bash
-gradlew build -x test
-```
-
-To build the driver and run the tests, you must first install [Docker](https://docs.docker.com/get-docker/).  After installing Docker, execute the following commands to create the Docker servers that the tests will run against:
-
-```bash
-$ cd aws-mysql-jdbc/docker
-$ docker-compose up -d
-$ cd ../
-```
-
-Then, to build the driver, run the following command:
+To build the driver, navigate into the aws-mysql-jdbc directory and run the following command:
 
 ```bash
 gradlew build
 ```
 
+To build the AWS JDBC Driver without running the tests, run the following command:
+
+```bash
+gradlew build -x test
+```
+
+
 ### Running the Tests
 
-After building the driver, and installing and configuring Docker, you can run the tests in the ```aws-mysql-jdbc``` directory with the following command:
+To run the tests, you must first install [Docker](https://docs.docker.com/get-docker/). After building the driver, and installing and configuring Docker, you can run the tests in the ```aws-mysql-jdbc``` directory with the following command:
 
 ```bash
 gradlew test
 ```
 
-To shut down the Docker servers when you have finished testing:
-
+To run only the community tests, use the following command:
 ```bash
-$ cd aws-mysql-jdbc/docker
-$ docker-compose down && docker-compose rm
-$ cd ../
+gradlew test-community-docker
 ```
+
+To run only the integration tests, you will need some environment variables and an AWS Aurora DB. A description of the necessary environment variables is in the table below. To run the integration tests, use the following command (replace the <> tags with the appropriate values):
+```bash
+DB_READONLY_CONN_STR_SUFFIX=<db_readonly_conn_str_suffix> TEST_USERNAME=<test_admin> TEST_PASSWORD=<test_password> TEST_DB_CLUSTER_IDENTIFIER=<test_db_cluster_identifier> DB_CONN_STR_SUFFIX=<db_conn_str_suffix> TEST_DB_USER=<test_db_user> gradlew test-integration-docker
+```
+
+| Environment Variable          | Environment Variable Value                                                                                                                                          |
+|-------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `DB_READONLY_CONN_STR_SUFFIX` | The URL suffix for the read-only cluster connection for your DB cluster.                                                                                            |
+| `TEST_USERNAME`               | The name of the user to use while executing the tests.                                                                                                              |
+| `TEST_PASSWORD`               | The DB cluster password.                                                                                                                                            |
+| `EST_DB_CLUSTER_IDENTIFIER`   | The DB identifier for your Aurora cluster (found under the “DB Identifier” column when managing your RDS databases in AWS Management Console).                      |
+| `DB_CONN_STR_SUFFIX`          | The suffix URL pattern to use for connections that are made directly to an instance in your DB cluster. This should also include the database to use for the tests. |
+| `TEST_DB_USER`                | User within the DB that is identified with AWSAuthenticationPlugin. This is used for AWS IAM Auth.                                                                  |
 
 ## Known Issues
 ### SSLHandshakeException
