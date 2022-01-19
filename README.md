@@ -413,18 +413,17 @@ You can now make changes in the repository.
 
 ### Building the AWS JDBC Driver for MySQL
 
-To build the driver, navigate into the aws-mysql-jdbc directory and run the following command:
+To build the AWS JDBC Driver, navigate into the aws-mysql-jdbc directory and run the following command:
 
 ```bash
 gradlew build
 ```
 
-To build the AWS JDBC Driver without running the tests, run the following command:
+To build the driver without running the tests, run the following command:
 
 ```bash
 gradlew build -x test
 ```
-
 
 ### Running the Tests
 
@@ -443,6 +442,7 @@ To run only the integration tests, you will need some environment variables and 
 ```bash
 DB_READONLY_CONN_STR_SUFFIX=<db_readonly_conn_str_suffix> TEST_USERNAME=<test_admin> TEST_PASSWORD=<test_password> TEST_DB_CLUSTER_IDENTIFIER=<test_db_cluster_identifier> DB_CONN_STR_SUFFIX=<db_conn_str_suffix> TEST_DB_USER=<test_db_user> gradlew test-integration-docker
 ```
+#### Environment Variables
 
 | Environment Variable          | Environment Variable Value                                                                                                                                          |
 |-------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------|
