@@ -70,6 +70,7 @@ import com.mysql.cj.MysqlConnection;
 import com.mysql.cj.NativeCharsetSettings;
 import com.mysql.cj.Query;
 import com.mysql.cj.conf.PropertyDefinitions.DatabaseTerm;
+import com.mysql.cj.conf.PropertyDefinitions.SslMode;
 import com.mysql.cj.conf.PropertyKey;
 import com.mysql.cj.exceptions.MysqlErrorNumbers;
 import com.mysql.cj.jdbc.ClientPreparedStatement;
@@ -235,7 +236,7 @@ public class MetaDataRegressionTest extends BaseTestCase {
         createTable("testBug1673", "(field_1 INT, field_2 INT)");
 
         Properties props = new Properties();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         Connection con = getConnectionWithProps(props);
         try {
@@ -722,7 +723,7 @@ public class MetaDataRegressionTest extends BaseTestCase {
 
         try {
             Properties props = new Properties();
-            props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+            props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
             props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
             props.setProperty(PropertyKey.characterEncoding.getKeyName(), "Big5");
 
@@ -919,7 +920,7 @@ public class MetaDataRegressionTest extends BaseTestCase {
     @Test
     public void testBug9769() throws Exception {
         Properties props = new Properties();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         Connection con = getConnectionWithProps(props);
         try {
@@ -984,7 +985,7 @@ public class MetaDataRegressionTest extends BaseTestCase {
 
             // 'true' means only current database to be checked
             Properties props = new Properties();
-            props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+            props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
             props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
             props.setProperty(PropertyKey.nullDatabaseMeansCurrent.getKeyName(), "true");
             Connection con = getConnectionWithProps(props);
@@ -1062,7 +1063,7 @@ public class MetaDataRegressionTest extends BaseTestCase {
          */
 
         Properties props = new Properties();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         for (boolean useIS : new boolean[] { false, true }) {
             for (String databaseTerm : new String[] { "CATALOG", "SCHEMA" }) {
@@ -1145,7 +1146,7 @@ public class MetaDataRegressionTest extends BaseTestCase {
 
         try {
             Properties props = new Properties();
-            props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+            props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
             props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
             props.setProperty(PropertyKey.overrideSupportsIntegrityEnhancementFacility.getKeyName(), "true");
 
@@ -1393,7 +1394,7 @@ public class MetaDataRegressionTest extends BaseTestCase {
         this.pstmt.close();
 
         Properties props = new Properties();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.generateSimpleParameterMetadata.getKeyName(), "true");
 
@@ -1418,7 +1419,7 @@ public class MetaDataRegressionTest extends BaseTestCase {
         Connection infoSchemConn = null;
 
         Properties props = new Properties();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.useInformationSchema.getKeyName(), "true");
         props.setProperty(PropertyKey.jdbcCompliantTruncation.getKeyName(), "false");
@@ -1455,7 +1456,7 @@ public class MetaDataRegressionTest extends BaseTestCase {
 
         try {
             Properties props = new Properties();
-            props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+            props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
             props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
             props.setProperty(PropertyKey.useInformationSchema.getKeyName(), "true");
 
@@ -1600,12 +1601,12 @@ public class MetaDataRegressionTest extends BaseTestCase {
 
         try {
             Properties noInfoSchemaProps = new Properties();
-            noInfoSchemaProps.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+            noInfoSchemaProps.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
             noInfoSchemaProps.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
             noInfoSchemaProps.setProperty(PropertyKey.useInformationSchema.getKeyName(), "false");
 
             Properties infoSchemaProps = new Properties();
-            infoSchemaProps.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+            infoSchemaProps.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
             infoSchemaProps.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
             infoSchemaProps.setProperty(PropertyKey.useInformationSchema.getKeyName(), "true");
             infoSchemaProps.setProperty(PropertyKey.dumpQueriesOnException.getKeyName(), "true");
@@ -1845,7 +1846,7 @@ public class MetaDataRegressionTest extends BaseTestCase {
         checkBug27915();
 
         Properties props = new Properties();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.useInformationSchema.getKeyName(), "true");
         this.rs = getConnectionWithProps(props).getMetaData().getColumns(this.conn.getCatalog(), null, "testBug27915", "%");
@@ -1906,7 +1907,7 @@ public class MetaDataRegressionTest extends BaseTestCase {
         }
 
         Properties props = new Properties();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.useInformationSchema.getKeyName(), "false");
         ArrayList<String> types = new ArrayList<>();
@@ -1934,7 +1935,7 @@ public class MetaDataRegressionTest extends BaseTestCase {
             PropConn.close();
             props.clear();
 
-            props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+            props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
             props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
             props.setProperty(PropertyKey.useInformationSchema.getKeyName(), "true");
             PropConn = getConnectionWithProps(props);
@@ -2060,7 +2061,7 @@ public class MetaDataRegressionTest extends BaseTestCase {
         }
 
         Properties props = new Properties();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.useInformationSchema.getKeyName(), "false");
         props.setProperty(PropertyKey.useCursorFetch.getKeyName(), "false");
@@ -2084,7 +2085,7 @@ public class MetaDataRegressionTest extends BaseTestCase {
             }
 
             Properties props2 = new Properties();
-            props2.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+            props2.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
             props2.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
             props2.setProperty(PropertyKey.useInformationSchema.getKeyName(), "false");
             props2.setProperty(PropertyKey.useCursorFetch.getKeyName(), "true");
@@ -2141,7 +2142,7 @@ public class MetaDataRegressionTest extends BaseTestCase {
     @Test
     public void testNoSystemTablesReturned() throws Exception {
         Properties props = new Properties();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         for (boolean useIS : new boolean[] { false, true }) {
             for (boolean dbMapsToSchema : new boolean[] { false, true }) {
@@ -2191,7 +2192,7 @@ public class MetaDataRegressionTest extends BaseTestCase {
     public void testABunchOfReturnTypes() throws Exception {
         checkABunchOfReturnTypesForConnection(this.conn);
         Properties props = new Properties();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.useInformationSchema.getKeyName(), "true");
         checkABunchOfReturnTypesForConnection(getConnectionWithProps(props));
@@ -2416,7 +2417,7 @@ public class MetaDataRegressionTest extends BaseTestCase {
         Connection c_IS = null;
         try {
             Properties props = new Properties();
-            props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+            props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
             props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
             props.setProperty(PropertyKey.useInformationSchema.getKeyName(), "true");
             c_IS = getConnectionWithProps(props);
@@ -2442,7 +2443,7 @@ public class MetaDataRegressionTest extends BaseTestCase {
         createProcedure("bug41269", "(in param1 int, out result varchar(197)) BEGIN select 1, ''; END");
 
         Properties props = new Properties();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.nullDatabaseMeansCurrent.getKeyName(), "true");
         Connection con = getConnectionWithProps(props);
@@ -2465,7 +2466,7 @@ public class MetaDataRegressionTest extends BaseTestCase {
         createTable("testBug31187", "(field1 int)");
 
         Properties props = new Properties();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.nullDatabaseMeansCurrent.getKeyName(), "false");
         Connection nullCatConn = getConnectionWithProps(props);
@@ -2529,7 +2530,7 @@ public class MetaDataRegressionTest extends BaseTestCase {
         Connection overrideConn = null;
         try {
             Properties props = new Properties();
-            props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+            props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
             props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
             props.setProperty(PropertyKey.nullDatabaseMeansCurrent.getKeyName(), "false");
             overrideConn = getConnectionWithProps(props);
@@ -2562,7 +2563,7 @@ public class MetaDataRegressionTest extends BaseTestCase {
                 "(OUT nfact VARCHAR(100), IN ccuenta VARCHAR(100),\nOUT ffact VARCHAR(100),\nOUT fdoc VARCHAR(100))" + "\nBEGIN\nEND");
 
         Properties props = new Properties();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         Connection con = getConnectionWithProps(props);
         try {
@@ -2591,7 +2592,7 @@ public class MetaDataRegressionTest extends BaseTestCase {
         try {
             createTable("bug57808", "(ID INT(3) NOT NULL PRIMARY KEY, ADate DATE NOT NULL)");
             Properties props = new Properties();
-            props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+            props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
             props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
             if (versionMeetsMinimum(5, 7, 4)) {
                 props.setProperty(PropertyKey.jdbcCompliantTruncation.getKeyName(), "false");
@@ -2635,7 +2636,7 @@ public class MetaDataRegressionTest extends BaseTestCase {
         Statement savedSt = this.stmt;
 
         Properties props = getHostFreePropertiesFromTestsuiteUrl();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.remove(PropertyKey.DBNAME.getKeyName());
         Connection conn1 = DriverManager.getConnection(newUrlToTestNoDB.toString(), props);
@@ -2687,7 +2688,7 @@ public class MetaDataRegressionTest extends BaseTestCase {
     @Test
     public void testBug61332() throws Exception {
         Properties props = new Properties();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.useInformationSchema.getKeyName(), "true");
         props.setProperty(PropertyKey.queryInterceptors.getKeyName(), QueryInterceptorBug61332.class.getName());
@@ -2804,7 +2805,7 @@ public class MetaDataRegressionTest extends BaseTestCase {
 
         // 1.1. with information schema
         Properties props = new Properties();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.noAccessToProcedureBodies.getKeyName(), "true");
         props.setProperty(PropertyKey.useInformationSchema.getKeyName(), "true");
@@ -2821,7 +2822,7 @@ public class MetaDataRegressionTest extends BaseTestCase {
 
         // 1.2. no information schema
         props.clear();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.noAccessToProcedureBodies.getKeyName(), "true");
         props.setProperty(PropertyKey.useInformationSchema.getKeyName(), "false");
@@ -2899,7 +2900,7 @@ public class MetaDataRegressionTest extends BaseTestCase {
             for (boolean useIS : new boolean[] { false, true }) {
                 for (boolean dbMapsToSchema : new boolean[] { false, true }) {
                     props = new Properties();
-                    props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+                    props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
                     props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
                     if (versionMeetsMinimum(5, 7, 4)) {
                         props.setProperty(PropertyKey.jdbcCompliantTruncation.getKeyName(), "false");
@@ -3143,7 +3144,7 @@ public class MetaDataRegressionTest extends BaseTestCase {
     public void testBug68098() throws Exception {
         String[] testStepDescription = new String[] { "MySQL MetaData", "I__S MetaData" };
         Properties props = new Properties();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.useInformationSchema.getKeyName(), "true");
         Connection connUseIS = getConnectionWithProps(props);
@@ -3194,7 +3195,7 @@ public class MetaDataRegressionTest extends BaseTestCase {
 
         try {
             Properties props = new Properties();
-            props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+            props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
             props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
 
             props.setProperty(PropertyKey.sessionVariables.getKeyName(), "sql_mode=ansi");
@@ -3452,7 +3453,7 @@ public class MetaDataRegressionTest extends BaseTestCase {
     @Test
     public void testBug69298() throws Exception {
         Properties props = new Properties();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.nullDatabaseMeansCurrent.getKeyName(), "true");
 
@@ -3721,7 +3722,7 @@ public class MetaDataRegressionTest extends BaseTestCase {
     @Test
     public void testBug17248345() throws Exception {
         Properties props = new Properties();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.nullDatabaseMeansCurrent.getKeyName(), "true");
 
@@ -3846,7 +3847,7 @@ public class MetaDataRegressionTest extends BaseTestCase {
         String[] testStepDescription = new String[] { "MySQL MetaData", "I__S MetaData" };
 
         Properties props = new Properties();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.useInformationSchema.getKeyName(), "true");
         Connection connUseIS = getConnectionWithProps(props);
@@ -3980,7 +3981,7 @@ public class MetaDataRegressionTest extends BaseTestCase {
          * test connection with property 'yearIsDateType=false'
          */
         Properties props = new Properties();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.yearIsDateType.getKeyName(), "false");
         testConnection = getConnectionWithProps(props);
@@ -4032,7 +4033,7 @@ public class MetaDataRegressionTest extends BaseTestCase {
 
         // test metadata from I__S
         Properties props = new Properties();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.useInformationSchema.getKeyName(), "true");
         Connection connUseIS = getConnectionWithProps(props);
@@ -4091,7 +4092,7 @@ public class MetaDataRegressionTest extends BaseTestCase {
         List<String> expectedFields;
         String[] testStepDescription = new String[] { "MySQL MetaData", "I__S MetaData" };
         Properties props = new Properties();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.useInformationSchema.getKeyName(), "true");
         Connection connUseIS = getConnectionWithProps(props);
@@ -4154,7 +4155,7 @@ public class MetaDataRegressionTest extends BaseTestCase {
             System.out.printf("testBug20504139_%d: %s%n", testCase, connProps);
 
             Properties props = new Properties();
-            props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+            props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
             props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
             props.setProperty(PropertyKey.pedantic.getKeyName(), "" + usePedantic);
             props.setProperty(PropertyKey.useInformationSchema.getKeyName(), "" + useInformationSchema);
@@ -4317,7 +4318,7 @@ public class MetaDataRegressionTest extends BaseTestCase {
     @Test
     public void testBug19803348() throws Exception {
         Properties props = new Properties();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.getProceduresReturnsFunctions.getKeyName(), "false");
         props.setProperty(PropertyKey.nullDatabaseMeansCurrent.getKeyName(), "false");
@@ -4460,7 +4461,7 @@ public class MetaDataRegressionTest extends BaseTestCase {
         createProcedure("testBug20727196_p1", "(p ENUM ('Yes', 'No')) BEGIN SELECT IF(p='Yes', 'Yay!', if(p='No', 'Ney!', 'What?')); END");
 
         Properties props = new Properties();
-        props.setProperty(PropertyKey.sslMode.getKeyName(), "DISABLED");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.nullDatabaseMeansCurrent.getKeyName(), "true");
         props.setProperty(PropertyKey.getProceduresReturnsFunctions.getKeyName(), "false");
@@ -4577,7 +4578,7 @@ public class MetaDataRegressionTest extends BaseTestCase {
 
             Properties props = new Properties();
             props.setProperty(PropertyKey.useServerPrepStmts.getKeyName(), Boolean.toString(useSPS));
-            props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+            props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
             props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
 
             Connection testConn = getConnectionWithProps(props);
@@ -4621,7 +4622,7 @@ public class MetaDataRegressionTest extends BaseTestCase {
                     dbMapsToSchema ? "Y" : "N");
 
             final Properties props = new Properties();
-            props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+            props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
             props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
             props.setProperty(PropertyKey.useInformationSchema.getKeyName(), Boolean.toString(useIS));
             props.setProperty(PropertyKey.getProceduresReturnsFunctions.getKeyName(), Boolean.toString(inclFuncs));
@@ -4758,7 +4759,7 @@ public class MetaDataRegressionTest extends BaseTestCase {
         createProcedure("bug87826", "(in param1 int, out result varchar(197)) BEGIN select 1, ''; END");
 
         final Properties props = new Properties();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.nullDatabaseMeansCurrent.getKeyName(), "true");
 
@@ -4802,7 +4803,7 @@ public class MetaDataRegressionTest extends BaseTestCase {
         List<String> resNames = new ArrayList<>();
 
         Properties props = new Properties();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.useInformationSchema.getKeyName(), "false");
         Connection con = getConnectionWithProps(props);
@@ -4886,7 +4887,7 @@ public class MetaDataRegressionTest extends BaseTestCase {
         String fname = "testBug29186870func";
 
         Properties props = new Properties();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
 
         try {
@@ -5052,7 +5053,7 @@ public class MetaDataRegressionTest extends BaseTestCase {
                         String errMsg = "useIS=" + useIS + ", useSSPS=" + useSSPS + ", tinyInt1isBit=" + tinyInt1isBit + ", transformedBitIsBoolean="
                                 + transformedBitIsBoolean + "\n";
                         props.clear();
-                        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+                        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
                         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
                         props.setProperty(PropertyKey.useInformationSchema.getKeyName(), "" + useIS);
                         props.setProperty(PropertyKey.useServerPrepStmts.getKeyName(), "" + useSSPS);
@@ -5296,7 +5297,7 @@ public class MetaDataRegressionTest extends BaseTestCase {
                         + " FOREIGN KEY fk_cat(cat_id) REFERENCES table1(cat_id) ON UPDATE CASCADE ON DELETE RESTRICT) ENGINE=InnoDB;");
 
         Properties props = new Properties();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         for (boolean useIS : new boolean[] { false, true }) {
             for (String databaseTerm : new String[] { "CATALOG", "SCHEMA" }) {
@@ -5340,7 +5341,7 @@ public class MetaDataRegressionTest extends BaseTestCase {
                         + "CONSTRAINT `fk_table3_LRN_ID` FOREIGN KEY `U_table1_LRN_ID` (`LRN_ID`) REFERENCES `table1` (`LRN_ID`) )");
 
         Properties props = new Properties();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         for (boolean useIS : new boolean[] { false, true }) {
             for (String databaseTerm : new String[] { "CATALOG", "SCHEMA" }) {

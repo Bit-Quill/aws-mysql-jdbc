@@ -1436,6 +1436,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
             String hostSpec = getEncodedHostPortPairFromTestsuiteUrl();
             Properties props = getHostFreePropertiesFromTestsuiteUrl();
             String db = props.getProperty(PropertyKey.DBNAME.getKeyName(), "test");
+            props.remove(PropertyKey.sslMode.getKeyName());
             props.remove(PropertyKey.useSSL.getKeyName());
             props.remove(PropertyKey.requireSSL.getKeyName());
             props.remove(PropertyKey.verifyServerCertificate.getKeyName());

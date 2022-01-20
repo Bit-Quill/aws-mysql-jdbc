@@ -34,6 +34,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
+import com.mysql.cj.conf.PropertyDefinitions.SslMode;
 import com.mysql.cj.conf.PropertyKey;
 import com.mysql.cj.util.StringUtils;
 import org.junit.jupiter.api.Test;
@@ -123,7 +124,7 @@ public class BlobRegressionTest extends BaseTestCase {
             this.stmt.executeUpdate("INSERT INTO testUpdateLongBlob (blobField) VALUES (NULL)");
 
             Properties props = new Properties();
-            props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+            props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
             props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
             con1 = getConnectionWithProps(props);
             this.pstmt = con1.prepareStatement("UPDATE testUpdateLongBlob SET blobField=?");
@@ -226,7 +227,7 @@ public class BlobRegressionTest extends BaseTestCase {
         int dataSize = 256;
 
         Properties props = new Properties();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.emulateLocators.getKeyName(), "true");
         Connection locatorConn = getConnectionWithProps(props);
@@ -456,7 +457,7 @@ public class BlobRegressionTest extends BaseTestCase {
             }
 
             Properties props = new Properties();
-            props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+            props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
             props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
             con1 = getConnectionWithProps(props);
 
@@ -501,7 +502,7 @@ public class BlobRegressionTest extends BaseTestCase {
         this.stmt.executeUpdate("INSERT INTO testBug95210 (ID, DATA) VALUES (1, '111')");
 
         Properties props = new Properties();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false"); // testsuite is built upon non-SSL default connection
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name()); // testsuite is built upon non-SSL default connection
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.emulateLocators.getKeyName(), "true");
         Connection locatorConn = getSourceReplicaReplicationConnection(props);

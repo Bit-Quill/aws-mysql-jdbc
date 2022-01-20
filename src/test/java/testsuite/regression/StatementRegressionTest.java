@@ -118,6 +118,7 @@ import com.mysql.cj.Query;
 import com.mysql.cj.ServerPreparedQuery;
 import com.mysql.cj.Session;
 import com.mysql.cj.conf.PropertyDefinitions.DatabaseTerm;
+import com.mysql.cj.conf.PropertyDefinitions.SslMode;
 import com.mysql.cj.conf.PropertyKey;
 import com.mysql.cj.exceptions.CJCommunicationsException;
 import com.mysql.cj.exceptions.ExceptionFactory;
@@ -142,11 +143,13 @@ import com.mysql.cj.jdbc.result.CachedResultSetMetaData;
 import com.mysql.cj.jdbc.result.ResultSetInternalMethods;
 import com.mysql.cj.log.Log;
 import com.mysql.cj.protocol.ColumnDefinition;
+import com.mysql.cj.protocol.Message;
 import com.mysql.cj.protocol.Resultset;
 import com.mysql.cj.protocol.ResultsetRows;
 import com.mysql.cj.protocol.ServerSession;
 import com.mysql.cj.protocol.a.NativeServerSession;
 import com.mysql.cj.util.LRUCache;
+import com.mysql.cj.util.StringUtils;
 import com.mysql.cj.util.TimeUtil;
 
 import testsuite.BaseQueryInterceptor;
@@ -395,7 +398,7 @@ public class StatementRegressionTest extends BaseTestCase {
      */
     private void innerBug6823(boolean continueBatchOnError) throws SQLException {
         Properties continueBatchOnErrorProps = new Properties();
-        continueBatchOnErrorProps.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        continueBatchOnErrorProps.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         continueBatchOnErrorProps.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         continueBatchOnErrorProps.setProperty(PropertyKey.continueBatchOnError.getKeyName(), String.valueOf(continueBatchOnError));
         this.conn = getConnectionWithProps(continueBatchOnErrorProps);
@@ -488,7 +491,7 @@ public class StatementRegressionTest extends BaseTestCase {
 
         try {
             Properties props = new Properties();
-            props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+            props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
             props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
             conn2 = getConnectionWithProps(props);
             stmt2 = conn2.createStatement();
@@ -561,7 +564,7 @@ public class StatementRegressionTest extends BaseTestCase {
             this.stmt.executeUpdate("INSERT INTO testBug11540 VALUES (NOW(), NOW())");
             Locale.setDefault(new Locale("th", "TH"));
             Properties props = new Properties();
-            props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+            props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
             props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
             props.setProperty(PropertyKey.jdbcCompliantTruncation.getKeyName(), "false");
             props.setProperty(PropertyKey.connectionTimeZone.getKeyName(), "LOCAL");
@@ -591,7 +594,7 @@ public class StatementRegressionTest extends BaseTestCase {
             this.rs.close();
 
             props = new Properties();
-            props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+            props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
             props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
             props.setProperty(PropertyKey.connectionTimeZone.getKeyName(), "LOCAL");
             Connection testConn = getConnectionWithProps(props);
@@ -687,7 +690,7 @@ public class StatementRegressionTest extends BaseTestCase {
         createTable("testBug13255", "(field_1 int)");
 
         Properties props = new Properties();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.autoReconnect.getKeyName(), "true");
 
@@ -771,7 +774,7 @@ public class StatementRegressionTest extends BaseTestCase {
             testStreamsForBug15024(false, false);
 
             Properties props = new Properties();
-            props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+            props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
             props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
             props.setProperty(PropertyKey.useConfigs.getKeyName(), "3-0-Compat");
 
@@ -851,7 +854,7 @@ public class StatementRegressionTest extends BaseTestCase {
         createTable("testBug18041", "(`a` tinyint(4) NOT NULL, `b` char(4) default NULL)");
 
         Properties props = new Properties();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.jdbcCompliantTruncation.getKeyName(), "true");
         props.setProperty(PropertyKey.useServerPrepStmts.getKeyName(), "true");
@@ -1003,7 +1006,7 @@ public class StatementRegressionTest extends BaseTestCase {
 
         try {
             Properties props = new Properties();
-            props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+            props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
             props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
             props.setProperty(PropertyKey.maxRows.getKeyName(), "1");
 
@@ -1695,7 +1698,7 @@ public class StatementRegressionTest extends BaseTestCase {
     @Test
     public void testBug5235() throws Exception {
         Properties props = new Properties();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.zeroDateTimeBehavior.getKeyName(), "CONVERT_TO_NULL");
         if (versionMeetsMinimum(5, 7, 4)) {
@@ -1735,7 +1738,7 @@ public class StatementRegressionTest extends BaseTestCase {
 
         try {
             Properties props = new Properties();
-            props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+            props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
             props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
             props.setProperty(PropertyKey.characterEncoding.getKeyName(), "utf-8");
 
@@ -1976,7 +1979,7 @@ public class StatementRegressionTest extends BaseTestCase {
 
         try {
             Properties props = new Properties();
-            props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+            props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
             props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
             props.setProperty(PropertyKey.allowMultiQueries.getKeyName(), "true");
 
@@ -2313,7 +2316,7 @@ public class StatementRegressionTest extends BaseTestCase {
                 });
 
         Properties props = new Properties();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.allowLoadLocalInfile.getKeyName(), "true");
         Connection testConn = getConnectionWithProps(props);
@@ -2496,7 +2499,7 @@ public class StatementRegressionTest extends BaseTestCase {
     public void testServerPrepStmtDeadlock() throws Exception {
 
         Properties props = new Properties();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         Connection c = getConnectionWithProps(props);
 
@@ -2865,7 +2868,7 @@ public class StatementRegressionTest extends BaseTestCase {
 
         for (int i = 0; i < 10; i++) {
             Properties props = new Properties();
-            props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+            props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
             props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
             final Connection toBeKilledConn = getConnectionWithProps(props);
             final long timeout = initialTimeout;
@@ -2933,7 +2936,7 @@ public class StatementRegressionTest extends BaseTestCase {
         Connection poolingConn = null;
 
         Properties props = new Properties();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.cachePrepStmts.getKeyName(), "true");
         props.setProperty(PropertyKey.useServerPrepStmts.getKeyName(), "true");
@@ -2971,7 +2974,7 @@ public class StatementRegressionTest extends BaseTestCase {
 
         try {
             Properties props = new Properties();
-            props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+            props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
             props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
             props.setProperty(PropertyKey.sessionVariables.getKeyName(), "sql_mode=NO_BACKSLASH_ESCAPES");
 
@@ -3018,7 +3021,7 @@ public class StatementRegressionTest extends BaseTestCase {
 
         try {
             Properties props = new Properties();
-            props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+            props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
             props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
             closedConn = getConnectionWithProps(props);
             cancelStmt = closedConn.createStatement();
@@ -3136,7 +3139,7 @@ public class StatementRegressionTest extends BaseTestCase {
 
         try {
             Properties props = new Properties();
-            props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+            props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
             props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
             props.setProperty(PropertyKey.sessionVariables.getKeyName(), "sql_mode='STRICT_TRANS_TABLES'");
 
@@ -3176,7 +3179,7 @@ public class StatementRegressionTest extends BaseTestCase {
         Connection c = null;
 
         Properties props = new Properties();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.useServerPrepStmts.getKeyName(), "true");
 
@@ -3211,7 +3214,7 @@ public class StatementRegressionTest extends BaseTestCase {
 
         try {
             Properties props = new Properties();
-            props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+            props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
             props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
             props.setProperty(PropertyKey.useServerPrepStmts.getKeyName(), "true");
             props.setProperty(PropertyKey.preserveInstants.getKeyName(), "false");
@@ -3259,7 +3262,7 @@ public class StatementRegressionTest extends BaseTestCase {
     @Test
     public void testBug25073() throws Exception {
         Properties props = new Properties();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.rewriteBatchedStatements.getKeyName(), "true");
         Connection multiConn = getConnectionWithProps(props);
@@ -3282,7 +3285,7 @@ public class StatementRegressionTest extends BaseTestCase {
 
         createTable("testBug25073", "(pk_field INT PRIMARY KEY NOT NULL AUTO_INCREMENT, field1 INT)");
         props.clear();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.rewriteBatchedStatements.getKeyName(), "true");
         props.setProperty(PropertyKey.maxAllowedPacket.getKeyName(), "1024");
@@ -3306,7 +3309,7 @@ public class StatementRegressionTest extends BaseTestCase {
         createTable("testBug25073", "(pk_field INT PRIMARY KEY NOT NULL AUTO_INCREMENT, field1 INT)");
 
         props.clear();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.useServerPrepStmts.getKeyName(), "false");
         props.setProperty(PropertyKey.rewriteBatchedStatements.getKeyName(), "true");
@@ -3359,7 +3362,7 @@ public class StatementRegressionTest extends BaseTestCase {
     @Test
     public void testBug25009() throws Exception {
         Properties props = new Properties();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.allowMultiQueries.getKeyName(), "true");
 
@@ -3408,7 +3411,7 @@ public class StatementRegressionTest extends BaseTestCase {
 
         try {
             Properties props = new Properties();
-            props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+            props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
             props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
             props.setProperty(PropertyKey.rewriteBatchedStatements.getKeyName(), "true");
             props.setProperty(PropertyKey.useServerPrepStmts.getKeyName(), "false");
@@ -3604,7 +3607,7 @@ public class StatementRegressionTest extends BaseTestCase {
         createTable("testBug30550", "(field1 int)");
 
         Properties props = new Properties();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.rewriteBatchedStatements.getKeyName(), "true");
         Connection rewriteConn = getConnectionWithProps(props);
@@ -3651,7 +3654,7 @@ public class StatementRegressionTest extends BaseTestCase {
     @Test
     public void testBug27412() throws Exception {
         Properties props = new Properties();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.useServerPrepStmts.getKeyName(), "false");
         props.setProperty(PropertyKey.cachePrepStmts.getKeyName(), "true");
@@ -3767,7 +3770,7 @@ public class StatementRegressionTest extends BaseTestCase {
     public void testBug32577() throws Exception {
         createTable("testBug32577", "(id INT, field_datetime DATETIME, field_timestamp TIMESTAMP)");
         Properties props = new Properties();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.sessionVariables.getKeyName(), "time_zone='+0:00'");
         props.setProperty(PropertyKey.connectionTimeZone.getKeyName(), "UTC");
@@ -4737,7 +4740,7 @@ public class StatementRegressionTest extends BaseTestCase {
         Connection rewriteConn = null;
 
         Properties props = new Properties();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.rewriteBatchedStatements.getKeyName(), "true");
         rewriteConn = getConnectionWithProps(props);
@@ -4865,7 +4868,7 @@ public class StatementRegressionTest extends BaseTestCase {
     @Test
     public void testBug34518() throws Exception {
         Properties props = new Properties();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.useCursorFetch.getKeyName(), "true");
         Connection fetchConn = getConnectionWithProps(props);
@@ -4914,7 +4917,7 @@ public class StatementRegressionTest extends BaseTestCase {
     @Test
     public void testBug35666() throws Exception {
         Properties props = new Properties();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.logSlowQueries.getKeyName(), "true");
         Connection loggingConn = getConnectionWithProps(props);
@@ -4933,7 +4936,7 @@ public class StatementRegressionTest extends BaseTestCase {
             this.rs = this.conn.createStatement().executeQuery("SELECT * FROM t1 WHERE id=0 FOR UPDATE");
 
             Properties props = new Properties();
-            props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+            props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
             props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
             props.setProperty(PropertyKey.includeInnodbStatusInDeadlockExceptions.getKeyName(), "true");
             final Connection deadlockConn = getConnectionWithProps(props);
@@ -4978,7 +4981,7 @@ public class StatementRegressionTest extends BaseTestCase {
     @Test
     public void testBug39352() throws Exception {
         Properties props = new Properties();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.useAffectedRows.getKeyName(), "true");
         Connection affectedRowsConn = getConnectionWithProps(props);
@@ -5041,7 +5044,7 @@ public class StatementRegressionTest extends BaseTestCase {
                 String tableName = "testBug39956_" + engineName;
 
                 Properties props = new Properties();
-                props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+                props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
                 props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
                 props.setProperty(PropertyKey.sessionVariables.getKeyName(), "auto_increment_increment=2");
                 Connection twoConn = getConnectionWithProps(props);
@@ -5119,7 +5122,7 @@ public class StatementRegressionTest extends BaseTestCase {
         createTable("testBug41161", "(a int, b int)");
 
         Properties props = new Properties();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.rewriteBatchedStatements.getKeyName(), "true");
         Connection rewriteConn = getConnectionWithProps(props);
@@ -5224,7 +5227,7 @@ public class StatementRegressionTest extends BaseTestCase {
     public void testBug48172() throws Exception {
         createTable("testBatchInsert", "(a INT PRIMARY KEY AUTO_INCREMENT)");
         Properties props = new Properties();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.rewriteBatchedStatements.getKeyName(), "true");
         props.setProperty(PropertyKey.dumpQueriesOnException.getKeyName(), "true");
@@ -5508,7 +5511,7 @@ public class StatementRegressionTest extends BaseTestCase {
         try {
             createTable("testBug40439VALUES", "(x int)");
             Properties props = new Properties();
-            props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+            props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
             props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
             props.setProperty(PropertyKey.rewriteBatchedStatements.getKeyName(), "true");
             conn2 = getConnectionWithProps(props);
@@ -5565,7 +5568,7 @@ public class StatementRegressionTest extends BaseTestCase {
     public void testBug39426() throws Exception {
         for (boolean useSPS : new boolean[] { false, true }) {
             Properties props = new Properties();
-            props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+            props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
             props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
             props.setProperty(PropertyKey.queryInterceptors.getKeyName(), "testsuite.regression.StatementRegressionTest$Bug39426Interceptor");
             props.setProperty(PropertyKey.useServerPrepStmts.getKeyName(), Boolean.toString(useSPS));
@@ -5600,7 +5603,7 @@ public class StatementRegressionTest extends BaseTestCase {
         Connection conn2 = null;
         try {
             Properties props = new Properties();
-            props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+            props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
             props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
             props.setProperty(PropertyKey.rewriteBatchedStatements.getKeyName(), "true");
             conn2 = getConnectionWithProps(props);
@@ -5665,7 +5668,7 @@ public class StatementRegressionTest extends BaseTestCase {
         this.stmt.executeUpdate("INSERT INTO testBug34555 VALUES (0)");
 
         Properties props = new Properties();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         final Connection lockerConn = getConnectionWithProps(props);
         lockerConn.setAutoCommit(false);
@@ -5695,7 +5698,7 @@ public class StatementRegressionTest extends BaseTestCase {
         createTable("testBug46788", "(modified varchar(32), id varchar(32))");
 
         Properties props = new Properties();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.rewriteBatchedStatements.getKeyName(), "true");
         Connection rewriteConn = getConnectionWithProps(props);
@@ -5717,7 +5720,7 @@ public class StatementRegressionTest extends BaseTestCase {
     public void testBug31193() throws Exception {
         createTable("bug31193", "(sometime datetime, junk text)");
         Properties props = new Properties();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.useCursorFetch.getKeyName(), "true");
         Connection fetchConn = getConnectionWithProps(props);
@@ -5739,7 +5742,7 @@ public class StatementRegressionTest extends BaseTestCase {
     @Test
     public void testBug51776() throws Exception {
         Properties props = getHostFreePropertiesFromTestsuiteUrl();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.socketFactory.getKeyName(), "testsuite.UnreliableSocketFactory");
 
@@ -5764,7 +5767,7 @@ public class StatementRegressionTest extends BaseTestCase {
     @Test
     public void testBug51666() throws Exception {
         Properties props = new Properties();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.queryInterceptors.getKeyName(), TestBug51666QueryInterceptor.class.getName());
         Connection testConn = getConnectionWithProps(props);
@@ -5815,7 +5818,7 @@ public class StatementRegressionTest extends BaseTestCase {
         this.stmt.executeUpdate("INSERT INTO testReversalOfScanFlags VALUES (1),(2),(3)");
 
         Properties props = new Properties();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.queryInterceptors.getKeyName(), ScanDetectingInterceptor.class.getName());
         Connection scanningConn = getConnectionWithProps(props);
@@ -5857,7 +5860,7 @@ public class StatementRegressionTest extends BaseTestCase {
     public void testBug51704() throws Exception {
         createTable("testBug51704", "(field1 TIMESTAMP)");
         Properties props = new Properties();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.rewriteBatchedStatements.getKeyName(), "true");
         Connection rewriteConn = getConnectionWithProps(props);
@@ -5885,7 +5888,7 @@ public class StatementRegressionTest extends BaseTestCase {
     @Test
     public void testBug54175() throws Exception {
         Properties props = new Properties();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.characterEncoding.getKeyName(), "UTF-8");
         Connection utf8conn = getConnectionWithProps(props);
@@ -5911,8 +5914,8 @@ public class StatementRegressionTest extends BaseTestCase {
 
         MysqlConnectionPoolDataSource pds = new MysqlConnectionPoolDataSource();
         pds.setUrl(dbUrl);
-        pds.getBooleanProperty(PropertyKey.useSSL.getKeyName()).setValue(false);
-        pds.getBooleanProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName()).setValue(true);
+        pds.<SslMode>getEnumProperty(PropertyKey.sslMode).setValue(SslMode.DISABLED);
+        pds.getBooleanProperty(PropertyKey.allowPublicKeyRetrieval).setValue(true);
         Statement stmt1 = pds.getPooledConnection().getConnection().createStatement();
         stmt1.executeUpdate("UPDATE testbug58728 SET txt = 'New text' WHERE Id > 0");
         ResultSet rs1 = stmt1.getResultSet();
@@ -6020,7 +6023,7 @@ public class StatementRegressionTest extends BaseTestCase {
         // and b) to generate the wrong query with multiple ON DUPLICATE KEY
 
         Properties props = new Properties();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.rewriteBatchedStatements.getKeyName(), "true");
         props.setProperty(PropertyKey.useServerPrepStmts.getKeyName(), "false");
@@ -6075,7 +6078,7 @@ public class StatementRegressionTest extends BaseTestCase {
         PreparedStatement s = null;
         try {
             Properties props = new Properties();
-            props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+            props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
             props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
             props.setProperty(PropertyKey.useServerPrepStmts.getKeyName(), "true");
 
@@ -6126,7 +6129,7 @@ public class StatementRegressionTest extends BaseTestCase {
 
         try {
             Properties props = new Properties();
-            props.setProperty(PropertyKey.sslMode.getKeyName(), "DISABLED");
+            props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
             props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
             props.setProperty(PropertyKey.connectionTimeZone.getKeyName(), "UTC");
             props.setProperty(PropertyKey.useServerPrepStmts.getKeyName(), "false");
@@ -6259,7 +6262,7 @@ public class StatementRegressionTest extends BaseTestCase {
             Connection getNewConnectionForSlowQueries() throws SQLException {
                 releaseConnectionResources();
                 Properties props = new Properties();
-                props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+                props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
                 props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
                 props.setProperty(PropertyKey.logSlowQueries.getKeyName(), "true");
                 props.setProperty(PropertyKey.explainSlowQueries.getKeyName(), "true");
@@ -6377,7 +6380,7 @@ public class StatementRegressionTest extends BaseTestCase {
         String tableName = "testBug68562";
 
         Properties properties = new Properties();
-        properties.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        properties.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         properties.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         if (useAffectedRows) {
             properties.setProperty(PropertyKey.useAffectedRows.getKeyName(), "true");
@@ -6416,7 +6419,7 @@ public class StatementRegressionTest extends BaseTestCase {
     @Test
     public void testBug55340() throws Exception {
         Properties props = new Properties();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.cacheResultSetMetadata.getKeyName(), "true");
         Connection testConnCacheRSMD = getConnectionWithProps(props);
@@ -6483,7 +6486,7 @@ public class StatementRegressionTest extends BaseTestCase {
          * Case 1: Statement.executeQuery() and Statement.execute() with plain Connection.
          */
         Properties props = new Properties();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         testConn = getConnectionWithProps(props);
 
@@ -6647,7 +6650,7 @@ public class StatementRegressionTest extends BaseTestCase {
          * Covers some cases not tested previously.
          */
         props.clear();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
 
         testBug71396MultiSettingsCheck(props, -1, 1, 1);
@@ -6678,7 +6681,7 @@ public class StatementRegressionTest extends BaseTestCase {
         this.stmt.execute("GRANT SELECT ON *.* TO 'testBug71396User'@'%'");
 
         props.clear();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         testConn = getConnectionWithProps(props);
         testStmt = testBug71396StatementInit(testConn, 5);
@@ -6990,7 +6993,7 @@ public class StatementRegressionTest extends BaseTestCase {
         Connection con = null;
         try {
             Properties props = new Properties();
-            props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+            props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
             props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
             props.setProperty(PropertyKey.useServerPrepStmts.getKeyName(), "true");
             props.setProperty(PropertyKey.cachePrepStmts.getKeyName(), "true");
@@ -8500,7 +8503,7 @@ public class StatementRegressionTest extends BaseTestCase {
         Properties props = new Properties();
         do {
             props.clear();
-            props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+            props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
             props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
             switch (++testStep) {
                 case 1:
@@ -8629,7 +8632,7 @@ public class StatementRegressionTest extends BaseTestCase {
         }
         do {
             props.clear();
-            props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+            props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
             props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
             switch (++testStep) {
                 case 5:
@@ -8938,7 +8941,7 @@ public class StatementRegressionTest extends BaseTestCase {
             }
 
             Properties props = new Properties();
-            props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+            props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
             props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
             con1 = getConnectionWithProps(props);
             Statement st = con1.createStatement();
@@ -8997,7 +9000,7 @@ public class StatementRegressionTest extends BaseTestCase {
         final TimeZone defaultTZ = TimeZone.getDefault();
 
         final Properties testConnProps = new Properties();
-        testConnProps.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        testConnProps.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         testConnProps.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         testConnProps.setProperty(PropertyKey.nullDatabaseMeansCurrent.getKeyName(), "true");
         testConnProps.setProperty(PropertyKey.cacheDefaultTimeZone.getKeyName(), "false");
@@ -9140,7 +9143,7 @@ public class StatementRegressionTest extends BaseTestCase {
             String testCase = String.format("Case: %d [ useSSPS=%s | sendFracSecs=%s ]", tst, useServerPrepStmts, sendFractionalSeconds);
 
             Properties props = new Properties();
-            props.setProperty(PropertyKey.sslMode.getKeyName(), "DISABLED");
+            props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
             props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
             props.setProperty(PropertyKey.queryInterceptors.getKeyName(), TestBug77449QueryInterceptor.class.getName());
             props.setProperty(PropertyKey.useServerPrepStmts.getKeyName(), Boolean.toString(useServerPrepStmts));
@@ -9366,7 +9369,7 @@ public class StatementRegressionTest extends BaseTestCase {
         createTable("testBug77681", "(id INT, txt VARCHAR(50), PRIMARY KEY (id))");
 
         Properties props = new Properties();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.queryInterceptors.getKeyName(), TestBug77681QueryInterceptor.class.getName());
 
@@ -9477,7 +9480,7 @@ public class StatementRegressionTest extends BaseTestCase {
             boolean rewriteBatchedStatements = (tst & 0x2) != 0;
 
             Properties props = new Properties();
-            props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+            props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
             props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
             props.setProperty(PropertyKey.useServerPrepStmts.getKeyName(), Boolean.toString(useServerPrepStmts));
             props.setProperty(PropertyKey.rewriteBatchedStatements.getKeyName(), Boolean.toString(rewriteBatchedStatements));
@@ -9544,7 +9547,7 @@ public class StatementRegressionTest extends BaseTestCase {
         createProcedure("testBug78961", "(IN c1 FLOAT, IN c2 FLOAT, OUT h FLOAT, INOUT t FLOAT) BEGIN SET h = SQRT(c1 * c1 + c2 * c2); SET t = t + h; END;");
 
         Properties props = new Properties();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         Connection highLevelConn = getLoadBalancedConnection(props);
         assertTrue(highLevelConn.getClass().getName().startsWith("com.sun.proxy") || highLevelConn.getClass().getName().startsWith("$Proxy"));
@@ -9574,7 +9577,7 @@ public class StatementRegressionTest extends BaseTestCase {
     public void testBug75956() throws Exception {
         createTable("bug75956", "(id int not null primary key auto_increment, dt1 datetime, dt2 datetime)");
         Properties props = new Properties();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.useCursorFetch.getKeyName(), "true");
         // props.setProperty("useLegacyDatetimeCode", "false");
@@ -9626,7 +9629,7 @@ public class StatementRegressionTest extends BaseTestCase {
         createTable("testBug23188498", "(id INT)");
 
         Properties props = new Properties();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.useServerPrepStmts.getKeyName(), "true");
         props.setProperty(PropertyKey.useInformationSchema.getKeyName(), "true");
@@ -9687,6 +9690,8 @@ public class StatementRegressionTest extends BaseTestCase {
     public void testBug23201930() throws Exception {
         assumeTrue((((MysqlConnection) this.conn).getSession().getServerSession().getCapabilities().getCapabilityFlags() & NativeServerSession.CLIENT_SSL) != 0,
                 "This test requires server with SSL support.");
+        assumeTrue(supportsTLSv1_2(((MysqlConnection) this.conn).getSession().getServerSession().getServerVersion()),
+                "This test requires server with TLSv1.2+ support.");
         assumeTrue(supportsTestCertificates(this.stmt),
                 "This test requires the server configured with SSL certificates from ConnectorJ/src/test/config/ssl-test-certs");
 
@@ -9707,12 +9712,8 @@ public class StatementRegressionTest extends BaseTestCase {
                     + "f4 INT DEFAULT 1, f5 INT DEFAULT 1, fl LONGBLOB)");
 
             final Properties props = new Properties();
-            props.setProperty(PropertyKey.useSSL.getKeyName(), Boolean.toString(useSSL));
+            props.setProperty(PropertyKey.sslMode.getKeyName(), useSSL ? SslMode.REQUIRED.name() : SslMode.DISABLED.name());
             props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
-            if (useSSL) {
-                props.setProperty(PropertyKey.requireSSL.getKeyName(), "true");
-                props.setProperty(PropertyKey.verifyServerCertificate.getKeyName(), "false");
-            }
             props.setProperty(PropertyKey.useServerPrepStmts.getKeyName(), Boolean.toString(useSPS));
             props.setProperty(PropertyKey.useCursorFetch.getKeyName(), Boolean.toString(useCursor));
             if (useCursor) {
@@ -9806,7 +9807,7 @@ public class StatementRegressionTest extends BaseTestCase {
         try {
             // Check if it is possible to create a server prepared statement with the current max_prepared_stmt_count.
             Properties props = new Properties();
-            props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+            props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
             props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
             props.setProperty(PropertyKey.useServerPrepStmts.getKeyName(), "true");
             Connection checkConn = getConnectionWithProps(props);
@@ -9984,7 +9985,7 @@ public class StatementRegressionTest extends BaseTestCase {
                     readOnly ? "Y" : "N");
 
             Properties props = new Properties();
-            props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+            props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
             props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
             props.setProperty(PropertyKey.useServerPrepStmts.getKeyName(), Boolean.toString(useSPS));
             props.setProperty(PropertyKey.cacheResultSetMetadata.getKeyName(), Boolean.toString(cacheRsMd));
@@ -10069,7 +10070,7 @@ public class StatementRegressionTest extends BaseTestCase {
             final String testCase = String.format("Case: [useSPS: %s, cachePS: %s ]", useSPS ? "Y" : "N", cachePS ? "Y" : "N");
 
             Properties props = new Properties();
-            props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+            props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
             props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
             props.setProperty(PropertyKey.cachePrepStmts.getKeyName(), Boolean.toString(cachePS));
             props.setProperty(PropertyKey.useServerPrepStmts.getKeyName(), Boolean.toString(useSPS));
@@ -10154,7 +10155,7 @@ public class StatementRegressionTest extends BaseTestCase {
         boolean useSPS = false;
         do {
             final Properties props = new Properties();
-            props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+            props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
             props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
             props.setProperty(PropertyKey.useServerPrepStmts.getKeyName(), Boolean.toString(useSPS));
 
@@ -10238,7 +10239,7 @@ public class StatementRegressionTest extends BaseTestCase {
         String sql2 = "SELECT * FROM testBug74932 WHERE c2 = ?";
 
         final Properties props = new Properties();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.prepStmtCacheSize.getKeyName(), "10");
         props.setProperty(PropertyKey.cachePrepStmts.getKeyName(), "true");
@@ -10314,7 +10315,7 @@ public class StatementRegressionTest extends BaseTestCase {
 
         // Plain connection.
         Properties props = new Properties();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         testConn = getConnectionWithProps(props);
         assertFalse(testConn.getClass().getName().matches("^(?:com\\.sun\\.proxy\\.)?\\$Proxy\\d*"));
@@ -10354,7 +10355,7 @@ public class StatementRegressionTest extends BaseTestCase {
 
         // Fail-over connection; all JDBC objects are proxied.
         props.clear();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         testConn = getFailoverConnection(props);
         assertTrue(testConn.getClass().getName().matches("^(?:com\\.sun\\.proxy\\.)?\\$Proxy\\d*"));
@@ -10412,7 +10413,7 @@ public class StatementRegressionTest extends BaseTestCase {
         // XA Connection; unwrapped connections and statements are proxied.
         MysqlXADataSource xaDs = new MysqlXADataSource();
         xaDs.setUrl(BaseTestCase.dbUrl);
-        xaDs.getBooleanProperty(PropertyKey.useSSL.getKeyName()).setValue(false);
+        xaDs.<SslMode>getEnumProperty(PropertyKey.sslMode).setValue(SslMode.DISABLED);
         xaDs.getBooleanProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName()).setValue(true);
         XAConnection xaTestConn = xaDs.getXAConnection();
         testConn = xaTestConn.getConnection();
@@ -10460,7 +10461,7 @@ public class StatementRegressionTest extends BaseTestCase {
         boolean cachePS = false;
         do {
             Properties props = new Properties();
-            props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+            props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
             props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
             props.setProperty(PropertyKey.useServerPrepStmts.getKeyName(), Boolean.toString(useSPS));
             props.setProperty(PropertyKey.cachePrepStmts.getKeyName(), Boolean.toString(cachePS));
@@ -10581,7 +10582,7 @@ public class StatementRegressionTest extends BaseTestCase {
         boolean useSPS = false;
         do {
             Properties props = new Properties();
-            props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+            props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
             props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
             props.setProperty(PropertyKey.useServerPrepStmts.getKeyName(), Boolean.toString(useSPS));
             props.setProperty(PropertyKey.rewriteBatchedStatements.getKeyName(), "true");
@@ -10739,7 +10740,7 @@ public class StatementRegressionTest extends BaseTestCase {
         PreparedStatement ps3 = null;
 
         Properties props = new Properties();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
 
         boolean useSPS = false;
@@ -10808,7 +10809,7 @@ public class StatementRegressionTest extends BaseTestCase {
         boolean useSPS = false;
         do {
             Properties props = new Properties();
-            props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+            props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
             props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
             props.setProperty(PropertyKey.useServerPrepStmts.getKeyName(), "" + useSPS);
             Connection testConn = getConnectionWithProps(props);
@@ -10862,7 +10863,7 @@ public class StatementRegressionTest extends BaseTestCase {
             final String testCase = String.format("Case [rwBS: %s, useSPS: %s]", rwBS ? "Y" : "N", useSPS ? "Y" : "N");
 
             Properties props = new Properties();
-            props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+            props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
             props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
             props.setProperty(PropertyKey.rewriteBatchedStatements.getKeyName(), Boolean.toString(rwBS));
             props.setProperty(PropertyKey.useServerPrepStmts.getKeyName(), Boolean.toString(useSPS));
@@ -10926,7 +10927,7 @@ public class StatementRegressionTest extends BaseTestCase {
             final String testCase = String.format("Case [rwBS: %s, useSPS: %s]", rwBS ? "Y" : "N", useSPS ? "Y" : "N");
 
             Properties props = new Properties();
-            props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+            props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
             props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
             props.setProperty(PropertyKey.emulateUnsupportedPstmts.getKeyName(), "true");
             props.setProperty(PropertyKey.allowMultiQueries.getKeyName(), "true");
@@ -11003,7 +11004,7 @@ public class StatementRegressionTest extends BaseTestCase {
             this.stmt.executeUpdate("INSERT INTO testBug22931700 values(100,false)");
 
             Properties props = new Properties();
-            props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+            props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
             props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
             props.setProperty(PropertyKey.useServerPrepStmts.getKeyName(), Boolean.toString(useSPS));
 
@@ -11030,7 +11031,7 @@ public class StatementRegressionTest extends BaseTestCase {
     @Test
     public void testBug27453692() throws Exception {
         Properties props = new Properties();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.characterEncoding.getKeyName(), "utf8");
 
@@ -11065,7 +11066,7 @@ public class StatementRegressionTest extends BaseTestCase {
         createTable("testBug96442", "(id INT UNSIGNED NOT NULL, rdate DATE NOT NULL, ts TIMESTAMP NOT NULL)");
 
         Properties props = new Properties();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         boolean useSPS = false;
         do {
@@ -11098,7 +11099,7 @@ public class StatementRegressionTest extends BaseTestCase {
 
         TimeZone defaultTimeZone = TimeZone.getDefault();
         Properties props = new Properties();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.put(PropertyKey.connectionTimeZone, "UTC");
         try {
@@ -11245,7 +11246,7 @@ public class StatementRegressionTest extends BaseTestCase {
         createTable("testBug98536", "(d1 date, pd date, d2 date)");
 
         Properties props = new Properties();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
 
         boolean useServerPrepStmts = false;
@@ -11299,7 +11300,7 @@ public class StatementRegressionTest extends BaseTestCase {
         String[] trues = new String[] { "true", "y", "1", "-1", "1.0", "-1.0", "0.01", "-0.01" };
 
         Properties props = new Properties();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         boolean useSPS = false;
         do {
@@ -11357,7 +11358,7 @@ public class StatementRegressionTest extends BaseTestCase {
         createTable("testBug99713", "(d1 DATE)");
         Connection con = null;
         Properties props = new Properties();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         try {
             for (boolean useSSPS : new boolean[] { false, true }) {
@@ -11391,7 +11392,7 @@ public class StatementRegressionTest extends BaseTestCase {
 
         Connection con = null;
         Properties props = new Properties();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         try {
             for (boolean useSSPS : new boolean[] { false, true }) {
@@ -11446,7 +11447,7 @@ public class StatementRegressionTest extends BaseTestCase {
         out.close();
 
         Properties props = new Properties();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.connectionTimeZone.getKeyName(), "LOCAL");
         props.setProperty(PropertyKey.allowLoadLocalInfile.getKeyName(), "true");
@@ -11536,7 +11537,7 @@ public class StatementRegressionTest extends BaseTestCase {
     @Test
     public void testBug101558() throws Exception {
         Properties props = new Properties();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.cachePrepStmts.getKeyName(), "true");
         props.setProperty(PropertyKey.useServerPrepStmts.getKeyName(), "true");
@@ -11568,7 +11569,7 @@ public class StatementRegressionTest extends BaseTestCase {
         Connection con = null;
         try {
             Properties props = new Properties();
-            props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+            props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
             props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
             props.setProperty(PropertyKey.useServerPrepStmts.getKeyName(), "true");
             props.setProperty(PropertyKey.useNanosForElapsedTime.getKeyName(), "true");
@@ -11609,7 +11610,7 @@ public class StatementRegressionTest extends BaseTestCase {
             this.stmt.executeUpdate("set global max_allowed_packet=1024*1024");
 
             Properties props = new Properties();
-            props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+            props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
             props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
             props.setProperty(PropertyKey.useServerPrepStmts.getKeyName(), "true");
             Connection con = getConnectionWithProps(props);
@@ -11661,7 +11662,7 @@ public class StatementRegressionTest extends BaseTestCase {
         Connection con = null;
         try {
             Properties props = new Properties();
-            props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+            props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
             props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
             props.setProperty(PropertyKey.autoReconnect.getKeyName(), "true");
             props.setProperty(PropertyKey.enableQueryTimeouts.getKeyName(), "true");
@@ -11705,7 +11706,7 @@ public class StatementRegressionTest extends BaseTestCase {
 
         Connection con = null;
         Properties props = new Properties();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
 
         for (boolean rewriteBS : new boolean[] { true, false }) {
@@ -11750,6 +11751,8 @@ public class StatementRegressionTest extends BaseTestCase {
     public void testBug103796() throws Exception {
         Connection con = null;
         Properties props = new Properties();
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
+        props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.useCursorFetch.getKeyName(), "true");
 
         try {
@@ -11787,7 +11790,7 @@ public class StatementRegressionTest extends BaseTestCase {
 
         Connection con = null;
         Properties props = new Properties();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.useCursorFetch.getKeyName(), "true");
         props.setProperty(PropertyKey.defaultFetchSize.getKeyName(), "100");
@@ -11906,5 +11909,317 @@ public class StatementRegressionTest extends BaseTestCase {
 
             testConn.close();
         } while ((useSPS = !useSPS) || (readOnly = !readOnly));
+    }
+
+    /**
+     * Tests fix for Bug#101389 (32089018), GETWARNINGS SHOULD CHECK WARNING COUNT BEFORE SENDING SHOW.
+     * 
+     * @throws Exception
+     */
+    @Test
+    public void testBug101389() throws Exception {
+        Properties props = new Properties();
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
+        props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
+        props.setProperty(PropertyKey.queryInterceptors.getKeyName(), Bug101389QueryInterceptor.class.getName());
+
+        boolean useSPS = false;
+        do {
+            props.setProperty(PropertyKey.useServerPrepStmts.getKeyName(), Boolean.toString(useSPS));
+
+            Bug101389QueryInterceptor.enabled = false; // some warnings are expected here when running against old server versions
+            java.sql.Connection testConn = getConnectionWithProps(props);
+
+            Bug101389QueryInterceptor.enabled = true;
+            Statement st = testConn.createStatement();
+            st.executeQuery("SELECT 1 FROM dual;");
+            st.getWarnings();
+
+            PreparedStatement ps = testConn.prepareStatement("SELECT 1 FROM dual;");
+            ps.execute();
+            ps.getWarnings();
+
+            testConn.close();
+        } while ((useSPS = !useSPS));
+
+    }
+
+    public static class Bug101389QueryInterceptor extends BaseQueryInterceptor {
+        public static boolean enabled = false;
+
+        @Override
+        public <T extends Resultset> T preProcess(Supplier<String> sql, Query interceptedQuery) {
+            if (enabled) {
+                assertFalse(sql.get().contains("SHOW WARNINGS"), "Unexpected [SHOW WARNINGS] was issued");
+            }
+            return super.preProcess(sql, interceptedQuery);
+        }
+
+        @Override
+        public <M extends Message> M preProcess(M queryPacket) {
+            if (enabled) {
+                String sql = StringUtils.toString(queryPacket.getByteBuffer(), 1, (queryPacket.getPosition() - 1));
+                assertFalse(sql.contains("SHOW WARNINGS"), "Unexpected [SHOW WARNINGS] was issued");
+            }
+            return super.preProcess(queryPacket);
+        }
+    }
+
+    @Test
+    public void testBlobWithSJIS() throws Exception {
+        createTable("testBlobWithSJIS", "(a SERIAL, b BLOB)");
+
+        Properties props = new Properties();
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
+        props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
+
+        String sqlMode = getMysqlVariable("sql_mode");
+        sqlMode = removeSqlMode("ANSI_QUOTES", sqlMode);
+        sqlMode = removeSqlMode("NO_BACKSLASH_ESCAPES", sqlMode);
+        if (sqlMode.length() > 0) {
+            sqlMode += ",";
+        }
+
+        byte[] data1 = new byte[20];
+        data1[0] = -21;
+        data1[1] = '\'';
+        data1[2] = '"';
+        data1[3] = '\b';
+        data1[4] = '\n';
+        data1[5] = '\r';
+        data1[6] = '\t';
+        data1[7] = 26; // \Z ASCII 26 (Control+Z)
+        data1[8] = '\\';
+        data1[9] = '%'; // \% A % character; see note following the table
+        data1[10] = '_'; // \_ A _ character; see note following the table
+        data1[11] = 39; // \'
+
+        for (boolean useSSPS : new boolean[] { false, true }) {
+            for (String mode : new String[] { "", "ANSI_QUOTES", "NO_BACKSLASH_ESCAPES", "ANSI_QUOTES,NO_BACKSLASH_ESCAPES" }) {
+                for (String enc : new String[] { "SJIS", "UTF-8" }) {
+                    props.setProperty(PropertyKey.characterEncoding.getKeyName(), enc);
+                    props.setProperty(PropertyKey.useServerPrepStmts.getKeyName(), "" + useSSPS);
+                    props.setProperty(PropertyKey.sessionVariables.getKeyName(), "sql_mode='" + sqlMode + mode + "'");
+
+                    Connection con = getConnectionWithProps(props);
+                    Statement st = con.createStatement();
+
+                    st.executeUpdate("truncate table testBlobWithSJIS");
+
+                    PreparedStatement ps1 = con.prepareStatement("INSERT INTO testBlobWithSJIS (b) VALUES(?)");
+                    Blob blob = con.createBlob();
+                    blob.setBytes(1, data1);
+                    ps1.setBlob(1, blob);
+                    ps1.executeUpdate();
+
+                    this.rs = st.executeQuery("SELECT b FROM testBlobWithSJIS");
+                    assertTrue(this.rs.next());
+                    byte[] data2 = this.rs.getBytes(1);
+                    assertTrue(Arrays.equals(data1, data2));
+                    assertFalse(this.rs.next());
+
+                    con.close();
+                }
+            }
+        }
+    }
+
+    /**
+     * Test fix for Bug#105211 (33468860), class java.time.LocalDate cannot be cast to class java.sql.Date.
+     * 
+     * @throws Exception
+     */
+    @Test
+    public void testBug105211() throws Exception {
+        createTable("testBug105211", "(dt date)");
+
+        Properties props = new Properties();
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
+        props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
+        props.setProperty(PropertyKey.rewriteBatchedStatements.getKeyName(), "true");
+
+        boolean useSPS = false;
+        do {
+            props.setProperty(PropertyKey.useServerPrepStmts.getKeyName(), Boolean.toString(useSPS));
+
+            Connection con = getConnectionWithProps(props);
+            this.pstmt = con.prepareStatement("insert into testBug105211(dt) values(?)");
+            con.setAutoCommit(false);
+
+            for (int i = 0; i <= 1000; i++) {
+                this.pstmt.setObject(1, LocalDate.now());
+                this.pstmt.addBatch();
+                if (i % 100 == 0) {
+                    this.pstmt.executeBatch();
+                    this.pstmt.clearBatch();
+                }
+            }
+            con.commit();
+
+            con.close();
+        } while (useSPS = !useSPS);
+    }
+
+    /**
+     * Test fix for Bug#84365 (33425867), INSERT..VALUE with VALUES function lead to a StringIndexOutOfBoundsException.
+     * 
+     * @throws Exception
+     */
+    @Test
+    public void testBug84365() throws Exception {
+        createTable("testBug84365", "(id int(11) NOT NULL, name varchar(25) DEFAULT NULL, PRIMARY KEY (id)) ENGINE=InnoDB DEFAULT CHARSET=latin1");
+
+        Properties props = new Properties();
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
+        props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
+        props.setProperty(PropertyKey.rewriteBatchedStatements.getKeyName(), "true");
+
+        for (boolean useSSPS : new boolean[] { false, true }) {
+
+            this.stmt.executeUpdate("truncate table testBug84365");
+
+            props.setProperty(PropertyKey.useServerPrepStmts.getKeyName(), "" + useSSPS);
+            Connection testConn = getConnectionWithProps(props);
+
+            PreparedStatement st = testConn.prepareStatement("insert into testBug84365(id, name) VALUES(?,?) on duplicate key update id = values(id) + 1");
+            st.setInt(1, 1);
+            st.setString(2, "Name1");
+            st.execute();
+            st.close();
+
+            st = testConn.prepareStatement("insert into testBug84365(id, name) VALUE(?,?) on duplicate key update id = values(id) + 1");
+            st.setInt(1, 2);
+            st.setString(2, "Name2");
+            st.execute();
+            st.close();
+
+            st = testConn.prepareStatement("insert into testBug84365 set id = 2 on duplicate key update id = values(id) + 1");
+            st.execute();
+
+            this.rs = testConn.createStatement().executeQuery("select * from testBug84365 order by id");
+            assertTrue(this.rs.next());
+            assertEquals(1, this.rs.getInt("id"));
+            assertEquals("Name1", this.rs.getString("name"));
+            assertTrue(this.rs.next());
+            assertEquals(3, this.rs.getInt("id"));
+            assertEquals("Name2", this.rs.getString("name"));
+            assertFalse(this.rs.next());
+        }
+    }
+
+    /**
+     * Test fix for Bug#85223 (25656020), MYSQLSQLXML SETSTRING CRASH.
+     * 
+     * @throws Exception
+     */
+    @Test
+    public void testBug85223() throws Exception {
+        Properties props = new Properties();
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
+        props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
+
+        String elementString = "<Person ID=\"1\"><PersonType>M</PersonType><FirstName>FName</FirstName><LastName>LName</LastName></Person>";
+        Connection con = getConnectionWithProps(props);
+        PreparedStatement pst = con.prepareStatement("SELECT ExtractValue(?,?) as val1");
+        SQLXML xml = con.createSQLXML();
+        xml.setString(elementString);
+        pst.setSQLXML(1, xml);
+        pst.setString(2, "/Person/LastName");
+        pst.execute();
+        this.rs = pst.getResultSet();
+        this.rs.next();
+        String value = this.rs.getString(1);
+        assertEquals("LName", value);
+    }
+
+    /**
+     * Test fix for Bug#96900 (30355150), STATEMENT.CANCEL()CREATE A DATABASE CONNECTION BUT DOES NOT CLOSE THE CONNECTION.
+     * 
+     * @throws Exception
+     */
+    @Test
+    public void testBug96900() throws Exception {
+        assumeTrue(versionMeetsMinimum(5, 7), "MySQL 5.7+ is required to run this test.");
+
+        Supplier<Integer> sessionCount = () -> {
+            try {
+                this.stmt.execute("FLUSH STATUS");
+                this.rs = this.stmt.executeQuery("SHOW STATUS LIKE 'threads_connected'");
+                this.rs.next();
+                return this.rs.getInt(2);
+            } catch (SQLException e) {
+                throw new RuntimeException(e.getMessage(), e);
+            }
+        };
+
+        int initialSessionCount = sessionCount.get();
+
+        Properties props = new Properties();
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
+        props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
+
+        Connection testConn = getConnectionWithProps(props);
+        Statement testStmt = testConn.createStatement();
+
+        new Thread(() -> {
+            try {
+                testStmt.executeQuery("SELECT SLEEP(600)");
+            } catch (Throwable e) {
+                e.printStackTrace();
+            }
+        }).start();
+
+        // The difference between the `initialSessionCount` and the current session count would be greater than one if connections external to this test are
+        // created in between. Chances for this to happen in a controlled or development environment are very low and can be neglected. 
+        assertEquals(1, sessionCount.get() - initialSessionCount);
+
+        testStmt.cancel();
+        assertEquals(1, sessionCount.get() - initialSessionCount);
+
+        testConn.close();
+        assertEquals(0, sessionCount.get() - initialSessionCount);
+    }
+
+    /**
+     * Tests fix for Bug#99260 (31189960), statement.setQueryTimeout,creates a database connection and does not close.
+     * 
+     * @throws Exception
+     */
+    @Test
+    public void testBug99260() throws Exception {
+        assumeTrue(versionMeetsMinimum(5, 7), "MySQL 5.7+ is required to run this test.");
+
+        Supplier<Integer> sessionCount = () -> {
+            try {
+                this.stmt.execute("FLUSH STATUS");
+                this.rs = this.stmt.executeQuery("SHOW STATUS LIKE 'threads_connected'");
+                this.rs.next();
+                return this.rs.getInt(2);
+            } catch (SQLException e) {
+                throw new RuntimeException(e.getMessage(), e);
+            }
+        };
+
+        int initialSessionCount = sessionCount.get();
+
+        Properties props = new Properties();
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
+        props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
+
+        Connection testConn = getConnectionWithProps(props);
+        Statement testStmt = testConn.createStatement();
+
+        testStmt.setQueryTimeout(1);
+        for (int i = 0; i < 5; i++) {
+            assertThrows(MySQLTimeoutException.class, "Statement cancelled due to timeout or client request", () -> {
+                testStmt.executeQuery("SELECT SLEEP(30)");
+                return null;
+            });
+            // The difference between the `initialSessionCount` and the current session count would be greater than one if connections external to this test are
+            // created in between. Chances for this to happen in a controlled or development environment are very low and can be neglected. 
+            assertEquals(1, sessionCount.get() - initialSessionCount);
+        }
+
+        testConn.close();
     }
 }

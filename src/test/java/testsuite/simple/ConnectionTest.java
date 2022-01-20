@@ -1504,7 +1504,7 @@ public class ConnectionTest extends BaseTestCase {
         assumeTrue(versionMeetsMinimum(5, 6, 5), "MySQL 5.6.5+ is required to run this test.");
 
         Properties props = new Properties();
-        props.setProperty(PropertyKey.sslMode.getKeyName(), "DISABLED");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.profileSQL.getKeyName(), "true");
         props.setProperty(PropertyKey.logger.getKeyName(), BufferingLogger.class.getName());
@@ -2860,5 +2860,31 @@ public class ConnectionTest extends BaseTestCase {
         props.setProperty(PropertyKey.tlsVersions.getKeyName(), "TLSv1,TLSv1.1");
         assertThrows(SQLException.class, "TLS protocols TLSv1 and TLSv1.1 are not supported. Accepted values are TLSv1.2 and TLSv1.3.+",
                 () -> getConnectionWithProps(props));
+
+        // TS.FR.6. Create a Connection with the connection property tlsVersions= (empty value).
+        //          Assess that the connection fails with the error message "Specified list of TLS versions is empty. Accepted values are TLSv1.2 and TLSv13."
+        props.setProperty(PropertyKey.tlsVersions.getKeyName(), "");
+        assertThrows(SQLException.class, "Specified list of TLS versions is empty. Accepted values are TLSv1.2 and TLSv1.3.+",
+                () -> getConnectionWithProps(props));
+
+        props.setProperty(PropertyKey.tlsVersions.getKeyName(), "   ");
+        assertThrows(SQLException.class, "Specified list of TLS versions is empty. Accepted values are TLSv1.2 and TLSv1.3.+",
+                () -> getConnectionWithProps(props));
+
+        props.setProperty(PropertyKey.tlsVersions.getKeyName(), ",,,");
+        assertThrows(SQLException.class, "Specified list of TLS versions is empty. Accepted values are TLSv1.2 and TLSv1.3.+",
+                () -> getConnectionWithProps(props));
+
+        props.setProperty(PropertyKey.tlsVersions.getKeyName(), ",  ,,");
+        assertThrows(SQLException.class, "Specified list of TLS versions is empty. Accepted values are TLSv1.2 and TLSv1.3.+",
+                () -> getConnectionWithProps(props));
+
+        // TS.FR.7. Create a Connection with the connection property tlsVersions=FOO,TLSv1,TLSv1.1,TLSv1.2.
+        //          Assess that the connection is created successfully and it is using TLSv1.2.
+        props.setProperty(PropertyKey.tlsVersions.getKeyName(), "FOO,TLSv1,TLSv1.1,TLSv1.2");
+        con = getConnectionWithProps(props);
+        assertTrue(((MysqlConnection) con).getSession().isSSLEstablished());
+        assertSessionStatusEquals(con.createStatement(), "ssl_version", "TLSv1.2");
+        con.close();
     }
 }
