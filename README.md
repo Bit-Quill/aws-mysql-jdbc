@@ -438,20 +438,20 @@ To run only the community tests, use the following command:
 gradlew test-community-docker
 ```
 
-To run only the integration tests, you will need some environment variables and an AWS Aurora DB. A description of the necessary environment variables is in the table below. To run the integration tests, use the following command (replace the <> tags with the appropriate values):
+To run only the integration tests, you will need some environment variables and an AWS Aurora database. A description of the necessary environment variables is in the table below. To run the integration tests, use the following command (replace the <> tags with the appropriate values):
 ```bash
-DB_READONLY_CONN_STR_SUFFIX=<db_readonly_conn_str_suffix> TEST_USERNAME=<test_admin> TEST_PASSWORD=<test_password> TEST_DB_CLUSTER_IDENTIFIER=<test_db_cluster_identifier> DB_CONN_STR_SUFFIX=<db_conn_str_suffix> TEST_DB_USER=<test_db_user> gradlew test-integration-docker
+DB_READONLY_CONN_STR_SUFFIX=<.cluster-ro-abcdefghi.us-east-1.rds.amazonaws.com> TEST_USERNAME=<username> TEST_PASSWORD=<password> TEST_DB_CLUSTER_IDENTIFIER=<db-mysql> DB_CONN_STR_SUFFIX=<.abcdefghi.us-east-1.rds.amazonaws.com> TEST_DB_USER=<jane_doe> gradlew test-integration-docker
 ```
 #### Environment Variables
 
-| Environment Variable          | Environment Variable Value                                                                                                                                          |
-|-------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `DB_READONLY_CONN_STR_SUFFIX` | The URL suffix for the read-only cluster connection for your DB cluster.                                                                                            |
-| `TEST_USERNAME`               | The name of the user to use while executing the tests.                                                                                                              |
-| `TEST_PASSWORD`               | The DB cluster password.                                                                                                                                            |
-| `TEST_DB_CLUSTER_IDENTIFIER`  | The DB identifier for your Aurora cluster (found under the “DB Identifier” column when managing your RDS databases in AWS Management Console).                      |
-| `DB_CONN_STR_SUFFIX`          | The suffix URL pattern to use for connections that are made directly to an instance in your DB cluster. This should also include the database to use for the tests. |
-| `TEST_DB_USER`                | User within the DB that is identified with AWSAuthenticationPlugin. This is used for AWS IAM Auth.                                                                  |
+| Environment Variable          | Environment Variable Value                                                                                                                                                | Example Value                                     |
+|-------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------|
+| `DB_READONLY_CONN_STR_SUFFIX` | The URL suffix for the read-only cluster connection for your database cluster.                                                                                            | .cluster-ro-abcdefghi.us-east-1.rds.amazonaws.com |
+| `TEST_USERNAME`               | The name of the user to use while executing the tests.                                                                                                                    | username                                          |
+| `TEST_PASSWORD`               | The database cluster password.                                                                                                                                            | password                                          |
+| `TEST_DB_CLUSTER_IDENTIFIER`  | The database identifier for your Aurora cluster (found under the “DB Identifier” column when managing your RDS databases in AWS Management Console).                      | db-mysql                                          |
+| `DB_CONN_STR_SUFFIX`          | The suffix URL pattern to use for connections that are made directly to an instance in your database cluster. This should also include the database to use for the tests. | .abcdefghi.us-east-1.rds.amazonaws.com            |
+| `TEST_DB_USER`                | User within the database that is identified with AWSAuthenticationPlugin. This is used for AWS IAM Auth.                                                                  | jane_doe                                          |
 
 ## Known Issues
 ### SSLHandshakeException
