@@ -449,7 +449,7 @@ DB_READONLY_CONN_STR_SUFFIX=<db_readonly_conn_str_suffix> TEST_USERNAME=<test_ad
 | `DB_READONLY_CONN_STR_SUFFIX` | The URL suffix for the read-only cluster connection for your DB cluster.                                                                                            |
 | `TEST_USERNAME`               | The name of the user to use while executing the tests.                                                                                                              |
 | `TEST_PASSWORD`               | The DB cluster password.                                                                                                                                            |
-| `EST_DB_CLUSTER_IDENTIFIER`   | The DB identifier for your Aurora cluster (found under the “DB Identifier” column when managing your RDS databases in AWS Management Console).                      |
+| `TEST_DB_CLUSTER_IDENTIFIER`  | The DB identifier for your Aurora cluster (found under the “DB Identifier” column when managing your RDS databases in AWS Management Console).                      |
 | `DB_CONN_STR_SUFFIX`          | The suffix URL pattern to use for connections that are made directly to an instance in your DB cluster. This should also include the database to use for the tests. |
 | `TEST_DB_USER`                | User within the DB that is identified with AWSAuthenticationPlugin. This is used for AWS IAM Auth.                                                                  |
 
