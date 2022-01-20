@@ -36,7 +36,6 @@ import java.math.BigDecimal;
 import java.sql.Clob;
 import java.sql.JDBCType;
 import java.sql.NClob;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLType;
 import java.sql.SQLXML;
