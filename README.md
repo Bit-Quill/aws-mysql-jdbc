@@ -427,7 +427,7 @@ gradlew build -x test
 
 ### Running the Tests
 
-To run the tests, you must first install [Docker](https://docs.docker.com/get-docker/). After building the driver, and installing and configuring Docker, you can run the tests in the ```aws-mysql-jdbc``` directory with the following command:
+To run the tests, you must first install [Docker](https://docs.docker.com/get-docker/). After building the driver, and installing and configuring Docker, you can run the tests in the `aws-mysql-jdbc` directory with the following command:
 
 ```bash
 gradlew test
@@ -447,11 +447,11 @@ DB_READONLY_CONN_STR_SUFFIX=<.cluster-ro-XYZ.us-east-2.rds.amazonaws.com> TEST_U
 | Environment Variable          | Environment Variable Value                                                                                                                                                | Example Value                               |
 |-------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------|
 | `DB_READONLY_CONN_STR_SUFFIX` | The URL suffix for the read-only cluster connection for your database cluster.                                                                                            | .cluster-ro-XYZ.us-east-2.rds.amazonaws.com |
-| `TEST_USERNAME`               | The name of the user to use while executing the tests.                                                                                                                    | username                                    |
+| `TEST_USERNAME`               | The username to access the database.                                                                                                                                      | username                                    |
 | `TEST_PASSWORD`               | The database cluster password.                                                                                                                                            | password                                    |
 | `TEST_DB_CLUSTER_IDENTIFIER`  | The database identifier for your Aurora cluster (found under the “DB Identifier” column when managing your RDS databases in AWS Management Console).                      | db-identifier                               |
 | `DB_CONN_STR_SUFFIX`          | The suffix URL pattern to use for connections that are made directly to an instance in your database cluster. This should also include the database to use for the tests. | .XYZ.us-east-2.rds.amazonaws.com            |
-| `TEST_DB_USER`                | User within the database that is identified with AWSAuthenticationPlugin. This is used for AWS IAM Auth.                                                                  | jane_doe                                    |
+| `TEST_DB_USER`                | User within the database that is identified with AWS IAM database authentication. This is used for AWS IAM authentication.                                                | jane_doe                                    |
 
 ## Known Issues
 ### SSLHandshakeException
