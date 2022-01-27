@@ -69,7 +69,7 @@ public class ContainerHelper {
   private static final DockerImageName TOXIPROXY_IMAGE = DockerImageName.parse("shopify/toxiproxy:2.1.0");
 
   private static final String RETRIEVE_TOPOLOGY_SQL =
-          "SELECT SERVER_ID FROM information_schema.replica_host_status ";
+          "SELECT SERVER_ID FROM information_schema.replica_host_status ORDER BY IF(SESSION_ID = 'MASTER_SESSION_ID', 0, 1)";
 
   public void runTest(GenericContainer<?> container, String task) throws IOException, InterruptedException {
     System.out.println("==== Container console feed ==== >>>>");

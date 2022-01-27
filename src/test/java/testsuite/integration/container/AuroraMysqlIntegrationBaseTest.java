@@ -41,6 +41,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.ResultSet;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
@@ -52,7 +53,7 @@ public abstract class AuroraMysqlIntegrationBaseTest {
 
   protected static final String PROXIED_DOMAIN_NAME_SUFFIX = System.getenv("PROXIED_DOMAIN_NAME_SUFFIX");
   protected static final String PROXIED_CLUSTER_TEMPLATE = System.getenv("PROXIED_CLUSTER_TEMPLATE");
-  protected static final String PROXIED_ENDPOINT_PATTERN = PROXIED_CLUSTER_TEMPLATE.replace("?", "%s");
+  protected static final String DB_CONN_STR_SUFFIX = System.getenv("DB_CONN_STR_SUFFIX");
 
   static final String MYSQL_INSTANCE_1_URL = System.getenv("MYSQL_INSTANCE_1_URL");
   static final String MYSQL_INSTANCE_2_URL = System.getenv("MYSQL_INSTANCE_2_URL");
@@ -174,4 +175,15 @@ public abstract class AuroraMysqlIntegrationBaseTest {
     return DriverManager.getConnection(url, props);
   }
 
+  // Return list of instance endpoints.
+  // Writer instance goes first.
+  protected List<String> getTopology() throws SQLException {
+    final String dbConnHostBase =
+            DB_CONN_STR_SUFFIX.startsWith(".")
+                    ? DB_CONN_STR_SUFFIX.substring(1)
+                    : DB_CONN_STR_SUFFIX;
+
+    String url = "jdbc:mysql://" + MYSQL_INSTANCE_1_URL + ":" + MYSQL_PORT;
+    return this.containerHelper.getAuroraClusterInstances(url, TEST_USERNAME, TEST_PASSWORD, dbConnHostBase);
+  }
 }

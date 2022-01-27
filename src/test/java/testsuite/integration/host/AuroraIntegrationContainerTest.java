@@ -166,7 +166,8 @@ public class AuroraIntegrationContainerTest {
         .withEnv("DB_RO_CLUSTER_CONN", dbHostClusterRo)
         .withEnv("TOXIPROXY_CLUSTER_NETWORK_ALIAS", "toxiproxy-instance-cluster")
         .withEnv("TOXIPROXY_RO_CLUSTER_NETWORK_ALIAS", "toxiproxy-ro-instance-cluster")
-        .withEnv("PROXIED_CLUSTER_TEMPLATE", "?" + DB_CONN_STR_SUFFIX + PROXIED_DOMAIN_NAME_SUFFIX);
+        .withEnv("PROXIED_CLUSTER_TEMPLATE", "?" + DB_CONN_STR_SUFFIX + PROXIED_DOMAIN_NAME_SUFFIX)
+        .withEnv("DB_CONN_STR_SUFFIX", DB_CONN_STR_SUFFIX);
 
     // Add mysql instances & proxies to container env
     for (int i = 0; i < mySqlInstances.size(); i++) {

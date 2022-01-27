@@ -37,6 +37,7 @@ import java.io.IOException;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Stream;
@@ -111,11 +112,16 @@ public class AuroraMysqlIntegrationTest extends AuroraMysqlIntegrationBaseTest {
 
   @Test
   public void test_LostConnectionToWriter() throws SQLException, IOException {
+
+    List<String> currentClusterTopology = getTopology();
+    String currentWriterEndpoint = currentClusterTopology.stream().findFirst().orElse(null);
+    assertNotNull(currentWriterEndpoint);
+
     final Properties props = initDefaultProps();
     props.setProperty(PropertyKey.failoverTimeoutMs.getKeyName(), "10000");
 
     // Connect to cluster
-    try (final Connection testConnection = connectToInstance(MYSQL_CLUSTER_URL + PROXIED_DOMAIN_NAME_SUFFIX, MYSQL_PROXY_PORT, props)) {
+    try (final Connection testConnection = connectToInstance(currentWriterEndpoint + PROXIED_DOMAIN_NAME_SUFFIX, MYSQL_PROXY_PORT, props)) {
       // Get writer
       currWriter = selectSingleRow(testConnection, QUERY_FOR_INSTANCE);
 
@@ -141,8 +147,15 @@ public class AuroraMysqlIntegrationTest extends AuroraMysqlIntegrationBaseTest {
 
   @Test
   public void test_LostConnectionToReader() throws SQLException, IOException {
+
+    List<String> currentClusterTopology = getTopology();
+    String currentWriterEndpoint = currentClusterTopology.stream().findFirst().orElse(null);
+    String anyReaderEndpoint = currentClusterTopology.stream().filter((x) -> x != currentWriterEndpoint).findAny().orElse(null);
+    assertNotNull(currentWriterEndpoint);
+    assertNotNull(anyReaderEndpoint);
+
     // Connect to cluster
-    try (final Connection testConnection = connectToInstance(MYSQL_RO_CLUSTER_URL + PROXIED_DOMAIN_NAME_SUFFIX, MYSQL_PROXY_PORT)) {
+    try (final Connection testConnection = connectToInstance(anyReaderEndpoint + PROXIED_DOMAIN_NAME_SUFFIX, MYSQL_PROXY_PORT)) {
       // Get reader
       currReader = selectSingleRow(testConnection, QUERY_FOR_INSTANCE);
 
@@ -167,13 +180,20 @@ public class AuroraMysqlIntegrationTest extends AuroraMysqlIntegrationBaseTest {
 
   @Test
   public void test_LostConnectionToAllReaders() throws SQLException {
+
+    List<String> currentClusterTopology = getTopology();
+    String currentWriterEndpoint = currentClusterTopology.stream().findFirst().orElse(null);
+    String anyReaderEndpoint = currentClusterTopology.stream().filter((x) -> x != currentWriterEndpoint).findAny().orElse(null);
+    assertNotNull(currentWriterEndpoint);
+    assertNotNull(anyReaderEndpoint);
+
     // Get Writer
-    try (final Connection checkWriterConnection = connectToInstance(MYSQL_CLUSTER_URL + PROXIED_DOMAIN_NAME_SUFFIX, MYSQL_PROXY_PORT)) {
+    try (final Connection checkWriterConnection = connectToInstance(currentWriterEndpoint + PROXIED_DOMAIN_NAME_SUFFIX, MYSQL_PROXY_PORT)) {
       currWriter = selectSingleRow(checkWriterConnection, QUERY_FOR_INSTANCE);
     }
 
     // Connect to cluster
-    try (final Connection testConnection = connectToInstance(MYSQL_RO_CLUSTER_URL + PROXIED_DOMAIN_NAME_SUFFIX, MYSQL_PROXY_PORT)) {
+    try (final Connection testConnection = connectToInstance(anyReaderEndpoint + PROXIED_DOMAIN_NAME_SUFFIX, MYSQL_PROXY_PORT)) {
       // Get reader
       currReader = selectSingleRow(testConnection, QUERY_FOR_INSTANCE);
       assertNotEquals(currWriter, currReader);
@@ -204,25 +224,24 @@ public class AuroraMysqlIntegrationTest extends AuroraMysqlIntegrationBaseTest {
 
   @Test
   public void test_LostConnectionToReaderInstance() throws SQLException, IOException {
+
+    List<String> currentClusterTopology = getTopology();
+    String currentWriterEndpoint = currentClusterTopology.stream().findFirst().orElse(null);
+    String anyReaderEndpoint = currentClusterTopology.stream().filter((x) -> x != currentWriterEndpoint).findAny().orElse(null);
+    assertNotNull(currentWriterEndpoint);
+    assertNotNull(anyReaderEndpoint);
+
     // Get Writer
-    try (final Connection checkWriterConnection = connectToInstance(MYSQL_CLUSTER_URL + PROXIED_DOMAIN_NAME_SUFFIX, MYSQL_PROXY_PORT)) {
+    try (final Connection checkWriterConnection = connectToInstance(currentWriterEndpoint + PROXIED_DOMAIN_NAME_SUFFIX, MYSQL_PROXY_PORT)) {
       currWriter = selectSingleRow(checkWriterConnection, QUERY_FOR_INSTANCE);
     } catch (SQLException e) {
       fail(e);
     }
 
-    // Get instance name that is not WRITER
-    final Set<String> readers = new HashSet<>(proxyMap.keySet());
-    readers.remove(currWriter);
-    readers.remove(MYSQL_CLUSTER_URL);
-    readers.remove(MYSQL_RO_CLUSTER_URL);
-    final String anyReader = readers.iterator().next();
-
     // Connect to instance
-    try (final Connection testConnection = connectToInstance(String.format(PROXIED_ENDPOINT_PATTERN, anyReader), MYSQL_PROXY_PORT)) {
+    try (final Connection testConnection = connectToInstance(anyReaderEndpoint + PROXIED_DOMAIN_NAME_SUFFIX, MYSQL_PROXY_PORT)) {
       // Get reader
       currReader = selectSingleRow(testConnection, QUERY_FOR_INSTANCE);
-      assertEquals(anyReader, currReader);
 
       // Put down current reader
       final Proxy proxyInstance = proxyMap.get(currReader);
@@ -246,23 +265,22 @@ public class AuroraMysqlIntegrationTest extends AuroraMysqlIntegrationBaseTest {
 
   @Test
   public void test_LostConnectionReadOnly() throws SQLException, IOException {
+
+    List<String> currentClusterTopology = getTopology();
+    String currentWriterEndpoint = currentClusterTopology.stream().findFirst().orElse(null);
+    String anyReaderEndpoint = currentClusterTopology.stream().filter((x) -> x != currentWriterEndpoint).findAny().orElse(null);
+    assertNotNull(currentWriterEndpoint);
+    assertNotNull(anyReaderEndpoint);
+
     // Get Writer
-    try (final Connection checkWriterConnection = connectToInstance(MYSQL_CLUSTER_URL + PROXIED_DOMAIN_NAME_SUFFIX, MYSQL_PROXY_PORT)) {
+    try (final Connection checkWriterConnection = connectToInstance(currentWriterEndpoint + PROXIED_DOMAIN_NAME_SUFFIX, MYSQL_PROXY_PORT)) {
       currWriter = selectSingleRow(checkWriterConnection, QUERY_FOR_INSTANCE);
     }
 
-    // Get instance name that is not WRITER
-    final Set<String> readers = new HashSet<>(proxyMap.keySet());
-    readers.remove(currWriter);
-    readers.remove(MYSQL_CLUSTER_URL);
-    readers.remove(MYSQL_RO_CLUSTER_URL);
-    final String anyReader = readers.iterator().next();
-
     // Connect to instance
-    try (final Connection testConnection = connectToInstance(String.format(PROXIED_ENDPOINT_PATTERN, anyReader), MYSQL_PROXY_PORT)) {
+    try (final Connection testConnection = connectToInstance(anyReaderEndpoint + PROXIED_DOMAIN_NAME_SUFFIX, MYSQL_PROXY_PORT)) {
       // Get reader
       currReader = selectSingleRow(testConnection, QUERY_FOR_INSTANCE);
-      assertEquals(anyReader, currReader);
 
       testConnection.setReadOnly(true);
 
