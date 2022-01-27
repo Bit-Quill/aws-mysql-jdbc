@@ -372,4 +372,27 @@ public class BaseMetricsHolder {
         return res;
 
     }
+
+    public void resetMetrics() {
+        longestQueryTimeMs = 0;
+        maximumNumberTablesAccessed = 0;
+        minimumNumberTablesAccessed = Long.MAX_VALUE;
+        numberOfPreparedExecutes = 0;
+        numberOfPrepares = 0;
+        numberOfQueriesIssued = 0;
+        numberOfResultSetsCreated = 0;
+        numTablesMetricsHistBreakpoints = null;
+        numTablesMetricsHistCounts= null;
+        oldHistBreakpoints = null;
+        oldHistCounts = null;
+        shortestQueryTimeMs = Long.MAX_VALUE;
+        totalQueryTimeMs = 0;
+        perfMetricsHistBreakpoints= null;
+        perfMetricsHistCounts= null;
+
+        queryTimeCount = 0;
+        queryTimeSum = 0;
+        queryTimeSumSquares = 0;
+        queryTimeMean = 0;
+    }
 }

@@ -89,6 +89,7 @@ public class AuroraTopologyService
   protected ClusterAwareTimeMetricsHolder queryTopologyMetrics =
       new ClusterAwareTimeMetricsHolder("Topology Query");
   protected boolean gatherPerfMetrics = false;
+  protected boolean perfMetricAtClusterLevel = false;
 
   /** Null logger shared by all connections at startup. */
   protected static final Log NULL_LOGGER = new NullLogger(Log.LOGGER_INSTANCE_NAME);
@@ -212,7 +213,7 @@ public class AuroraTopologyService
 
     try (Statement stmt = conn.createStatement()) {
       try (ResultSet resultSet = stmt.executeQuery(RETRIEVE_TOPOLOGY_SQL)) {
-        topologyInfo = processQueryResults(resultSet);
+        topologyInfo = processQueryResults(resultSet, conn.getHost());
       }
     } catch (SQLSyntaxErrorException e) {
       // We may get SQLSyntaxErrorException like the following from MySQL databases:
@@ -242,7 +243,7 @@ public class AuroraTopologyService
    * @return The {@link ClusterTopologyInfo} representing the results of the query. The host list in this object will
    *         be empty if the topology query returned an invalid topology (no writer instance).
    */
-  private ClusterTopologyInfo processQueryResults(ResultSet resultSet)
+  private ClusterTopologyInfo processQueryResults(ResultSet resultSet, String connUrl)
       throws SQLException {
     int writerCount = 0;
 
@@ -268,6 +269,12 @@ public class AuroraTopologyService
     if (writerCount == 0) {
       this.log.logError(Messages.getString("AuroraTopologyService.3"));
       hosts.clear();
+    }
+
+    if (!hosts.isEmpty() && gatherPerfMetrics && this.perfMetricAtClusterLevel) {
+      final ClusterAwareMetricContainer metricContainer = ClusterAwareMetricContainer.getInstance();
+      ClusterAwareMetrics clusterMetrics = metricContainer.getOrCreate(connUrl, this.perfMetricAtClusterLevel);
+      metricContainer.populateMap(hosts, clusterMetrics);
     }
 
     return new ClusterTopologyInfo(
@@ -562,8 +569,9 @@ public class AuroraTopologyService
    * @param isEnabled True to enable internal metrics.
    */
   @Override
-  public void setPerformanceMetricsEnabled(boolean isEnabled) {
+  public void setPerformanceMetricsEnabled(boolean isEnabled, boolean atClusterLevel) {
     this.gatherPerfMetrics = isEnabled;
+    this.perfMetricAtClusterLevel = atClusterLevel;
   }
 
   /**

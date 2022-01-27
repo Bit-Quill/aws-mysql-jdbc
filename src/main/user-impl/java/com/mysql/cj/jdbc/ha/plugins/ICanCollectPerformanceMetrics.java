@@ -38,8 +38,9 @@ public interface ICanCollectPerformanceMetrics {
    * Enables or disables collecting of internal performance metrics.
    *
    * @param isEnabled True to enable internal metrics
+   * @param level String specifying what level to collect metrics at.
    */
-  void setPerformanceMetricsEnabled(boolean isEnabled);
+  void setPerformanceMetricsEnabled(boolean isEnabled, boolean atClusterLevel);
 
   /**
    * Reports (prints out) collected metrics to provided logger.

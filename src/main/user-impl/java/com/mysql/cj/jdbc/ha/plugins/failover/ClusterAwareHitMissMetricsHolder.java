@@ -84,4 +84,14 @@ public class ClusterAwareHitMissMetricsHolder {
 
     log.logInfo(logMessage);
   }
+
+  /**
+   * Resets collected metrics
+   */
+  public void resetMetrics() {
+    synchronized (this.lockObject) {
+      numberOfReports = 0;
+      numberOfHits = 0;
+    }
+  }
 }

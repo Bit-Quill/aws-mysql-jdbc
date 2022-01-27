@@ -69,43 +69,74 @@ public class ClusterAwareMetrics {
   public ClusterAwareMetrics() {}
 
   public void registerFailureDetectionTime(long timeMs) {
-    this.failureDetection.registerQueryExecutionTime(timeMs);
+    synchronized (this.failureDetection) {
+      this.failureDetection.registerQueryExecutionTime(timeMs);
+    }
   }
 
   public void registerWriterFailoverProcedureTime(long timeMs) {
-    this.writerFailoverProcedure.registerQueryExecutionTime(timeMs);
+    synchronized (this.writerFailoverProcedure) {
+      this.writerFailoverProcedure.registerQueryExecutionTime(timeMs);
+    }
   }
 
   public void registerReaderFailoverProcedureTime(long timeMs) {
-    this.readerFailoverProcedure.registerQueryExecutionTime(timeMs);
+    synchronized (this.readerFailoverProcedure) {
+      this.readerFailoverProcedure.registerQueryExecutionTime(timeMs);
+    }
   }
 
   public void registerFailoverConnects(boolean isHit) {
-    this.failoverConnects.register(isHit);
+    synchronized (this.failoverConnects) {
+      this.failoverConnects.register(isHit);
+    }
   }
 
   public void registerInvalidInitialConnection(boolean isHit) {
-    this.invalidInitialConnection.register(isHit);
+    synchronized (this.invalidInitialConnection) {
+      this.invalidInitialConnection.register(isHit);
+    }
   }
 
   public void registerUseLastConnectedReader(boolean isHit) {
-    this.useLastConnectedReader.register(isHit);
+    synchronized (this.useLastConnectedReader) {
+      this.useLastConnectedReader.register(isHit);
+    }
   }
 
   public void registerUseCachedTopology(boolean isHit) {
-    this.useCachedTopology.register(isHit);
+    synchronized (this.useCachedTopology) {
+      this.useCachedTopology.register(isHit);
+    }
   }
 
   /**
    * Report metrics.
    * */
   public void reportMetrics(Log log) {
-    this.failoverConnects.reportMetrics(log);
-    this.failureDetection.reportMetrics(log);
-    this.writerFailoverProcedure.reportMetrics(log);
-    this.readerFailoverProcedure.reportMetrics(log);
-    this.useCachedTopology.reportMetrics(log);
-    this.useLastConnectedReader.reportMetrics(log);
-    this.invalidInitialConnection.reportMetrics(log);
+    synchronized (this) {
+      this.failoverConnects.reportMetrics(log);
+      this.failureDetection.reportMetrics(log);
+      this.writerFailoverProcedure.reportMetrics(log);
+      this.readerFailoverProcedure.reportMetrics(log);
+      this.useCachedTopology.reportMetrics(log);
+      this.useLastConnectedReader.reportMetrics(log);
+      this.invalidInitialConnection.reportMetrics(log);
+    }
+  }
+
+  /**
+   * Reset metrics.
+   * */
+  public void resetMetrics() {
+    synchronized (this) {
+      this.failoverConnects.resetMetrics();
+      this.failureDetection.resetMetrics();
+      this.writerFailoverProcedure.resetMetrics();
+      this.readerFailoverProcedure.resetMetrics();
+      this.useCachedTopology.resetMetrics();
+      this.useLastConnectedReader.resetMetrics();
+      this.invalidInitialConnection.resetMetrics();
+    }
   }
 }

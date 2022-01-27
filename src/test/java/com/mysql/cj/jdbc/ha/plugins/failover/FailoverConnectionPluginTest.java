@@ -83,6 +83,9 @@ class FailoverConnectionPluginTest {
   @Mock private NativeSession mockSession;
   @Mock private Log mockLogger;
   @Mock private AuroraTopologyService mockTopologyService;
+  @Mock private ClusterAwareMetricContainer mockClusterMetricContainer;
+  @Mock private ClusterAwareMetrics mockMetricsInstanceLevel;
+  @Mock private ClusterAwareMetrics mockMetricsClusterLevel;
   private AutoCloseable closeable;
 
   @Test
@@ -619,6 +622,9 @@ class FailoverConnectionPluginTest {
     when(mockHostInfo.getPort()).thenReturn(PORT);
     when(mockHostInfo.getDatabase()).thenReturn(DATABASE);
     when(mockConnection.getSession()).thenReturn(mockSession);
+    when(mockClusterMetricContainer.getOrCreate(any(String.class))).thenReturn(mockMetricsClusterLevel);
+    when(mockClusterMetricContainer.getOrCreate(any(String.class), eq(true))).thenReturn(mockMetricsClusterLevel);
+    when(mockClusterMetricContainer.getOrCreate(any(String.class), eq(false))).thenReturn(mockMetricsInstanceLevel);
   }
 
   private FailoverConnectionPlugin initFailoverPlugin() throws SQLException {
@@ -636,6 +642,7 @@ class FailoverConnectionPluginTest {
         mockNextPlugin,
         mockLogger,
         mockConnectionProvider,
-        () -> mockTopologyService);
+        () -> mockTopologyService,
+        mockClusterMetricContainer);
   }
 }

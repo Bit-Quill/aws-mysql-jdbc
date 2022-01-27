@@ -285,6 +285,7 @@ public enum PropertyKey {
 
     // Failover plugin
     enableClusterAwareFailover("enableClusterAwareFailover", true), //
+    perfMetricAtClusterLevel("perfMetricAtClusterLevel", true),
     clusterInstanceHostPattern("clusterInstanceHostPattern", true), // "?.my-domain.com", "any-subdomain.?.my-domain.com:9999"; "?" will be replaced with node name
     clusterId("clusterId", true), //
     clusterTopologyRefreshRateMs("clusterTopologyRefreshRateMs", true), //

@@ -80,7 +80,6 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
   static final String METHOD_SET_AUTO_COMMIT = "setAutoCommit";
   static final String METHOD_COMMIT = "commit";
   static final String METHOD_ROLLBACK = "rollback";
-  static final String METHOD_CLOSE = "close";
   private static final String METHOD_GET_AUTO_COMMIT = "getAutoCommit";
   private static final String METHOD_GET_CATALOG = "getCatalog";
   private static final String METHOD_GET_SCHEMA = "getSchema";
@@ -89,7 +88,7 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
       "getTransactionIsolation";
   private static final String METHOD_GET_SESSION_MAX_ROWS = "getSessionMaxRows";
   protected final IConnectionProvider connectionProvider;
-  protected final ClusterAwareMetrics metrics = new ClusterAwareMetrics();
+  protected final ClusterAwareMetricContainer metricsContainer;
   private final ICurrentConnectionProvider currentConnectionProvider;
   private final PropertySet propertySet;
   private final IConnectionPlugin nextPlugin;
@@ -125,6 +124,7 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
   protected boolean enableFailoverSetting = true;
   protected int clusterTopologyRefreshRateMsSetting;
   protected boolean gatherPerfMetricsSetting;
+  protected boolean perfMetricAtClusterLevel = false;
   protected int failoverTimeoutMsSetting;
   protected int failoverClusterTopologyRefreshRateMsSetting;
   protected int failoverWriterReconnectIntervalMsSetting;
@@ -155,7 +155,8 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
         nextPlugin,
         logger,
         new BasicConnectionProvider(),
-        () -> new AuroraTopologyService(logger));
+        () -> new AuroraTopologyService(logger),
+        ClusterAwareMetricContainer.getInstance());
   }
 
   FailoverConnectionPlugin(
@@ -164,12 +165,14 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
       IConnectionPlugin nextPlugin,
       Log logger,
       IConnectionProvider connectionProvider,
-      Supplier<ITopologyService> topologyServiceSupplier) throws SQLException {
+      Supplier<ITopologyService> topologyServiceSupplier,
+      ClusterAwareMetricContainer metricsContainer) throws SQLException {
     this.currentConnectionProvider = currentConnectionProvider;
     this.propertySet = propertySet;
     this.nextPlugin = nextPlugin;
     this.logger = logger;
     this.connectionProvider = connectionProvider;
+    this.metricsContainer = metricsContainer;
 
     this.initialConnectionProps = new HashMap<>();
     Properties originalProperties = this.propertySet.exposeAsProperties();
@@ -188,7 +191,7 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
     this.topologyService = topologyServiceSupplier.get();
     if (this.topologyService instanceof  ICanCollectPerformanceMetrics) {
       ((ICanCollectPerformanceMetrics)topologyService)
-        .setPerformanceMetricsEnabled(this.gatherPerfMetricsSetting);
+        .setPerformanceMetricsEnabled(this.gatherPerfMetricsSetting, this.perfMetricAtClusterLevel);
     }
     topologyService.setRefreshRate(this.clusterTopologyRefreshRateMsSetting);
 
@@ -256,15 +259,6 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
 
     performSpecialMethodHandlingIfRequired(args, methodName);
 
-    if (METHOD_CLOSE.equals(methodName)) {
-      if (this.gatherPerfMetricsSetting) {
-        this.metrics.reportMetrics(this.logger);
-        if (this.topologyService instanceof ICanCollectPerformanceMetrics) {
-          ((ICanCollectPerformanceMetrics) this.topologyService).reportMetrics(this.logger);
-        }
-      }
-    }
-
     return result;
   }
 
@@ -321,6 +315,8 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
         .getValue();
     this.gatherPerfMetricsSetting =
       propertySet.getBooleanProperty(PropertyKey.gatherPerfMetrics).getValue();
+    this.perfMetricAtClusterLevel =
+        propertySet.getBooleanProperty(PropertyKey.perfMetricAtClusterLevel).getValue();
     this.failoverTimeoutMsSetting =
       propertySet.getIntegerProperty(PropertyKey.failoverTimeoutMs).getValue();
     this.failoverClusterTopologyRefreshRateMsSetting =
@@ -369,13 +365,19 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
 
     if (validWriterConnection()) {
       if (this.gatherPerfMetricsSetting) {
-        this.metrics.registerInvalidInitialConnection(false);
+        final ClusterAwareMetrics metrics = metricsContainer.getOrCreate(
+            this.currentConnectionProvider.getCurrentConnection().getHost(),
+            this.perfMetricAtClusterLevel);
+        metrics.registerInvalidInitialConnection(false);
       }
       return;
     }
 
     if (this.gatherPerfMetricsSetting) {
-      this.metrics.registerInvalidInitialConnection(true);
+      final ClusterAwareMetrics metrics = metricsContainer.getOrCreate(
+          this.currentConnectionProvider.getCurrentConnection().getHost(),
+          this.perfMetricAtClusterLevel);
+      metrics.registerInvalidInitialConnection(true);
     }
 
     try {
@@ -394,11 +396,12 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
             || isWriterHostIndex(this.currentHostIndex);
   }
 
-  private void attemptConnectionUsingCachedTopology() throws SQLException {
+  private void attemptConnectionUsingCachedTopology(String connUrl) throws SQLException {
     List<HostInfo> cachedHosts = topologyService.getCachedTopology();
     if (Util.isNullOrEmpty(cachedHosts)) {
       if (this.gatherPerfMetricsSetting) {
-        this.metrics.registerUseCachedTopology(false);
+        final ClusterAwareMetrics metrics = metricsContainer.getOrCreate(connUrl, this.perfMetricAtClusterLevel);
+        metrics.registerUseCachedTopology(false);
       }
       return;
     }
@@ -406,7 +409,8 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
     this.hosts = cachedHosts;
 
     if (this.gatherPerfMetricsSetting) {
-      this.metrics.registerUseCachedTopology(true);
+      final ClusterAwareMetrics metrics = metricsContainer.getOrCreate(connUrl, this.perfMetricAtClusterLevel);
+      metrics.registerUseCachedTopology(true);
     }
 
     int candidateIndex = getCandidateIndexForInitialConnection();
@@ -433,13 +437,19 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
     int lastUsedReaderIndex = getHostIndex(topologyService.getLastUsedReaderHost());
     if (lastUsedReaderIndex != NO_CONNECTION_INDEX) {
       if (this.gatherPerfMetricsSetting) {
-        this.metrics.registerUseLastConnectedReader(true);
+        final ClusterAwareMetrics metrics = metricsContainer.getOrCreate(
+            this.currentConnectionProvider.getCurrentConnection().getHost(),
+            this.perfMetricAtClusterLevel);
+        metrics.registerUseLastConnectedReader(true);
       }
       return lastUsedReaderIndex;
     }
 
     if (this.gatherPerfMetricsSetting) {
-      this.metrics.registerUseLastConnectedReader(false);
+      final ClusterAwareMetrics metrics = metricsContainer.getOrCreate(
+          this.currentConnectionProvider.getCurrentConnection().getHost(),
+          this.perfMetricAtClusterLevel);
+      metrics.registerUseLastConnectedReader(false);
     }
 
     if (clusterContainsReader()) {
@@ -542,9 +552,13 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
     }
     ReaderFailoverResult result = readerFailoverHandler.failover(this.hosts, failedHost);
 
+    final ClusterAwareMetrics metrics = metricsContainer.getOrCreate(
+        this.currentConnectionProvider.getCurrentConnection().getHost(),
+        this.perfMetricAtClusterLevel);
+
     if (this.gatherPerfMetricsSetting) {
       long currentTimeMs = System.currentTimeMillis();
-      this.metrics.registerReaderFailoverProcedureTime(
+      metrics.registerReaderFailoverProcedureTime(
           currentTimeMs - this.failoverStartTimeMs);
       this.failoverStartTimeMs = 0;
     }
@@ -556,7 +570,7 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
     }
 
     if (this.gatherPerfMetricsSetting) {
-      this.metrics.registerFailoverConnects(true);
+      metrics.registerFailoverConnects(true);
     }
 
     updateCurrentConnection(
@@ -578,9 +592,14 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
     this.logger.logDebug(Messages.getString("ClusterAwareConnectionProxy.16"));
     WriterFailoverResult failoverResult = this.writerFailoverHandler.failover(this.hosts);
 
+    final ClusterAwareMetrics metrics = metricsContainer.getOrCreate(
+        this.currentConnectionProvider.getCurrentConnection().getHost(),
+        this.perfMetricAtClusterLevel
+    );
+
     if (this.gatherPerfMetricsSetting) {
       long currentTimeMs = System.currentTimeMillis();
-      this.metrics.registerWriterFailoverProcedureTime(
+      metrics.registerWriterFailoverProcedureTime(
           currentTimeMs - this.failoverStartTimeMs);
       this.failoverStartTimeMs = 0;
     }
@@ -596,7 +615,7 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
     }
 
     if (this.gatherPerfMetricsSetting) {
-      this.metrics.registerFailoverConnects(true);
+      metrics.registerFailoverConnects(true);
     }
 
     // successfully re-connected to the same writer node
@@ -869,7 +888,10 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
           && shouldExceptionTriggerConnectionSwitch(originalException)) {
         if (this.gatherPerfMetricsSetting) {
           long currentTimeMs = System.currentTimeMillis();
-          this.metrics.registerFailureDetectionTime(
+          final ClusterAwareMetrics metrics = metricsContainer.getOrCreate(
+              this.currentConnectionProvider.getCurrentConnection().getHost(),
+              this.perfMetricAtClusterLevel);
+          metrics.registerFailureDetectionTime(
               currentTimeMs - this.invokeStartTimeMs);
           this.invokeStartTimeMs = 0;
           this.failoverStartTimeMs = currentTimeMs;
@@ -1071,7 +1093,7 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
                   new Object[]{"explicitlyReadOnly", this.explicitlyReadOnly}));
 
           try {
-            attemptConnectionUsingCachedTopology();
+            attemptConnectionUsingCachedTopology(host);
           } catch (SQLException e) {
             // do nothing - attempt to connect directly will be made below
           }
@@ -1201,7 +1223,10 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
 
   private void processFailoverFailure(String message) throws SQLException {
     if (this.gatherPerfMetricsSetting) {
-      this.metrics.registerFailoverConnects(false);
+      final ClusterAwareMetrics metrics = metricsContainer.getOrCreate(
+          this.currentConnectionProvider.getCurrentConnection().getHost(),
+          this.perfMetricAtClusterLevel);
+      metrics.registerFailoverConnects(false);
     }
 
     this.logger.logError(message);
