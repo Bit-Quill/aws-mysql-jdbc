@@ -48,7 +48,6 @@ public class CommunityContainerTest {
   private static Network network;
   private static final ContainerHelper containerHelper = new ContainerHelper();
 
-
   @BeforeAll
   static void setUp() {
     network = Network.newNetwork();
