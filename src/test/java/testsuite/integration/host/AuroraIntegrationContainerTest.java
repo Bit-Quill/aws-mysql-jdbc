@@ -26,62 +26,114 @@
 
 package testsuite.integration.host;
 
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import org.junit.jupiter.api.*;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
 import org.testcontainers.containers.ToxiproxyContainer;
-import org.testcontainers.utility.DockerImageName;
 
 import software.aws.rds.jdbc.mysql.Driver;
+import testsuite.integration.utility.ContainerHelper;
 
 import java.io.IOException;
-import java.sql.Connection;
 import java.sql.DriverManager;
-import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
-public class AuroraIntegrationContainerTest extends ContainerBaseTest {
+/**
+ * Integration tests against RDS Aurora cluster. The following environment variables
+ * should be set. Provided values are just examples.
+ *
+ * Assuming cluster endpoint is "database-cluster-name.XYZ.us-east-2.rds.amazonaws.com"
+ *
+ * DB_CONN_STR_SUFFIX=.XYZ.us-east-2.rds.amazonaws.com   (pay attention on period in front of the value!!!)
+ * TEST_DB_CLUSTER_IDENTIFIER=database-cluster-name
+ * TEST_USERNAME=user-name
+ * TEST_PASSWORD=user-secret-password
+ */
+public class AuroraIntegrationContainerTest {
+
+  private static final int MYSQL_PORT = 3306;
+  private static final String TEST_CONTAINER_NAME = "test-container";
+
+  private static final String TEST_USERNAME = System.getenv("TEST_USERNAME");
+  private static final String TEST_PASSWORD = System.getenv("TEST_PASSWORD");
+
   private static final String DB_CONN_STR_PREFIX = "jdbc:mysql://";
   private static final String DB_CONN_STR_SUFFIX = System.getenv("DB_CONN_STR_SUFFIX");
   private static final String DB_CONN_PROP = "?enabledTLSProtocols=TLSv1.2";
-      // Encounters SSL errors without it on GH Actions
-  private static final String TEST_DB_CLUSTER_IDENTIFIER =
-      System.getenv("TEST_DB_CLUSTER_IDENTIFIER");
+
+  // Encounters SSL errors without it on GH Actions
+  private static final String TEST_DB_CLUSTER_IDENTIFIER = System.getenv("TEST_DB_CLUSTER_IDENTIFIER");
   private static final String PROXIED_DOMAIN_NAME_SUFFIX = ".proxied";
-  private static final String RETRIEVE_TOPOLOGY_SQL =
-      "SELECT SERVER_ID FROM information_schema.replica_host_status ";
-  private static final DockerImageName TOXIPROXY_IMAGE =
-      DockerImageName.parse("shopify/toxiproxy:2.1.0");
-  private static final List<ToxiproxyContainer> toxiproxyContainerList = new ArrayList<>();
-  private static final List<String> mySqlInstances = new ArrayList<>();
+  private static List<ToxiproxyContainer> proxyContainers = new ArrayList<>();
+  private static List<String> mySqlInstances = new ArrayList<>();
 
   private static int mySQLProxyPort;
   private static GenericContainer<?> integrationTestContainer;
   private static String dbHostCluster = "";
   private static String dbHostClusterRo = "";
 
-  private Network network;
+  private static Network network;
 
-  @BeforeEach
-  void setUp() {
+  private static final ContainerHelper containerHelper = new ContainerHelper();
+
+  @BeforeAll
+  static void setUp() throws SQLException {
+    assertNotNull(DB_CONN_STR_SUFFIX, "DB_CONN_STR_SUFFIX should be set.");
+    assertTrue(DB_CONN_STR_SUFFIX.startsWith("."), "DB_CONN_STR_SUFFIX should start with period.");
+    assertNotNull(TEST_DB_CLUSTER_IDENTIFIER, "TEST_DB_CLUSTER_IDENTIFIER should be set.");
+    assertNotNull(TEST_USERNAME, "TEST_USERNAME should be set.");
+    assertNotNull(TEST_PASSWORD, "TEST_PASSWORD should be set.");
+
     final String dbConnHostBase =
         DB_CONN_STR_SUFFIX.startsWith(".")
             ? DB_CONN_STR_SUFFIX.substring(1)
             : DB_CONN_STR_SUFFIX;
     dbHostCluster = TEST_DB_CLUSTER_IDENTIFIER + ".cluster-" + dbConnHostBase;
     dbHostClusterRo = TEST_DB_CLUSTER_IDENTIFIER + ".cluster-ro-" + dbConnHostBase;
+
+    DriverManager.registerDriver(new Driver());
+
     network = Network.newNetwork();
+    mySqlInstances = containerHelper.getAuroraClusterInstances(
+            DB_CONN_STR_PREFIX + dbHostCluster + DB_CONN_PROP,
+            TEST_USERNAME,
+            TEST_PASSWORD,
+            dbConnHostBase);
+    proxyContainers = containerHelper.createProxyContainers(network, mySqlInstances, PROXIED_DOMAIN_NAME_SUFFIX);
+    for(ToxiproxyContainer container : proxyContainers) {
+      container.start();
+    }
+    mySQLProxyPort = containerHelper.createAuroraInstanceProxies(mySqlInstances, proxyContainers, MYSQL_PORT);
+
+    proxyContainers.add(containerHelper.createAndStartProxyContainer(
+            network,
+            "toxiproxy-instance-cluster",
+            dbHostCluster + PROXIED_DOMAIN_NAME_SUFFIX,
+            dbHostCluster,
+            MYSQL_PORT,
+            mySQLProxyPort)
+    );
+
+    proxyContainers.add(containerHelper.createAndStartProxyContainer(
+            network,
+            "toxiproxy-ro-instance-cluster",
+            dbHostClusterRo + PROXIED_DOMAIN_NAME_SUFFIX,
+            dbHostClusterRo,
+            MYSQL_PORT,
+            mySQLProxyPort)
+    );
+
+    integrationTestContainer = initializeTestContainer(network, mySqlInstances);
   }
 
-  @AfterEach
-  void tearDown() {
-    for (ToxiproxyContainer proxy : toxiproxyContainerList) {
+  @AfterAll
+  static void tearDown() {
+    for (ToxiproxyContainer proxy : proxyContainers) {
       proxy.stop();
     }
     integrationTestContainer.stop();
@@ -89,70 +141,22 @@ public class AuroraIntegrationContainerTest extends ContainerBaseTest {
 
   @Test
   public void testRunTestInContainer()
-      throws UnsupportedOperationException, IOException, InterruptedException, SQLException {
-    initializeToxiProxy(network, toxiproxyContainerList);
-    integrationTestContainer = initializeTestContainer(network);
-    runTest(integrationTestContainer, "test-integration-container-aurora");
+    throws UnsupportedOperationException, IOException, InterruptedException, SQLException {
+
+    containerHelper.runTest(integrationTestContainer, "in-container-aurora");
   }
 
-  private void initializeToxiProxy(Network network, List<ToxiproxyContainer> toxiproxyContainerList) {
-    try {
-      DriverManager.registerDriver(new Driver());
-      try (final Connection conn = DriverManager.getConnection(DB_CONN_STR_PREFIX + dbHostCluster
-          + DB_CONN_PROP, TEST_USERNAME, TEST_PASSWORD);
-           final Statement stmt = conn.createStatement()) {
-          // Get instances
-          try (final ResultSet resultSet = stmt.executeQuery(RETRIEVE_TOPOLOGY_SQL)) {
-            int instanceCount = 0;
-            while (resultSet.next()) {
-              // Get Instance endpoints
-              final String hostEndpoint = resultSet.getString("SERVER_ID") + DB_CONN_STR_SUFFIX;
-              mySqlInstances.add(hostEndpoint);
+  @Test
+  public void testRunPerformanceTestInContainer()
+          throws UnsupportedOperationException, IOException, InterruptedException, SQLException {
 
-              // Create & Start Toxi Proxy Container
-              final ToxiproxyContainer toxiProxy = initializeToxiProxy(
-                  network,
-                  "toxiproxy-instance-" + (++instanceCount),
-                  hostEndpoint + PROXIED_DOMAIN_NAME_SUFFIX,
-                  hostEndpoint);
-
-              toxiproxyContainerList.add(toxiProxy);
-              mySQLProxyPort = toxiProxy.getProxy(hostEndpoint, MYSQL_PORT).getOriginalProxyPort();
-          }
-        }
-      }
-    } catch (SQLException e) {
-      Assertions.fail(String.format("Failed to initialize instances. Got exception: \n%s", e.getMessage()));
-    }
-
-    toxiproxyContainerList.add(initializeToxiProxy(
-        network,
-        "toxiproxy-instance-cluster",
-        dbHostCluster + PROXIED_DOMAIN_NAME_SUFFIX,
-        dbHostCluster)
-    );
-
-    toxiproxyContainerList.add(initializeToxiProxy(
-        network,
-        "toxiproxy-ro-instance-cluster",
-        dbHostClusterRo + PROXIED_DOMAIN_NAME_SUFFIX,
-        dbHostClusterRo)
-    );
+    containerHelper.runTest(integrationTestContainer, "in-container-aurora-performance");
   }
 
-  private ToxiproxyContainer initializeToxiProxy(final Network network, String networkAlias, String networkUrl, String hostname) {
-    final ToxiproxyContainer container = new ToxiproxyContainer(TOXIPROXY_IMAGE)
-        .withNetwork(network)
-        .withNetworkAliases(networkAlias, networkUrl);
-    container.start();
-    container.getProxy(hostname, MYSQL_PORT);
-    return container;
-  }
+  protected static GenericContainer<?> initializeTestContainer(final Network network, List<String> mySqlInstances) {
 
-  @Override
-  GenericContainer<?> initializeTestContainer(final Network network) {
-    final GenericContainer<?> container = createTestContainerTemplate("bq/rds-test-container")
-        .withNetworkAliases(TEST_CONTAINER_NETWORK_ALIAS)
+    final GenericContainer<?> container = containerHelper.createTestContainer("bq/rds-test-container")
+        .withNetworkAliases(TEST_CONTAINER_NAME)
         .withNetwork(network)
         .withEnv("TEST_USERNAME", TEST_USERNAME)
         .withEnv("TEST_PASSWORD", TEST_PASSWORD)
@@ -182,6 +186,7 @@ public class AuroraIntegrationContainerTest extends ContainerBaseTest {
     System.out.println("Instances Proxied: " + mySqlInstances.size());
 
     container.start();
+
     return container;
   }
 }

@@ -26,117 +26,62 @@
 
 package testsuite.integration.host;
 
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.testcontainers.containers.BindMode;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.containers.Network;
-import org.testcontainers.shaded.com.google.common.collect.ObjectArrays;
+import testsuite.integration.utility.ContainerHelper;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 
-public class CommunityContainerTest extends ContainerBaseTest {
-  private static final List<MySQLContainer<?>> communityContainerList = new ArrayList<>();
-  private static final String MYSQL_CONTAINER_IMAGE_NAME = "mysql:8.0.21";
+public class CommunityContainerTest {
+
+  private static final int MYSQL_PORT = 3306;
+  private static final String TEST_DB = "test";
+  private static final String TEST_CONTAINER_NAME = "test-container";
   private static final String MYSQL_CONTAINER_NAME = "mysql-container";
-  private static GenericContainer<?> communityTestContainer;
-  private Network network;
 
-  @BeforeEach
-  void setUp() {
+  private static MySQLContainer<?> communityMysqlContainer;
+  private static GenericContainer<?> communityTestContainer;
+  private static Network network;
+  private static final ContainerHelper containerHelper = new ContainerHelper();
+
+
+  @BeforeAll
+  static void setUp() {
     network = Network.newNetwork();
+
+    communityMysqlContainer = containerHelper.createMysqlContainer(network, MYSQL_CONTAINER_NAME, TEST_DB);
+    communityMysqlContainer.start();
+
+    communityTestContainer = createTestContainer(network, TEST_CONTAINER_NAME, MYSQL_CONTAINER_NAME, MYSQL_PORT);
+    communityTestContainer.start();
   }
 
-  @AfterEach
-  void tearDown() {
-    for (final MySQLContainer<?> dockerComposeContainer : communityContainerList) {
-      dockerComposeContainer.stop();
-    }
+  @AfterAll
+  static void tearDown() {
+    communityMysqlContainer.stop();
     communityTestContainer.stop();
   }
 
   @Test
   public void testRunCommunityTestInContainer()
       throws UnsupportedOperationException, IOException, InterruptedException {
-    communityTestContainer = initializeTestContainer(network);
-    communityContainerList.add(initializeMySQLContainers(network));
 
-    runTest(communityTestContainer, "test-non-integration");
+    containerHelper.runTest(communityTestContainer, "in-container-community");
   }
 
-  @Override
-  GenericContainer<?> initializeTestContainer(final Network network) {
+  protected static GenericContainer<?> createTestContainer(
+          final Network network, String testContainerNetworkAlias, String mysqlContainerName, int mysqlPort) {
     final GenericContainer<?> container =
-        createTestContainerTemplate("bq/community-test-container")
-            .withNetworkAliases("community-" + TEST_CONTAINER_NETWORK_ALIAS)
-            .withNetwork(network);
-    container.addEnv(
-        "TEST_MYSQL_PORT",
-        String.valueOf(MYSQL_PORT));
-    container.addEnv(
-        "TEST_MYSQL_DOMAIN",
-        MYSQL_CONTAINER_NAME);
-
-    container.start();
-    return container;
-  }
-
-  private MySQLContainer<?> initializeMySQLContainers(Network network) {
-    final MySQLContainer<?> mySQLContainer =
-        createMySQLContainer(network, MYSQL_CONTAINER_NAME,
-            "--log-error-verbosity=4",
-            "--default-authentication-plugin=sha256_password",
-            "--sha256_password_public_key_path=/home/certdir/mykey.pub",
-            "--sha256_password_private_key_path=/home/certdir/mykey.pem",
-            "--caching_sha2_password_public_key_path=/home/certdir/mykey.pub",
-            "--caching_sha2_password_private_key_path=/home/certdir/mykey.pem");
-
-    mySQLContainer.start();
-    return mySQLContainer;
-  }
-
-  private static MySQLContainer<?> createMySQLContainer(
-      Network network,
-      String networkAlias,
-      String... commands) {
-    final String[] defaultCommands = new String[] {
-        "--local_infile=1",
-        "--max_allowed_packet=40M",
-        "--max-connections=2048",
-        "--secure-file-priv=/var/lib/mysql",
-        "--ssl-key=/home/certdir/server-key.pem",
-        "--ssl-cert=/home/certdir/server-cert.pem",
-        "--ssl-ca=/home/certdir/ca-cert.pem",
-        "--plugin_dir=/home/plugin_dir"
-    };
-
-    String[] fullCommands = defaultCommands;
-
-    if (commands.length != 0) {
-      fullCommands = ObjectArrays.concat(defaultCommands, commands, String.class);
-    }
-
-    return new MySQLContainer<>(MYSQL_CONTAINER_IMAGE_NAME)
+      containerHelper.createTestContainer("bq/rds-test-container")
+        .withNetworkAliases(testContainerNetworkAlias)
         .withNetwork(network)
-        .withNetworkAliases(networkAlias)
-        .withDatabaseName(TEST_DB)
-        .withPassword("root")
-        .withFileSystemBind(
-            "src/test/config/ssl-test-certs/",
-            "/home/certdir/",
-            BindMode.READ_WRITE)
-        .withFileSystemBind(
-            "src/test/config/plugins/",
-            "/home/plugin_dir/",
-            BindMode.READ_WRITE)
-        .withFileSystemBind(
-            "src/test/config/docker-entrypoint-initdb.d",
-            "/docker-entrypoint-initdb.d",
-            BindMode.READ_WRITE)
-        .withCommand(fullCommands);
+        .withEnv("TEST_MYSQL_PORT", String.valueOf(mysqlPort))
+        .withEnv("TEST_MYSQL_DOMAIN", mysqlContainerName);
+
+    return container;
   }
 }
