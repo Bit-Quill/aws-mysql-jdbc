@@ -200,7 +200,7 @@ public class MonitorConnectionContext {
 
       final long invalidNodeDurationMillis = currentTime - this.getInvalidNodeStartTime();
       final long maxInvalidNodeDurationMillis =
-          (long) this.getFailureDetectionIntervalMillis() * this.getFailureDetectionCount();
+          (long) this.getFailureDetectionIntervalMillis() * Math.max(0, this.getFailureDetectionCount() - 1);
 
       if (invalidNodeDurationMillis >= maxInvalidNodeDurationMillis) {
         this.log.logTrace(
