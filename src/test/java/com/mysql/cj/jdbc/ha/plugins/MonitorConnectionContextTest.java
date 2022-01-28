@@ -98,8 +98,8 @@ class MonitorConnectionContextTest {
     context.setFailureCount(0);
     context.resetInvalidNodeStartTime();
 
-    // Simulate monitor loop that reports invalid connection for 6 times with interval 50 msec
-    for (int i = 0; i < 6; i++) {
+    // Simulate monitor loop that reports invalid connection for 4 times with interval 50 msec
+    for (int i = 0; i < 4; i++) {
       context.setConnectionValid(false, currentTimeMillis);
       Assertions.assertFalse(context.isNodeUnhealthy());
 
