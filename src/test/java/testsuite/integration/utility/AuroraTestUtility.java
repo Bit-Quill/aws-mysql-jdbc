@@ -48,6 +48,7 @@ import com.amazonaws.waiters.Waiter;
 import com.amazonaws.waiters.WaiterParameters;
 import com.amazonaws.waiters.WaiterTimedOutException;
 import com.amazonaws.waiters.WaiterUnrecoverableException;
+import com.mysql.cj.util.StringUtils;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -71,18 +72,18 @@ import java.util.concurrent.TimeoutException;
  */
 public class AuroraTestUtility {
     // Default values
-    private static String dbUsername = "my_test_username";
-    private static String dbPassword = "my_test_password";
-    private static String dbIdentifier = "test-identifier";
-    private static String dbEngine = "aurora-mysql";
-    private static String dbInstanceClass = "db.r5.large";
-    private static String dbRegion = "us-east-1";
-    private static String dbSecGroup = "default";
-    private static int numOfInstances = 5;
+    private String dbUsername = "my_test_username";
+    private String dbPassword = "my_test_password";
+    private String dbIdentifier = "test-identifier";
+    private String dbEngine = "aurora-mysql";
+    private String dbInstanceClass = "db.r5.large";
+    private final String dbRegion;
+    private String dbSecGroup = "default";
+    private int numOfInstances = 5;
 
-    private static AmazonRDS rdsClient = null;
-    private static AmazonEC2 ec2Client = null;
-    private static String runnerIP = "";
+    private AmazonRDS rdsClient = null;
+    private AmazonEC2 ec2Client = null;
+    private String runnerIP = "";
 
     private static final String DUPLICATE_IP_ERROR_CODE = "InvalidPermission.Duplicate";
 
@@ -92,7 +93,7 @@ public class AuroraTestUtility {
      * EC2 client used to add/remove IP from security group.
      */
     public AuroraTestUtility() {
-        this(dbRegion, new DefaultAWSCredentialsProviderChain());
+        this("us-east-1", new DefaultAWSCredentialsProviderChain());
     }
 
     /**
@@ -129,13 +130,13 @@ public class AuroraTestUtility {
      * @param username Master username for access to database
      * @param password Master password for access to database
      * @param identifier Database cluster identifier
-     * @param engine Database engine to use, refer to https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Welcome.html#:~:text=AWS%20Management%20Console.-,DB%20engines,-A%20DB%20engine
+     * @param engine Database engine to use, refer to https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Welcome.html
      * @param instanceClass instance class, refer to https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.DBInstanceClass.html
      * @param instances number of instances to spin up
      * @return An endpoint for one of the instances
      * @throws InterruptedException when clusters have not started after 30 minutes
      */
-    public String initCluster(String username, String password, String identifier, String engine, String instanceClass, int instances)
+    public String createCluster(String username, String password, String identifier, String engine, String instanceClass, int instances)
         throws InterruptedException {
         dbUsername = username;
         dbPassword = password;
@@ -143,23 +144,23 @@ public class AuroraTestUtility {
         dbEngine = engine;
         dbInstanceClass = instanceClass;
         numOfInstances = instances;
-        return initCluster();
+        return createCluster();
     }
 
     /**
      * Creates RDS Cluster/Instances and waits until they are up, and proper IP whitelisting for databases.
      * @param username Master username for access to database
      * @param password Master password for access to database
-     * @param identifier Database identifier,
+     * @param identifier Database identifier
      * @return An endpoint for one of the instances
      * @throws InterruptedException when clusters have not started after 30 minutes
      */
-    public String initCluster(String username, String password, String identifier)
+    public String createCluster(String username, String password, String identifier)
         throws InterruptedException {
         dbUsername = username;
         dbPassword = password;
         dbIdentifier = identifier;
-        return initCluster();
+        return createCluster();
     }
 
     /**
@@ -167,7 +168,7 @@ public class AuroraTestUtility {
      * @return An endpoint for one of the instances
      * @throws InterruptedException when clusters have not started after 30 minutes
      */
-    public String initCluster() throws InterruptedException {
+    public String createCluster() throws InterruptedException {
         // Create Cluster
         CreateDBClusterRequest dbClusterRequest = new CreateDBClusterRequest()
             .withDBClusterIdentifier(dbIdentifier)
@@ -200,35 +201,44 @@ public class AuroraTestUtility {
         Future<Void> future = instancesRequestWaiter.runAsync(new WaiterParameters<>(dbInstancesRequest), new NoOpWaiterHandler());
         try {
             future.get(30, TimeUnit.MINUTES);
-            addRunnerIP();
         } catch (WaiterUnrecoverableException | WaiterTimedOutException | TimeoutException | ExecutionException exception) {
-            teardown();
+            deleteCluster();
             throw new InterruptedException("Unable to start AWS RDS Cluster & Instances after waiting for 30 minutes");
-        } catch (UnknownHostException exception) {
-            throw new InterruptedException("Unable to authorize runner IP");
         }
 
         DescribeDBInstancesResult dbInstancesResult = rdsClient.describeDBInstances(dbInstancesRequest);
-        return dbInstancesResult.getDBInstances().get(0).getEndpoint().getAddress();
+        String endpoint = dbInstancesResult.getDBInstances().get(0).getEndpoint().getAddress();
+        return endpoint.substring(endpoint.indexOf('.') + 1);
     }
 
     /**
-     * Adds current runner's public IP to EC2 Security groups for RDS access.
+     * Gets public IP
+     * @return public IP of user
      * @throws UnknownHostException
      */
-    private void addRunnerIP() throws UnknownHostException {
+    public String getPublicIPAddress() throws UnknownHostException {
+        String ip = "";
         try {
             URL ipChecker = new URL("http://checkip.amazonaws.com");
             BufferedReader reader = new BufferedReader(new InputStreamReader(
                 ipChecker.openStream()));
-            runnerIP = reader.readLine();
+            ip = reader.readLine();
         } catch (Exception e) {
             throw new UnknownHostException("Unable to get IP");
         }
+        return ip;
+    }
 
+    /**
+     * Adds IP to EC2 Security groups for RDS access.
+     */
+    public void ec2AddIP(String ipAddress) {
+        if (StringUtils.isNullOrEmpty(ipAddress)) {
+            return;
+        }
         AuthorizeSecurityGroupIngressRequest authRequest = new AuthorizeSecurityGroupIngressRequest()
             .withGroupName(dbSecGroup)
-            .withCidrIp(runnerIP + "/32")
+            .withCidrIp(ipAddress + "/32")
             .withIpProtocol("-1") // All protocols
             .withFromPort(0) // For all ports
             .withToPort(65535);
@@ -246,10 +256,13 @@ public class AuroraTestUtility {
      * Removes current runner's public IP from EC2 Security groups.
      * @throws UnknownHostException
      */
-    private void removeRunnerIP() {
+    public void ec2RemoveIP(String ipAddress) {
+        if (StringUtils.isNullOrEmpty(ipAddress)) {
+            return;
+        }
         RevokeSecurityGroupIngressRequest revokeRequest = new RevokeSecurityGroupIngressRequest()
             .withGroupName(dbSecGroup)
-            .withCidrIp(runnerIP + "/32")
+            .withCidrIp(ipAddress + "/32")
             .withIpProtocol("-1") // All protocols
             .withFromPort(0) // For all ports
             .withToPort(65535);
@@ -263,17 +276,17 @@ public class AuroraTestUtility {
 
     /**
      * Destroys all instances and clusters. Removes IP from EC2 whitelist.
-     * @param identifier
+     * @param identifier database identifier to delete
      */
-    public void teardown(String identifier) {
+    public void deleteCluster(String identifier) {
         dbIdentifier = identifier;
-        teardown();
+        deleteCluster();
     }
 
     /**
      * Destroys all instances and clusters. Removes IP from EC2 whitelist.
      */
-    public void teardown() {
+    public void deleteCluster() {
         // Tear down instances
         DeleteDBInstanceRequest dbDeleteInstanceRequest = new DeleteDBInstanceRequest()
             .withSkipFinalSnapshot(true);
@@ -288,6 +301,5 @@ public class AuroraTestUtility {
             .withDBClusterIdentifier(dbIdentifier);
 
         rdsClient.deleteDBCluster(dbDeleteClusterRequest);
-        removeRunnerIP();
     }
 }

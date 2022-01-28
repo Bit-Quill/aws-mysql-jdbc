@@ -27,34 +27,32 @@
 package testsuite.integration.host;
 
 import com.mysql.cj.util.StringUtils;
-
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
 import org.testcontainers.containers.ToxiproxyContainer;
 
-import software.aws.rds.jdbc.mysql.Driver;
-import testsuite.integration.utility.AuroraTestUtility;
-import testsuite.integration.utility.ContainerHelper;
-
 import java.io.IOException;
+import java.net.UnknownHostException;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
+import software.aws.rds.jdbc.mysql.Driver;
+import testsuite.integration.utility.AuroraTestUtility;
+import testsuite.integration.utility.ContainerHelper;
+
 /**
- * Integration tests against RDS Aurora cluster. The following environment variables
- * should be set. Provided values are just examples.
+ * Integration tests against RDS Aurora cluster.
+ * Uses {@link AuroraTestUtility} which requires AWS Credentials to create/destroy clusters & set EC2 Whitelist.
  *
+ * The following environment variables are optional but suggested differentiating between runners
+ * Provided values are just examples.
  * Assuming cluster endpoint is "database-cluster-name.XYZ.us-east-2.rds.amazonaws.com"
  *
- * DB_CONN_STR_SUFFIX=.XYZ.us-east-2.rds.amazonaws.com   (pay attention on period in front of the value!!!)
  * TEST_DB_CLUSTER_IDENTIFIER=database-cluster-name
  * TEST_USERNAME=user-name
  * TEST_PASSWORD=user-secret-password
@@ -80,6 +78,7 @@ public class AuroraIntegrationContainerTest {
   private static GenericContainer<?> integrationTestContainer;
   private static String dbHostCluster = "";
   private static String dbHostClusterRo = "";
+  private static String runnerIP = null;
 
   private static Network network;
 
@@ -87,20 +86,22 @@ public class AuroraIntegrationContainerTest {
   private static final AuroraTestUtility auroraUtil = new AuroraTestUtility();
 
   @BeforeAll
-  static void setUp() throws SQLException, InterruptedException {
+  static void setUp() throws SQLException, InterruptedException, UnknownHostException {
     if (StringUtils.isNullOrEmpty(TEST_DB_CLUSTER_IDENTIFIER) || StringUtils.isNullOrEmpty(TEST_USERNAME) || StringUtils.isNullOrEmpty(TEST_PASSWORD)) {
-      dbConnStrSuffix = auroraUtil.initCluster(); // Using default values
+      // Using default values in Aurora Test Utilities
+      // Username: my_test_username
+      // Password: my_test_password
+      // Identifier: test-identifier
+      dbConnStrSuffix = auroraUtil.createCluster();
     } else {
-      dbConnStrSuffix = auroraUtil.initCluster(TEST_USERNAME, TEST_PASSWORD, TEST_DB_CLUSTER_IDENTIFIER);
+      dbConnStrSuffix = auroraUtil.createCluster(TEST_USERNAME, TEST_PASSWORD, TEST_DB_CLUSTER_IDENTIFIER);
     }
+    // Comment out getting public IP to not add & remove from EC2 whitelist
+    runnerIP = auroraUtil.getPublicIPAddress();
+    auroraUtil.ec2AddIP(runnerIP);
 
-    dbConnStrSuffix = dbConnStrSuffix.substring(dbConnStrSuffix.indexOf('.'));
-    final String dbConnHostBase =
-        dbConnStrSuffix.startsWith(".")
-            ? dbConnStrSuffix.substring(1)
-            : dbConnStrSuffix;
-    dbHostCluster = TEST_DB_CLUSTER_IDENTIFIER + ".cluster-" + dbConnHostBase;
-    dbHostClusterRo = TEST_DB_CLUSTER_IDENTIFIER + ".cluster-ro-" + dbConnHostBase;
+    dbHostCluster = TEST_DB_CLUSTER_IDENTIFIER + ".cluster-" + dbConnStrSuffix;
+    dbHostClusterRo = TEST_DB_CLUSTER_IDENTIFIER + ".cluster-ro-" + dbConnStrSuffix;
 
     DriverManager.registerDriver(new Driver());
 
@@ -109,7 +110,7 @@ public class AuroraIntegrationContainerTest {
             DB_CONN_STR_PREFIX + dbHostCluster + DB_CONN_PROP,
             TEST_USERNAME,
             TEST_PASSWORD,
-            dbConnHostBase);
+            dbConnStrSuffix);
     proxyContainers = containerHelper.createProxyContainers(network, mySqlInstances, PROXIED_DOMAIN_NAME_SUFFIX);
     for(ToxiproxyContainer container : proxyContainers) {
       container.start();
@@ -139,7 +140,14 @@ public class AuroraIntegrationContainerTest {
 
   @AfterAll
   static void tearDown() {
-    auroraUtil.teardown();
+    // Comment below out if you don't want to delete cluster after tests finishes
+    if (StringUtils.isNullOrEmpty(TEST_DB_CLUSTER_IDENTIFIER)) {
+      auroraUtil.deleteCluster();
+    } else {
+      auroraUtil.deleteCluster(TEST_DB_CLUSTER_IDENTIFIER);
+    }
+
+    auroraUtil.ec2RemoveIP(runnerIP);
     for (ToxiproxyContainer proxy : proxyContainers) {
       proxy.stop();
     }
@@ -155,7 +163,7 @@ public class AuroraIntegrationContainerTest {
 
   @Test
   public void testRunPerformanceTestInContainer()
-          throws UnsupportedOperationException, IOException, InterruptedException, SQLException {
+          throws UnsupportedOperationException, IOException, InterruptedException {
 
     containerHelper.runTest(integrationTestContainer, "in-container-aurora-performance");
   }
@@ -171,8 +179,8 @@ public class AuroraIntegrationContainerTest {
         .withEnv("DB_RO_CLUSTER_CONN", dbHostClusterRo)
         .withEnv("TOXIPROXY_CLUSTER_NETWORK_ALIAS", "toxiproxy-instance-cluster")
         .withEnv("TOXIPROXY_RO_CLUSTER_NETWORK_ALIAS", "toxiproxy-ro-instance-cluster")
-        .withEnv("PROXIED_CLUSTER_TEMPLATE", "?" + dbConnStrSuffix + PROXIED_DOMAIN_NAME_SUFFIX)
-        .withEnv("DB_CONN_STR_SUFFIX", dbConnStrSuffix);
+        .withEnv("PROXIED_CLUSTER_TEMPLATE", "?." + dbConnStrSuffix + PROXIED_DOMAIN_NAME_SUFFIX)
+        .withEnv("DB_CONN_STR_SUFFIX", "." + dbConnStrSuffix);
 
     // Add mysql instances & proxies to container env
     for (int i = 0; i < mySqlInstances.size(); i++) {
