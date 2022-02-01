@@ -73,6 +73,7 @@ public class AuroraIntegrationContainerTest {
   private static String dbConnStrSuffix = "";
   private static final String DB_CONN_PROP = "?enabledTLSProtocols=TLSv1.2";
 
+
   private static final String TEST_DB_CLUSTER_IDENTIFIER =
       !StringUtils.isNullOrEmpty(System.getenv("TEST_DB_CLUSTER_IDENTIFIER")) ?
           System.getenv("TEST_DB_CLUSTER_IDENTIFIER") : "test-idenifer";
