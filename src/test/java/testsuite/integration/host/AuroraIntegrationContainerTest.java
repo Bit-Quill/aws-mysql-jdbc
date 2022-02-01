@@ -141,11 +141,7 @@ public class AuroraIntegrationContainerTest {
   @AfterAll
   static void tearDown() {
     // Comment below out if you don't want to delete cluster after tests finishes
-    if (StringUtils.isNullOrEmpty(TEST_DB_CLUSTER_IDENTIFIER)) {
-      auroraUtil.deleteCluster();
-    } else {
-      auroraUtil.deleteCluster(TEST_DB_CLUSTER_IDENTIFIER);
-    }
+    auroraUtil.deleteCluster(TEST_DB_CLUSTER_IDENTIFIER);
 
     auroraUtil.ec2DeauthorizesIP(runnerIP);
     for (ToxiproxyContainer proxy : proxyContainers) {
