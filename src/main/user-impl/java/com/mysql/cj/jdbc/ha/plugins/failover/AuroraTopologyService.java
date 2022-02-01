@@ -219,9 +219,10 @@ public class AuroraTopologyService
       // "Unknown table 'REPLICA_HOST_STATUS' in information_schema"
       // Ignore this kind of exceptions.
     } finally {
-      if (conn.getPropertySet() != null && conn.getPropertySet().getBooleanProperty(PropertyKey.gatherPerfMetrics.getKeyName()).getValue()) {
+      if (topologyInfo != null && conn.getPropertySet() != null && conn.getPropertySet().getBooleanProperty(PropertyKey.gatherPerfMetrics.getKeyName()).getValue()) {
         long currentTimeMs = System.currentTimeMillis();
         this.queryTopologyMetrics.registerQueryExecutionTime(currentTimeMs - startTimeMs);
+        ClusterAwareMetricsContainer.linkInstances(topologyInfo.hosts, clusterId);
       }
     }
 
@@ -269,8 +270,6 @@ public class AuroraTopologyService
       this.log.logError(Messages.getString("AuroraTopologyService.3"));
       hosts.clear();
     }
-
-    ClusterAwareMetricsContainer.linkInstances(hosts, clusterId);
 
     return new ClusterTopologyInfo(
         hosts,
