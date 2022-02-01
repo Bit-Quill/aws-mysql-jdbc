@@ -212,7 +212,7 @@ public class AuroraTopologyService
 
     try (Statement stmt = conn.createStatement()) {
       try (ResultSet resultSet = stmt.executeQuery(RETRIEVE_TOPOLOGY_SQL)) {
-        topologyInfo = processQueryResults(resultSet, conn.getHost());
+        topologyInfo = processQueryResults(resultSet);
       }
     } catch (SQLSyntaxErrorException e) {
       // We may get SQLSyntaxErrorException like the following from MySQL databases:
@@ -242,7 +242,7 @@ public class AuroraTopologyService
    * @return The {@link ClusterTopologyInfo} representing the results of the query. The host list in this object will
    *         be empty if the topology query returned an invalid topology (no writer instance).
    */
-  private ClusterTopologyInfo processQueryResults(ResultSet resultSet, String connUrl)
+  private ClusterTopologyInfo processQueryResults(ResultSet resultSet)
       throws SQLException {
     int writerCount = 0;
 

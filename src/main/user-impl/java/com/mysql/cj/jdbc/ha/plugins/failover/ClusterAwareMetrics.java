@@ -108,17 +108,4 @@ public class ClusterAwareMetrics {
     this.useLastConnectedReader.reportMetrics(log);
     this.invalidInitialConnection.reportMetrics(log);
   }
-
-  /**
-   * Reset metrics.
-   * */
-  public void resetMetrics() {
-    this.failoverConnects.resetMetrics();
-    this.failureDetection.resetMetrics();
-    this.writerFailoverProcedure.resetMetrics();
-    this.readerFailoverProcedure.resetMetrics();
-    this.useCachedTopology.resetMetrics();
-    this.useLastConnectedReader.resetMetrics();
-    this.invalidInitialConnection.resetMetrics();
-  }
 }

@@ -22,17 +22,13 @@ public class ClusterAwareMetricsContainer implements IClusterAwareMetricsContain
     private PropertySet propertySet;
     private String clusterID;
 
-    public ClusterAwareMetricsContainer() {
-        // Used to allow reporter to get metrics
-    }
-
     public ClusterAwareMetricsContainer(ICurrentConnectionProvider currentConnectionProvider, PropertySet propertySet) {
         this.currentConnectionProvider = currentConnectionProvider;
         this.propertySet = propertySet;
     }
 
     public static void linkInstances(List<HostInfo> hosts, String clusterID) {
-        ClusterAwareMetrics metrics = clusterMetrics.computeIfAbsent(
+        final ClusterAwareMetrics metrics = clusterMetrics.computeIfAbsent(
             clusterID,
             k -> new ClusterAwareMetrics());
         for (HostInfo host : hosts) {
@@ -136,19 +132,12 @@ public class ClusterAwareMetricsContainer implements IClusterAwareMetricsContain
         return currUrl;
     }
 
-    public void reportMetrics(String connUrl, Log log) {
+    public static void reportMetrics(String connUrl, Log log) {
         reportMetrics(connUrl, log, false);
     }
 
-    public void reportMetrics(String connUrl, Log log, boolean forInstances) {
-        ClusterAwareMetrics metrics = null;
-        if (forInstances) {
-            metrics = instanceMetrics.get(connUrl);
-        }
-
-        if (metrics == null) {
-            metrics = clusterMetrics.get(connUrl);
-        }
+    public static void reportMetrics(String connUrl, Log log, boolean forInstances) {
+        final ClusterAwareMetrics metrics = forInstances ? instanceMetrics.get(connUrl) : clusterMetrics.get(connUrl);
 
         if (metrics != null) {
             StringBuilder logMessage = new StringBuilder(256);
@@ -169,7 +158,7 @@ public class ClusterAwareMetricsContainer implements IClusterAwareMetricsContain
         }
     }
 
-    public void resetMetrics() {
+    public static void resetMetrics() {
         clusterMetrics.clear();
         instanceMetrics.clear();
     }

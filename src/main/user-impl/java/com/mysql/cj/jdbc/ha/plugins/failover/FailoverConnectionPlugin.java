@@ -1169,7 +1169,7 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
   }
 
   private void setClusterId(String host, int port) {
-    String clusterID = "";
+    final String clusterID;
     if (!StringUtils.isNullOrEmpty(this.clusterIdSetting)) {
       clusterID = this.clusterIdSetting;
       metricsContainer.setClusterID(clusterID);
