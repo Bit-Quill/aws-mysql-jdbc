@@ -170,7 +170,7 @@ public class AuroraTestUtility {
      */
     public String createCluster() throws InterruptedException {
         // Create Cluster
-        CreateDBClusterRequest dbClusterRequest = new CreateDBClusterRequest()
+        final CreateDBClusterRequest dbClusterRequest = new CreateDBClusterRequest()
             .withDBClusterIdentifier(dbIdentifier)
             .withMasterUsername(dbUsername)
             .withMasterUserPassword(dbPassword)
@@ -182,7 +182,7 @@ public class AuroraTestUtility {
         rdsClient.createDBCluster(dbClusterRequest);
 
         // Create Instances
-        CreateDBInstanceRequest dbInstanceRequest = new CreateDBInstanceRequest()
+        final CreateDBInstanceRequest dbInstanceRequest = new CreateDBInstanceRequest()
             .withDBClusterIdentifier(dbIdentifier)
             .withDBInstanceClass(dbInstanceClass)
             .withEngine(dbEngine)
@@ -193,12 +193,12 @@ public class AuroraTestUtility {
         }
 
         // Wait for all instances to be up
-        AmazonRDSWaiters waiter = new AmazonRDSWaiters(rdsClient);
-        DescribeDBInstancesRequest dbInstancesRequest = new DescribeDBInstancesRequest()
+        final AmazonRDSWaiters waiter = new AmazonRDSWaiters(rdsClient);
+        final DescribeDBInstancesRequest dbInstancesRequest = new DescribeDBInstancesRequest()
             .withFilters(new Filter().withName("db-cluster-id").withValues(dbIdentifier));
-        Waiter<DescribeDBInstancesRequest> instancesRequestWaiter = waiter
+        final Waiter<DescribeDBInstancesRequest> instancesRequestWaiter = waiter
             .dBInstanceAvailable();
-        Future<Void> future = instancesRequestWaiter.runAsync(new WaiterParameters<>(dbInstancesRequest), new NoOpWaiterHandler());
+        final Future<Void> future = instancesRequestWaiter.runAsync(new WaiterParameters<>(dbInstancesRequest), new NoOpWaiterHandler());
         try {
             future.get(30, TimeUnit.MINUTES);
         } catch (WaiterUnrecoverableException | WaiterTimedOutException | TimeoutException | ExecutionException exception) {
@@ -206,8 +206,8 @@ public class AuroraTestUtility {
             throw new InterruptedException("Unable to start AWS RDS Cluster & Instances after waiting for 30 minutes");
         }
 
-        DescribeDBInstancesResult dbInstancesResult = rdsClient.describeDBInstances(dbInstancesRequest);
-        String endpoint = dbInstancesResult.getDBInstances().get(0).getEndpoint().getAddress();
+        final DescribeDBInstancesResult dbInstancesResult = rdsClient.describeDBInstances(dbInstancesRequest);
+        final String endpoint = dbInstancesResult.getDBInstances().get(0).getEndpoint().getAddress();
         return endpoint.substring(endpoint.indexOf('.') + 1);
     }
 
@@ -230,13 +230,13 @@ public class AuroraTestUtility {
     }
 
     /**
-     * Adds IP to EC2 Security groups for RDS access.
+     * Authorizes IP to EC2 Security groups for RDS access.
      */
-    public void ec2AddIP(String ipAddress) {
+    public void ec2AuthorizeIP(String ipAddress) {
         if (StringUtils.isNullOrEmpty(ipAddress)) {
             return;
         }
-        AuthorizeSecurityGroupIngressRequest authRequest = new AuthorizeSecurityGroupIngressRequest()
+        final AuthorizeSecurityGroupIngressRequest authRequest = new AuthorizeSecurityGroupIngressRequest()
             .withGroupName(dbSecGroup)
             .withCidrIp(ipAddress + "/32")
             .withIpProtocol("-1") // All protocols
@@ -253,14 +253,14 @@ public class AuroraTestUtility {
     }
 
     /**
-     * Removes current runner's public IP from EC2 Security groups.
+     * De-authorizes IP from EC2 Security groups.
      * @throws UnknownHostException
      */
-    public void ec2RemoveIP(String ipAddress) {
+    public void ec2DeauthorizesIP(String ipAddress) {
         if (StringUtils.isNullOrEmpty(ipAddress)) {
             return;
         }
-        RevokeSecurityGroupIngressRequest revokeRequest = new RevokeSecurityGroupIngressRequest()
+        final RevokeSecurityGroupIngressRequest revokeRequest = new RevokeSecurityGroupIngressRequest()
             .withGroupName(dbSecGroup)
             .withCidrIp(ipAddress + "/32")
             .withIpProtocol("-1") // All protocols
@@ -288,7 +288,7 @@ public class AuroraTestUtility {
      */
     public void deleteCluster() {
         // Tear down instances
-        DeleteDBInstanceRequest dbDeleteInstanceRequest = new DeleteDBInstanceRequest()
+        final DeleteDBInstanceRequest dbDeleteInstanceRequest = new DeleteDBInstanceRequest()
             .withSkipFinalSnapshot(true);
 
         for (int i = 1; i <= numOfInstances; i++) {
@@ -296,7 +296,7 @@ public class AuroraTestUtility {
         }
 
         // Tear down cluster
-        DeleteDBClusterRequest dbDeleteClusterRequest = new DeleteDBClusterRequest()
+        final DeleteDBClusterRequest dbDeleteClusterRequest = new DeleteDBClusterRequest()
             .withSkipFinalSnapshot(true)
             .withDBClusterIdentifier(dbIdentifier);
 

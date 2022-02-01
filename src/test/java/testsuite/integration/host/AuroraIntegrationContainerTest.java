@@ -62,14 +62,20 @@ public class AuroraIntegrationContainerTest {
   private static final int MYSQL_PORT = 3306;
   private static final String TEST_CONTAINER_NAME = "test-container";
 
-  private static final String TEST_USERNAME = System.getenv("TEST_USERNAME");
-  private static final String TEST_PASSWORD = System.getenv("TEST_PASSWORD");
+  private static final String TEST_USERNAME =
+      !StringUtils.isNullOrEmpty(System.getenv("TEST_USERNAME")) ?
+        System.getenv("TEST_USERNAME") : "my_test_username";
+  private static final String TEST_PASSWORD =
+      !StringUtils.isNullOrEmpty(System.getenv("TEST_PASSWORD")) ?
+        System.getenv("TEST_PASSWORD") : "my_test_password";
 
   private static final String DB_CONN_STR_PREFIX = "jdbc:mysql://";
   private static String dbConnStrSuffix = "";
   private static final String DB_CONN_PROP = "?enabledTLSProtocols=TLSv1.2";
 
-  private static final String TEST_DB_CLUSTER_IDENTIFIER = System.getenv("TEST_DB_CLUSTER_IDENTIFIER");
+  private static final String TEST_DB_CLUSTER_IDENTIFIER =
+      !StringUtils.isNullOrEmpty(System.getenv("TEST_DB_CLUSTER_IDENTIFIER")) ?
+          System.getenv("TEST_DB_CLUSTER_IDENTIFIER") : "test-idenifer";
   private static final String PROXIED_DOMAIN_NAME_SUFFIX = ".proxied";
   private static List<ToxiproxyContainer> proxyContainers = new ArrayList<>();
   private static List<String> mySqlInstances = new ArrayList<>();
@@ -87,18 +93,12 @@ public class AuroraIntegrationContainerTest {
 
   @BeforeAll
   static void setUp() throws SQLException, InterruptedException, UnknownHostException {
-    if (StringUtils.isNullOrEmpty(TEST_DB_CLUSTER_IDENTIFIER) || StringUtils.isNullOrEmpty(TEST_USERNAME) || StringUtils.isNullOrEmpty(TEST_PASSWORD)) {
-      // Using default values in Aurora Test Utilities
-      // Username: my_test_username
-      // Password: my_test_password
-      // Identifier: test-identifier
-      dbConnStrSuffix = auroraUtil.createCluster();
-    } else {
-      dbConnStrSuffix = auroraUtil.createCluster(TEST_USERNAME, TEST_PASSWORD, TEST_DB_CLUSTER_IDENTIFIER);
-    }
+    // Comment out below to not create a new cluster & instances
+    dbConnStrSuffix = auroraUtil.createCluster(TEST_USERNAME, TEST_PASSWORD, TEST_DB_CLUSTER_IDENTIFIER);
+
     // Comment out getting public IP to not add & remove from EC2 whitelist
     runnerIP = auroraUtil.getPublicIPAddress();
-    auroraUtil.ec2AddIP(runnerIP);
+    auroraUtil.ec2AuthorizeIP(runnerIP);
 
     dbHostCluster = TEST_DB_CLUSTER_IDENTIFIER + ".cluster-" + dbConnStrSuffix;
     dbHostClusterRo = TEST_DB_CLUSTER_IDENTIFIER + ".cluster-ro-" + dbConnStrSuffix;
@@ -147,7 +147,7 @@ public class AuroraIntegrationContainerTest {
       auroraUtil.deleteCluster(TEST_DB_CLUSTER_IDENTIFIER);
     }
 
-    auroraUtil.ec2RemoveIP(runnerIP);
+    auroraUtil.ec2DeauthorizesIP(runnerIP);
     for (ToxiproxyContainer proxy : proxyContainers) {
       proxy.stop();
     }
