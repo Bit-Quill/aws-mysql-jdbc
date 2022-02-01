@@ -56,6 +56,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 public class AuroraMysqlPerformanceIntegrationTest extends AuroraMysqlIntegrationBaseTest {
 
   private static final int REPEAT_TIMES = 5;
+  private static final int FAILOVER_TIMEOUT_MS = 40000;
   private static final List<PerfStatMonitoring> enhancedFailureMonitoringPerfDataList = new ArrayList<>();
   private static final List<PerfStatMonitoring> failoverWithEfmPerfDataList = new ArrayList<>();
   private static final List<PerfStatSocketTimeout> failoverWithSocketTimeoutPerfDataList = new ArrayList<>();
@@ -114,7 +115,7 @@ public class AuroraMysqlPerformanceIntegrationTest extends AuroraMysqlIntegratio
     props.setProperty(PropertyKey.failureDetectionCount.getKeyName(), Integer.toString(detectionCount));
     props.setProperty(PropertyKey.enableClusterAwareFailover.getKeyName(), Boolean.FALSE.toString());
 
-    PerfStatMonitoring data = new PerfStatMonitoring();
+    final PerfStatMonitoring data = new PerfStatMonitoring();
     doMeasurePerformance(sleepDelayMillis, REPEAT_TIMES, props, false, data);
     data.paramDetectionTime = detectionTime;
     data.paramDetectionInterval = detectionInterval;
@@ -133,7 +134,7 @@ public class AuroraMysqlPerformanceIntegrationTest extends AuroraMysqlIntegratio
     props.setProperty(PropertyKey.enableClusterAwareFailover.getKeyName(), Boolean.TRUE.toString());
     props.setProperty(PropertyKey.failoverTimeoutMs.getKeyName(), Integer.toString(40000));
 
-    PerfStatMonitoring data = new PerfStatMonitoring();
+    final PerfStatMonitoring data = new PerfStatMonitoring();
     doMeasurePerformance(sleepDelayMillis, REPEAT_TIMES, props, true, data);
     data.paramDetectionTime = detectionTime;
     data.paramDetectionInterval = detectionInterval;
@@ -151,9 +152,9 @@ public class AuroraMysqlPerformanceIntegrationTest extends AuroraMysqlIntegratio
     // Loads just failover plugin; don't load Enhanced Failure Monitoring plugin
     props.setProperty(PropertyKey.connectionPluginFactories.getKeyName(), FailoverConnectionPluginFactory.class.getName());
     props.setProperty(PropertyKey.enableClusterAwareFailover.getKeyName(), Boolean.TRUE.toString());
-    props.setProperty(PropertyKey.failoverTimeoutMs.getKeyName(), Integer.toString(40000));
+    props.setProperty(PropertyKey.failoverTimeoutMs.getKeyName(), Integer.toString(FAILOVER_TIMEOUT_MS));
 
-    PerfStatSocketTimeout data = new PerfStatSocketTimeout();
+    final PerfStatSocketTimeout data = new PerfStatSocketTimeout();
     doMeasurePerformance(sleepDelayMillis, REPEAT_TIMES, props, true, data);
     data.paramSocketTimeout = socketTimeout;
     failoverWithSocketTimeoutPerfDataList.add(data);
