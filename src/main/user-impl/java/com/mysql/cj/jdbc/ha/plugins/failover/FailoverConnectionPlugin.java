@@ -1169,27 +1169,24 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
   }
 
   private void setClusterId(String host, int port) {
-    final String clusterId;
+    String clusterId = null;
     if (!StringUtils.isNullOrEmpty(this.clusterIdSetting)) {
       clusterId = this.clusterIdSetting;
-      setMetricContainerId(clusterId);
     } else if (this.isRdsProxy) {
       // Each proxy is associated with a single cluster so it's safe to use RDS Proxy Url as cluster identification
       clusterId = host + ":" + port;
-      setMetricContainerId(clusterId);
     } else if (this.isRds) {
       // If it's a cluster endpoint, or a reader cluster endpoint, then let's use it as the cluster ID
       String clusterRdsHostUrl = getRdsClusterHostUrl(host);
       if (!StringUtils.isNullOrEmpty(clusterRdsHostUrl)) {
         clusterId = clusterRdsHostUrl + ":" + port;
-        setMetricContainerId(clusterId);
       }
     }
-  }
 
-  private void setMetricContainerId(String clusterId) {
-    metricsContainer.setClusterId(clusterId);
-    this.topologyService.setClusterId(clusterId);
+    if (clusterId != null) {
+      metricsContainer.setClusterId(clusterId);
+      this.topologyService.setClusterId(clusterId);
+    }
   }
 
   private boolean shouldAttemptReaderConnection() {
