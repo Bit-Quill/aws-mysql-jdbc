@@ -513,8 +513,8 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
     ReaderFailoverResult result = readerFailoverHandler.failover(this.hosts, failedHost);
 
     long currentTimeMs = System.currentTimeMillis();
-    metricsContainer.registerReaderFailoverProcedureTime(
-        currentTimeMs - this.failoverStartTimeMs);
+    metricsContainer.registerReaderFailoverProcedureTime(currentTimeMs -
+        this.failoverStartTimeMs);
     this.failoverStartTimeMs = 0;
 
     if (result == null || !result.isConnected()) {
@@ -1169,25 +1169,27 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
   }
 
   private void setClusterId(String host, int port) {
-    final String clusterID;
+    final String clusterId;
     if (!StringUtils.isNullOrEmpty(this.clusterIdSetting)) {
-      clusterID = this.clusterIdSetting;
-      metricsContainer.setClusterID(clusterID);
-      this.topologyService.setClusterId(clusterID);
+      clusterId = this.clusterIdSetting;
+      setMetricContainerId(clusterId);
     } else if (this.isRdsProxy) {
       // Each proxy is associated with a single cluster so it's safe to use RDS Proxy Url as cluster identification
-      clusterID = host + ":" + port;
-      metricsContainer.setClusterID(clusterID);
-      this.topologyService.setClusterId(clusterID);
+      clusterId = host + ":" + port;
+      setMetricContainerId(clusterId);
     } else if (this.isRds) {
       // If it's a cluster endpoint, or a reader cluster endpoint, then let's use it as the cluster ID
       String clusterRdsHostUrl = getRdsClusterHostUrl(host);
       if (!StringUtils.isNullOrEmpty(clusterRdsHostUrl)) {
-        clusterID = clusterRdsHostUrl + ":" + port;
-        metricsContainer.setClusterID(clusterID);
-        this.topologyService.setClusterId(clusterID);
+        clusterId = clusterRdsHostUrl + ":" + port;
+        setMetricContainerId(clusterId);
       }
     }
+  }
+
+  private void setMetricContainerId(String clusterId) {
+    metricsContainer.setClusterId(clusterId);
+    this.topologyService.setClusterId(clusterId);
   }
 
   private boolean shouldAttemptReaderConnection() {

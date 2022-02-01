@@ -1,3 +1,29 @@
+/*
+ * AWS JDBC Driver for MySQL
+ * Copyright Amazon.com Inc. or affiliates.
+ *
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice,
+ * this list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation and/or
+ * other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
+ * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT
+ * SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ */
+
 package com.mysql.cj.jdbc.ha.plugins.failover;
 
 import com.mysql.cj.conf.HostInfo;
@@ -20,31 +46,33 @@ public class ClusterAwareMetricsContainer implements IClusterAwareMetricsContain
 
     private ICurrentConnectionProvider currentConnectionProvider;
     private PropertySet propertySet;
-    private String clusterID;
+    private String clusterId = "";
 
     public ClusterAwareMetricsContainer(ICurrentConnectionProvider currentConnectionProvider, PropertySet propertySet) {
         this.currentConnectionProvider = currentConnectionProvider;
         this.propertySet = propertySet;
     }
 
-    public static void linkInstances(List<HostInfo> hosts, String clusterID) {
+    public static void linkInstances(List<HostInfo> hosts, String clusterId) {
         final ClusterAwareMetrics metrics = clusterMetrics.computeIfAbsent(
-            clusterID,
+            clusterId,
             k -> new ClusterAwareMetrics());
         for (HostInfo host : hosts) {
             clusterMetrics.put(host.getHost(), metrics);
         }
     }
 
-    public void setClusterID(String clusterID) {
-        this.clusterID = !StringUtils.isNullOrEmpty(clusterID) ? clusterID.substring(0, clusterID.indexOf(':'))
+    public void setClusterId(String clusterId) {
+        this.clusterId = !StringUtils.isNullOrEmpty(clusterId) ? clusterId.substring(0, clusterId.indexOf(':'))
             : getCurrentConnUrl();
     }
 
     public void registerFailureDetectionTime(long timeMs) {
-        if (!propertySet.getBooleanProperty(PropertyKey.gatherPerfMetrics.getKeyName()).getValue()) return;
+        if (!propertySet.getBooleanProperty(PropertyKey.gatherPerfMetrics.getKeyName()).getValue()) {
+            return;
+        }
 
-        getClusterMetrics(clusterID).registerFailureDetectionTime(timeMs);
+        getClusterMetrics(clusterId).registerFailureDetectionTime(timeMs);
 
         if (propertySet.getBooleanProperty(PropertyKey.gatherAdditionalMetricsOnInstance.getKeyName()).getValue()) {
             getInstanceMetrics(getCurrentConnUrl()).registerFailureDetectionTime(timeMs);
@@ -52,9 +80,11 @@ public class ClusterAwareMetricsContainer implements IClusterAwareMetricsContain
     }
 
     public void registerWriterFailoverProcedureTime(long timeMs) {
-        if (!propertySet.getBooleanProperty(PropertyKey.gatherPerfMetrics.getKeyName()).getValue()) return;
+        if (!propertySet.getBooleanProperty(PropertyKey.gatherPerfMetrics.getKeyName()).getValue()) {
+            return;
+        }
 
-        getClusterMetrics(clusterID).registerWriterFailoverProcedureTime(timeMs);
+        getClusterMetrics(clusterId).registerWriterFailoverProcedureTime(timeMs);
 
         if (propertySet.getBooleanProperty(PropertyKey.gatherAdditionalMetricsOnInstance.getKeyName()).getValue()) {
             getInstanceMetrics(getCurrentConnUrl()).registerWriterFailoverProcedureTime(timeMs);
@@ -62,9 +92,11 @@ public class ClusterAwareMetricsContainer implements IClusterAwareMetricsContain
     }
 
     public void registerReaderFailoverProcedureTime(long timeMs) {
-        if (!propertySet.getBooleanProperty(PropertyKey.gatherPerfMetrics.getKeyName()).getValue()) return;
+        if (!propertySet.getBooleanProperty(PropertyKey.gatherPerfMetrics.getKeyName()).getValue()) {
+            return;
+        }
 
-        getClusterMetrics(clusterID).registerReaderFailoverProcedureTime(timeMs);
+        getClusterMetrics(clusterId).registerReaderFailoverProcedureTime(timeMs);
 
         if (propertySet.getBooleanProperty(PropertyKey.gatherAdditionalMetricsOnInstance.getKeyName()).getValue()) {
             getInstanceMetrics(getCurrentConnUrl()).registerReaderFailoverProcedureTime(timeMs);
@@ -72,9 +104,11 @@ public class ClusterAwareMetricsContainer implements IClusterAwareMetricsContain
     }
 
     public void registerFailoverConnects(boolean isHit) {
-        if (!propertySet.getBooleanProperty(PropertyKey.gatherPerfMetrics.getKeyName()).getValue()) return;
+        if (!propertySet.getBooleanProperty(PropertyKey.gatherPerfMetrics.getKeyName()).getValue()) {
+            return;
+        }
 
-        getClusterMetrics(clusterID).registerFailoverConnects(isHit);
+        getClusterMetrics(clusterId).registerFailoverConnects(isHit);
 
         if (propertySet.getBooleanProperty(PropertyKey.gatherAdditionalMetricsOnInstance.getKeyName()).getValue()) {
             getInstanceMetrics(getCurrentConnUrl()).registerFailoverConnects(isHit);
@@ -82,9 +116,11 @@ public class ClusterAwareMetricsContainer implements IClusterAwareMetricsContain
     }
 
     public void registerInvalidInitialConnection(boolean isHit) {
-        if (!propertySet.getBooleanProperty(PropertyKey.gatherPerfMetrics.getKeyName()).getValue()) return;
+        if (!propertySet.getBooleanProperty(PropertyKey.gatherPerfMetrics.getKeyName()).getValue()) {
+            return;
+        }
 
-        getClusterMetrics(clusterID).registerInvalidInitialConnection(isHit);
+        getClusterMetrics(clusterId).registerInvalidInitialConnection(isHit);
 
         if (propertySet.getBooleanProperty(PropertyKey.gatherAdditionalMetricsOnInstance.getKeyName()).getValue()) {
             getInstanceMetrics(getCurrentConnUrl()).registerInvalidInitialConnection(isHit);
@@ -92,9 +128,11 @@ public class ClusterAwareMetricsContainer implements IClusterAwareMetricsContain
     }
 
     public void registerUseLastConnectedReader(boolean isHit) {
-        if (!propertySet.getBooleanProperty(PropertyKey.gatherPerfMetrics.getKeyName()).getValue()) return;
+        if (!propertySet.getBooleanProperty(PropertyKey.gatherPerfMetrics.getKeyName()).getValue()) {
+            return;
+        }
 
-        getClusterMetrics(clusterID).registerUseLastConnectedReader(isHit);
+        getClusterMetrics(clusterId).registerUseLastConnectedReader(isHit);
 
         if (propertySet.getBooleanProperty(PropertyKey.gatherAdditionalMetricsOnInstance.getKeyName()).getValue()) {
             getInstanceMetrics(getCurrentConnUrl()).registerUseLastConnectedReader(isHit);
@@ -102,9 +140,11 @@ public class ClusterAwareMetricsContainer implements IClusterAwareMetricsContain
     }
 
     public void registerUseCachedTopology(boolean isHit) {
-        if (!propertySet.getBooleanProperty(PropertyKey.gatherPerfMetrics.getKeyName()).getValue()) return;
+        if (!propertySet.getBooleanProperty(PropertyKey.gatherPerfMetrics.getKeyName()).getValue()) {
+            return;
+        }
 
-        getClusterMetrics(clusterID).registerUseCachedTopology(isHit);
+        getClusterMetrics(clusterId).registerUseCachedTopology(isHit);
 
         if (propertySet.getBooleanProperty(PropertyKey.gatherAdditionalMetricsOnInstance.getKeyName()).getValue()) {
             getInstanceMetrics(getCurrentConnUrl()).registerUseCachedTopology(isHit);
@@ -142,18 +182,17 @@ public class ClusterAwareMetricsContainer implements IClusterAwareMetricsContain
         if (metrics != null) {
             StringBuilder logMessage = new StringBuilder(256);
 
-            logMessage.append("** Performance Metrics Report for '");
-            logMessage.append(connUrl);
-            logMessage.append("' **\n");
+            logMessage.append("** Performance Metrics Report for '")
+                .append(connUrl)
+                .append("' **\n");
             log.logInfo(logMessage);
 
             metrics.reportMetrics(log);
         } else {
             StringBuilder logMessage = new StringBuilder();
-            logMessage.append("** No metrics collected for '");
-            logMessage.append(connUrl);
-            logMessage.append("' **\n");
-
+            logMessage.append("** No metrics collected for '")
+                .append(connUrl)
+                .append("' **\n");
             log.logInfo(logMessage);
         }
     }
