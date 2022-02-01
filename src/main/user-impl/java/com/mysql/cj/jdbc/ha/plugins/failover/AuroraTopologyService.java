@@ -29,6 +29,7 @@ package com.mysql.cj.jdbc.ha.plugins.failover;
 import com.mysql.cj.Messages;
 import com.mysql.cj.conf.ConnectionUrl;
 import com.mysql.cj.conf.HostInfo;
+import com.mysql.cj.conf.PropertyKey;
 import com.mysql.cj.jdbc.JdbcConnection;
 import com.mysql.cj.jdbc.ha.plugins.ICanCollectPerformanceMetrics;
 import com.mysql.cj.log.Log;
@@ -88,8 +89,6 @@ public class AuroraTopologyService
 
   protected ClusterAwareTimeMetricsHolder queryTopologyMetrics =
       new ClusterAwareTimeMetricsHolder("Topology Query");
-  protected boolean gatherPerfMetrics = false;
-  protected boolean perfMetricAtClusterLevel = false;
 
   /** Null logger shared by all connections at startup. */
   protected static final Log NULL_LOGGER = new NullLogger(Log.LOGGER_INSTANCE_NAME);
@@ -207,7 +206,7 @@ public class AuroraTopologyService
    * @return Cluster topology details.
    */
   protected ClusterTopologyInfo queryForTopology(JdbcConnection conn) throws SQLException {
-    long startTimeMs = this.gatherPerfMetrics ? System.currentTimeMillis() : 0;
+    long startTimeMs = System.currentTimeMillis();
 
     ClusterTopologyInfo topologyInfo = null;
 
@@ -220,7 +219,7 @@ public class AuroraTopologyService
       // "Unknown table 'REPLICA_HOST_STATUS' in information_schema"
       // Ignore this kind of exceptions.
     } finally {
-      if (this.gatherPerfMetrics) {
+      if (conn.getPropertySet() != null && conn.getPropertySet().getBooleanProperty(PropertyKey.gatherPerfMetrics.getKeyName()).getValue()) {
         long currentTimeMs = System.currentTimeMillis();
         this.queryTopologyMetrics.registerQueryExecutionTime(currentTimeMs - startTimeMs);
       }
@@ -271,11 +270,7 @@ public class AuroraTopologyService
       hosts.clear();
     }
 
-    if (!hosts.isEmpty() && gatherPerfMetrics && this.perfMetricAtClusterLevel) {
-      final ClusterAwareMetricContainer metricContainer = ClusterAwareMetricContainer.getInstance();
-      ClusterAwareMetrics clusterMetrics = metricContainer.getOrCreate(connUrl, this.perfMetricAtClusterLevel);
-      metricContainer.populateMap(hosts, clusterMetrics);
-    }
+    ClusterAwareMetricsContainer.linkInstances(hosts, clusterId);
 
     return new ClusterTopologyInfo(
         hosts,
@@ -560,18 +555,6 @@ public class AuroraTopologyService
     synchronized (cacheLock) {
       topologyCache.remove(this.clusterId);
     }
-  }
-
-  /**
-   * This service implementation supports metrics. This method enables collecting internal metrics.
-   * Metrics are disabled by default.
-   *
-   * @param isEnabled True to enable internal metrics.
-   */
-  @Override
-  public void setPerformanceMetricsEnabled(boolean isEnabled, boolean atClusterLevel) {
-    this.gatherPerfMetrics = isEnabled;
-    this.perfMetricAtClusterLevel = atClusterLevel;
   }
 
   /**
