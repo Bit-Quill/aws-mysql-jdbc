@@ -372,7 +372,7 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
             || isWriterHostIndex(this.currentHostIndex);
   }
 
-  private void attemptConnectionUsingCachedTopology(String connUrl) throws SQLException {
+  private void attemptConnectionUsingCachedTopology() throws SQLException {
     List<HostInfo> cachedHosts = topologyService.getCachedTopology();
     if (Util.isNullOrEmpty(cachedHosts)) {
       metricsContainer.registerUseCachedTopology(false);
@@ -1031,7 +1031,7 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
                   new Object[]{"explicitlyReadOnly", this.explicitlyReadOnly}));
 
           try {
-            attemptConnectionUsingCachedTopology(host);
+            attemptConnectionUsingCachedTopology();
           } catch (SQLException e) {
             // do nothing - attempt to connect directly will be made below
           }
@@ -1184,9 +1184,9 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
     }
 
     if (clusterId != null) {
-      metricsContainer.setClusterId(clusterId);
       this.topologyService.setClusterId(clusterId);
     }
+    metricsContainer.setClusterId(this.topologyService.getClusterId());
   }
 
   private boolean shouldAttemptReaderConnection() {

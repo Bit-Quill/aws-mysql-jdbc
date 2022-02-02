@@ -141,6 +141,16 @@ public class AuroraTopologyService
   }
 
   /**
+   * Returns the unique cluster identifier for topology service instance
+   *
+   * @return cluster Id
+   */
+  @Override
+  public String getClusterId() {
+    return clusterId;
+  }
+
+  /**
    * Sets host details common to each instance in the cluster, including the host dns pattern. "?"
    * (question mark) in a host dns pattern will be replaced with a host instance name to form a
    * fully qualified dns host endpoint.
@@ -222,7 +232,6 @@ public class AuroraTopologyService
       if (topologyInfo != null && conn.getPropertySet() != null && conn.getPropertySet().getBooleanProperty(PropertyKey.gatherPerfMetrics.getKeyName()).getValue()) {
         long currentTimeMs = System.currentTimeMillis();
         this.queryTopologyMetrics.registerQueryExecutionTime(currentTimeMs - startTimeMs);
-        ClusterAwareMetricsContainer.linkInstances(topologyInfo.hosts, clusterId);
       }
     }
 

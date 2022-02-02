@@ -26,15 +26,12 @@
 
 package com.mysql.cj.jdbc.ha.plugins.failover;
 
-import com.mysql.cj.conf.HostInfo;
 import com.mysql.cj.conf.PropertyKey;
 import com.mysql.cj.conf.PropertySet;
 import com.mysql.cj.jdbc.JdbcConnection;
 import com.mysql.cj.jdbc.ha.plugins.ICurrentConnectionProvider;
 import com.mysql.cj.log.Log;
-import com.mysql.cj.util.StringUtils;
 
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -53,102 +50,106 @@ public class ClusterAwareMetricsContainer implements IClusterAwareMetricsContain
         this.propertySet = propertySet;
     }
 
-    public static void linkInstances(List<HostInfo> hosts, String clusterId) {
-        final ClusterAwareMetrics metrics = clusterMetrics.computeIfAbsent(
-            clusterId,
-            k -> new ClusterAwareMetrics());
-        for (HostInfo host : hosts) {
-            clusterMetrics.put(host.getHost(), metrics);
-        }
-    }
-
     public void setClusterId(String clusterId) {
-        this.clusterId = !StringUtils.isNullOrEmpty(clusterId) ? clusterId.substring(0, clusterId.indexOf(':'))
-            : getCurrentConnUrl();
+        this.clusterId = clusterId;
     }
 
     public void registerFailureDetectionTime(long timeMs) {
-        if (!propertySet.getBooleanProperty(PropertyKey.gatherPerfMetrics.getKeyName()).getValue()) {
+        if (!canGatherPerfMetrics()) {
             return;
         }
 
         getClusterMetrics(clusterId).registerFailureDetectionTime(timeMs);
 
-        if (propertySet.getBooleanProperty(PropertyKey.gatherAdditionalMetricsOnInstance.getKeyName()).getValue()) {
+        if (shouldGatherAddition()) {
             getInstanceMetrics(getCurrentConnUrl()).registerFailureDetectionTime(timeMs);
         }
     }
 
     public void registerWriterFailoverProcedureTime(long timeMs) {
-        if (!propertySet.getBooleanProperty(PropertyKey.gatherPerfMetrics.getKeyName()).getValue()) {
+        if (!canGatherPerfMetrics()) {
             return;
         }
 
         getClusterMetrics(clusterId).registerWriterFailoverProcedureTime(timeMs);
 
-        if (propertySet.getBooleanProperty(PropertyKey.gatherAdditionalMetricsOnInstance.getKeyName()).getValue()) {
+        if (shouldGatherAddition()) {
             getInstanceMetrics(getCurrentConnUrl()).registerWriterFailoverProcedureTime(timeMs);
         }
     }
 
     public void registerReaderFailoverProcedureTime(long timeMs) {
-        if (!propertySet.getBooleanProperty(PropertyKey.gatherPerfMetrics.getKeyName()).getValue()) {
+        if (!canGatherPerfMetrics()) {
             return;
         }
 
         getClusterMetrics(clusterId).registerReaderFailoverProcedureTime(timeMs);
 
-        if (propertySet.getBooleanProperty(PropertyKey.gatherAdditionalMetricsOnInstance.getKeyName()).getValue()) {
+        if (shouldGatherAddition()) {
             getInstanceMetrics(getCurrentConnUrl()).registerReaderFailoverProcedureTime(timeMs);
         }
     }
 
     public void registerFailoverConnects(boolean isHit) {
-        if (!propertySet.getBooleanProperty(PropertyKey.gatherPerfMetrics.getKeyName()).getValue()) {
+        if (!canGatherPerfMetrics()) {
             return;
         }
 
         getClusterMetrics(clusterId).registerFailoverConnects(isHit);
 
-        if (propertySet.getBooleanProperty(PropertyKey.gatherAdditionalMetricsOnInstance.getKeyName()).getValue()) {
+        if (shouldGatherAddition()) {
             getInstanceMetrics(getCurrentConnUrl()).registerFailoverConnects(isHit);
         }
     }
 
     public void registerInvalidInitialConnection(boolean isHit) {
-        if (!propertySet.getBooleanProperty(PropertyKey.gatherPerfMetrics.getKeyName()).getValue()) {
+        if (!canGatherPerfMetrics()) {
             return;
         }
 
         getClusterMetrics(clusterId).registerInvalidInitialConnection(isHit);
 
-        if (propertySet.getBooleanProperty(PropertyKey.gatherAdditionalMetricsOnInstance.getKeyName()).getValue()) {
+        if (shouldGatherAddition()) {
             getInstanceMetrics(getCurrentConnUrl()).registerInvalidInitialConnection(isHit);
         }
     }
 
     public void registerUseLastConnectedReader(boolean isHit) {
-        if (!propertySet.getBooleanProperty(PropertyKey.gatherPerfMetrics.getKeyName()).getValue()) {
+        if (!canGatherPerfMetrics()) {
             return;
         }
 
         getClusterMetrics(clusterId).registerUseLastConnectedReader(isHit);
 
-        if (propertySet.getBooleanProperty(PropertyKey.gatherAdditionalMetricsOnInstance.getKeyName()).getValue()) {
+        if (shouldGatherAddition()) {
             getInstanceMetrics(getCurrentConnUrl()).registerUseLastConnectedReader(isHit);
         }
     }
 
     public void registerUseCachedTopology(boolean isHit) {
-        if (!propertySet.getBooleanProperty(PropertyKey.gatherPerfMetrics.getKeyName()).getValue()) {
+        if (!canGatherPerfMetrics()) {
             return;
         }
 
         getClusterMetrics(clusterId).registerUseCachedTopology(isHit);
 
-        if (propertySet.getBooleanProperty(PropertyKey.gatherAdditionalMetricsOnInstance.getKeyName()).getValue()) {
+        if (shouldGatherAddition()) {
             getInstanceMetrics(getCurrentConnUrl()).registerUseCachedTopology(isHit);
         }
+    }
+
+    private boolean canGatherPerfMetrics() {
+        if (propertySet != null) {
+            return propertySet.getBooleanProperty(PropertyKey.gatherPerfMetrics.getKeyName()).getValue();
+        }
+        return false;
+    }
+
+    private boolean shouldGatherAddition() {
+        if (propertySet != null) {
+            return propertySet.getBooleanProperty(PropertyKey.gatherAdditionalMetricsOnInstance.getKeyName()).getValue();
+        }
+        return false;
     }
 
     private ClusterAwareMetrics getClusterMetrics(String key) {
@@ -168,7 +169,7 @@ public class ClusterAwareMetricsContainer implements IClusterAwareMetricsContain
         final JdbcConnection currConn = currentConnectionProvider.getCurrentConnection();
         if (currConn != null) {
             currUrl = currConn.getHostPortPair();
-        }        
+        }
         return currUrl;
     }
 
