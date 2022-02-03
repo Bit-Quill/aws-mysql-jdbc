@@ -172,6 +172,7 @@ public class ClusterAwareMetricsContainer implements IClusterAwareMetricsContain
 
     public static void resetMetrics() {
         clusterMetrics.clear();
-        instanceMetrics.clear();
+        topologyMetrics.clear();
+        instanceMetrics.clear();        
     }
 }
