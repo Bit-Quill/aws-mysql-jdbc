@@ -29,6 +29,7 @@ package com.mysql.cj.jdbc.ha.plugins.failover;
 import com.mysql.cj.conf.PropertyKey;
 import com.mysql.cj.conf.PropertySet;
 import com.mysql.cj.jdbc.JdbcConnection;
+import com.mysql.cj.jdbc.ha.plugins.ICanCollectPerformanceMetrics;
 import com.mysql.cj.jdbc.ha.plugins.ICurrentConnectionProvider;
 import com.mysql.cj.log.Log;
 
@@ -38,6 +39,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class ClusterAwareMetricsContainer implements IClusterAwareMetricsContainer {
     // ClusterID, Metrics
     private final static Map<String, ClusterAwareMetrics> clusterMetrics = new ConcurrentHashMap<>();
+    private final static Map<String, ClusterAwareTimeMetricsHolder> topologyMetrics = new ConcurrentHashMap<>();
     // Instance URL, Metrics
     private final static Map<String, ClusterAwareMetrics> instanceMetrics = new ConcurrentHashMap<>();
 
@@ -54,98 +56,103 @@ public class ClusterAwareMetricsContainer implements IClusterAwareMetricsContain
         this.clusterId = clusterId;
     }
 
+    public void registerTopologyQueryExecutionTime(String clusterId, long timeMs) {
+        topologyMetrics.computeIfAbsent(clusterId, k -> new ClusterAwareTimeMetricsHolder("Topology Query"))
+            .registerQueryExecutionTime(timeMs);
+    }
+
     public void registerFailureDetectionTime(long timeMs) {
-        if (!canGatherPerfMetrics()) {
+        if (!isEnabled()) {
             return;
         }
 
         getClusterMetrics(clusterId).registerFailureDetectionTime(timeMs);
 
-        if (shouldGatherAddition()) {
+        if (isInstanceMetricsEnabled()) {
             getInstanceMetrics(getCurrentConnUrl()).registerFailureDetectionTime(timeMs);
         }
     }
 
     public void registerWriterFailoverProcedureTime(long timeMs) {
-        if (!canGatherPerfMetrics()) {
+        if (!isEnabled()) {
             return;
         }
 
         getClusterMetrics(clusterId).registerWriterFailoverProcedureTime(timeMs);
 
-        if (shouldGatherAddition()) {
+        if (isInstanceMetricsEnabled()) {
             getInstanceMetrics(getCurrentConnUrl()).registerWriterFailoverProcedureTime(timeMs);
         }
     }
 
     public void registerReaderFailoverProcedureTime(long timeMs) {
-        if (!canGatherPerfMetrics()) {
+        if (!isEnabled()) {
             return;
         }
 
         getClusterMetrics(clusterId).registerReaderFailoverProcedureTime(timeMs);
 
-        if (shouldGatherAddition()) {
+        if (isInstanceMetricsEnabled()) {
             getInstanceMetrics(getCurrentConnUrl()).registerReaderFailoverProcedureTime(timeMs);
         }
     }
 
     public void registerFailoverConnects(boolean isHit) {
-        if (!canGatherPerfMetrics()) {
+        if (!isEnabled()) {
             return;
         }
 
         getClusterMetrics(clusterId).registerFailoverConnects(isHit);
 
-        if (shouldGatherAddition()) {
+        if (isInstanceMetricsEnabled()) {
             getInstanceMetrics(getCurrentConnUrl()).registerFailoverConnects(isHit);
         }
     }
 
     public void registerInvalidInitialConnection(boolean isHit) {
-        if (!canGatherPerfMetrics()) {
+        if (!isEnabled()) {
             return;
         }
 
         getClusterMetrics(clusterId).registerInvalidInitialConnection(isHit);
 
-        if (shouldGatherAddition()) {
+        if (isInstanceMetricsEnabled()) {
             getInstanceMetrics(getCurrentConnUrl()).registerInvalidInitialConnection(isHit);
         }
     }
 
     public void registerUseLastConnectedReader(boolean isHit) {
-        if (!canGatherPerfMetrics()) {
+        if (!isEnabled()) {
             return;
         }
 
         getClusterMetrics(clusterId).registerUseLastConnectedReader(isHit);
 
-        if (shouldGatherAddition()) {
+        if (isInstanceMetricsEnabled()) {
             getInstanceMetrics(getCurrentConnUrl()).registerUseLastConnectedReader(isHit);
         }
     }
 
     public void registerUseCachedTopology(boolean isHit) {
-        if (!canGatherPerfMetrics()) {
+        if (!isEnabled()) {
             return;
         }
 
         getClusterMetrics(clusterId).registerUseCachedTopology(isHit);
 
-        if (shouldGatherAddition()) {
+        if (isInstanceMetricsEnabled()) {
             getInstanceMetrics(getCurrentConnUrl()).registerUseCachedTopology(isHit);
         }
     }
 
-    private boolean canGatherPerfMetrics() {
+    private boolean isEnabled() {
         if (propertySet != null) {
             return propertySet.getBooleanProperty(PropertyKey.gatherPerfMetrics.getKeyName()).getValue();
         }
         return false;
     }
 
-    private boolean shouldGatherAddition() {
+    private boolean isInstanceMetricsEnabled() {
         if (propertySet != null) {
             return propertySet.getBooleanProperty(PropertyKey.gatherAdditionalMetricsOnInstance.getKeyName()).getValue();
         }
@@ -182,6 +189,11 @@ public class ClusterAwareMetricsContainer implements IClusterAwareMetricsContain
 
         if (metrics != null) {
             StringBuilder logMessage = new StringBuilder(256);
+
+            final ClusterAwareTimeMetricsHolder topMetric = topologyMetrics.get(connUrl);
+            if (topMetric != null) {
+                topMetric.reportMetrics(log);
+            }
 
             logMessage.append("** Performance Metrics Report for '")
                 .append(connUrl)

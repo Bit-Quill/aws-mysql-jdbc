@@ -30,8 +30,8 @@ import com.mysql.cj.Messages;
 import com.mysql.cj.conf.ConnectionUrl;
 import com.mysql.cj.conf.HostInfo;
 import com.mysql.cj.conf.PropertyKey;
+import com.mysql.cj.conf.PropertySet;
 import com.mysql.cj.jdbc.JdbcConnection;
-import com.mysql.cj.jdbc.ha.plugins.ICanCollectPerformanceMetrics;
 import com.mysql.cj.log.Log;
 import com.mysql.cj.log.NullLogger;
 import com.mysql.cj.util.ExpiringCache;
@@ -52,6 +52,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Supplier;
 
 /**
  * An implementation of topology service for Aurora RDS. It uses
@@ -59,8 +60,7 @@ import java.util.UUID;
  * instances of this service with the same 'clusterId' shares the same topology cache. Cache also
  * includes a list of down hosts. That helps to avoid unnecessary attempts to connect them.
  */
-public class AuroraTopologyService
-    implements ITopologyService, ICanCollectPerformanceMetrics {
+public class AuroraTopologyService implements ITopologyService {
 
   static final int DEFAULT_REFRESH_RATE_IN_MILLISECONDS = 30000;
   static final int DEFAULT_CACHE_EXPIRE_MS = 5 * 60 * 1000; // 5 min
@@ -87,8 +87,7 @@ public class AuroraTopologyService
   protected String clusterId;
   protected HostInfo clusterInstanceTemplate;
 
-  protected ClusterAwareTimeMetricsHolder queryTopologyMetrics =
-      new ClusterAwareTimeMetricsHolder("Topology Query");
+  protected IClusterAwareMetricsContainer metricsContainer;
 
   /** Null logger shared by all connections at startup. */
   protected static final Log NULL_LOGGER = new NullLogger(Log.LOGGER_INSTANCE_NAME);
@@ -98,7 +97,7 @@ public class AuroraTopologyService
 
   /** Initializes a service with topology default refresh rate. */
   public AuroraTopologyService(Log log) {
-    this(DEFAULT_REFRESH_RATE_IN_MILLISECONDS, log);
+    this(DEFAULT_REFRESH_RATE_IN_MILLISECONDS, log, () -> new ClusterAwareMetricsContainer(null, null));
   }
 
   /**
@@ -106,10 +105,12 @@ public class AuroraTopologyService
    *
    * @param refreshRateInMilliseconds Topology refresh rate in millis
    */
-  public AuroraTopologyService(int refreshRateInMilliseconds, Log log) {
+  public AuroraTopologyService(int refreshRateInMilliseconds, Log log,
+      Supplier<IClusterAwareMetricsContainer> metricsContainerSupplier) {
     this.refreshRateInMilliseconds = refreshRateInMilliseconds;
     this.clusterId = UUID.randomUUID().toString();
     this.clusterInstanceTemplate = new HostInfo(null, "?", HostInfo.NO_PORT, null, null);
+    this.metricsContainer = metricsContainerSupplier.get();
 
     if (log != null) {
       this.log = log;
@@ -229,9 +230,9 @@ public class AuroraTopologyService
       // "Unknown table 'REPLICA_HOST_STATUS' in information_schema"
       // Ignore this kind of exceptions.
     } finally {
-      if (topologyInfo != null && conn.getPropertySet() != null && conn.getPropertySet().getBooleanProperty(PropertyKey.gatherPerfMetrics.getKeyName()).getValue()) {
+      if (gatherPerfMetrics(conn.getPropertySet())) {
         long currentTimeMs = System.currentTimeMillis();
-        this.queryTopologyMetrics.registerQueryExecutionTime(currentTimeMs - startTimeMs);
+        this.metricsContainer.registerTopologyQueryExecutionTime(this.clusterId, currentTimeMs - startTimeMs);
       }
     }
 
@@ -242,6 +243,17 @@ public class AuroraTopologyService
             null,
             Instant.now(),
             false);
+  }
+
+  /**
+   * Checks the connection's property if performance metrics should be gathered for topology service
+   * @param props Property set
+   * @return true if performance metrics for topology service should be gathered
+   */
+  private boolean gatherPerfMetrics(PropertySet props) {
+    return props != null &&
+        props.getProperty(PropertyKey.gatherPerfMetrics.getKeyName()) != null &&
+        props.getBooleanProperty(PropertyKey.gatherPerfMetrics.getKeyName()).getValue();
   }
 
   /**
@@ -563,23 +575,6 @@ public class AuroraTopologyService
     synchronized (cacheLock) {
       topologyCache.remove(this.clusterId);
     }
-  }
-
-  /**
-   * Report collected metrics to a provided logger.
-   *
-   * @param log Logger to report collected metrics to.
-   */
-  @Override
-  public void reportMetrics(Log log) {
-    this.queryTopologyMetrics.reportMetrics(log);
-
-    StringBuilder logMessage = new StringBuilder(256);
-
-    logMessage.append("** Cached Topology Keys **\n");
-    topologyCache.keySet().forEach(x -> logMessage.append("'").append(x).append("'\n"));
-
-    log.logInfo(logMessage);
   }
 
   private static class ClusterTopologyInfo {
