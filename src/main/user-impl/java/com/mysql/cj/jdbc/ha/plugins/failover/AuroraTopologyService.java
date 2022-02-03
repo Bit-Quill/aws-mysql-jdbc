@@ -97,7 +97,7 @@ public class AuroraTopologyService implements ITopologyService {
 
   /** Initializes a service with topology default refresh rate. */
   public AuroraTopologyService(Log log) {
-    this(DEFAULT_REFRESH_RATE_IN_MILLISECONDS, log, () -> new ClusterAwareMetricsContainer(null, null));
+    this(DEFAULT_REFRESH_RATE_IN_MILLISECONDS, log, ClusterAwareMetricsContainer::new);
   }
 
   /**

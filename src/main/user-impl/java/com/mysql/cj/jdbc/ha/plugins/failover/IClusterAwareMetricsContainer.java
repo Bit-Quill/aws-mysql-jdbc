@@ -28,12 +28,7 @@ package com.mysql.cj.jdbc.ha.plugins.failover;
 
 public interface IClusterAwareMetricsContainer {
     void setClusterId(String clusterID);
+    void registerMetric(String methodName, boolean isHit);
+    void registerMetric(String methodName, long timeMs);
     void registerTopologyQueryExecutionTime(String clusterId, long timeMs);
-    void registerFailureDetectionTime(long timeMs);
-    void registerWriterFailoverProcedureTime(long timeMs);
-    void registerReaderFailoverProcedureTime(long timeMs);
-    void registerFailoverConnects(boolean isHit);
-    void registerInvalidInitialConnection(boolean isHit);
-    void registerUseLastConnectedReader(boolean isHit);
-    void registerUseCachedTopology(boolean isHit);
 }
