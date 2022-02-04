@@ -373,7 +373,36 @@ tasks.register<Test>("test-community-docker") {
     }
     useJUnitPlatform()
     group = "verification"
-    filter.includeTestsMatching("testsuite.integration.host.CommunityContainerTest")
+    filter.includeTestsMatching("testsuite.integration.host.CommunityContainerTest.testRunCommunityTestInContainer")
+}
+
+tasks.register<Test>("debug-integration-docker") {
+    this.testLogging {
+        this.showStandardStreams = true
+    }
+    useJUnitPlatform()
+    group = "verification"
+    filter.includeTestsMatching("testsuite.integration.host.AuroraIntegrationContainerTest.testDebugTestInContainer")
+}
+
+tasks.register<Test>("debug-integration-performance-docker") {
+    this.testLogging {
+        this.showStandardStreams = true
+    }
+    useJUnitPlatform()
+    group = "verification"
+    filter.includeTestsMatching("testsuite.integration.host.AuroraIntegrationContainerTest.testDebugPerformanceTestInContainer")
+}
+
+// Run community tests in container
+// Environment (like supplementary containers) should be up and running!
+tasks.register<Test>("debug-community-docker") {
+    this.testLogging {
+        this.showStandardStreams = true
+    }
+    useJUnitPlatform()
+    group = "verification"
+    filter.includeTestsMatching("testsuite.integration.host.CommunityContainerTest.testDebugCommunityTestInContainer")
 }
 
 tasks.register<Test>("in-container-aurora") {
@@ -381,7 +410,6 @@ tasks.register<Test>("in-container-aurora") {
         this.showStandardStreams = true
     }
     useJUnitPlatform()
-    group = "verification"
     filter.includeTestsMatching("testsuite.integration.container.AuroraMysqlIntegrationTest")
 }
 
@@ -390,7 +418,6 @@ tasks.register<Test>("in-container-aurora-performance") {
         this.showStandardStreams = true
     }
     useJUnitPlatform()
-    group = "verification"
     filter.includeTestsMatching("testsuite.integration.container.AuroraMysqlPerformanceIntegrationTest")
 }
 
@@ -408,7 +435,6 @@ tasks.register<Test>("in-container-community") {
     passProperty("user.timezone")
     passProperty("com.mysql.cj.testsuite.url")
 
-    group = "verification"
     filter.excludeTestsMatching("testsuite.integration.*")
     filter.excludeTestsMatching("testsuite.failover.*")
 }
