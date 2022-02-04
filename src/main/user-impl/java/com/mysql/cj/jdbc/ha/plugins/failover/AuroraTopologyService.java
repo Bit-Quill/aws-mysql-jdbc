@@ -139,6 +139,7 @@ public class AuroraTopologyService implements ITopologyService {
         "AuroraTopologyService.1",
         new Object[] {clusterId}));
     this.clusterId = clusterId;
+    this.metricsContainer.setClusterId(clusterId);
   }
 
   /**
@@ -232,7 +233,7 @@ public class AuroraTopologyService implements ITopologyService {
     } finally {
       if (gatherPerfMetrics(conn.getPropertySet())) {
         long currentTimeMs = System.currentTimeMillis();
-        this.metricsContainer.registerTopologyQueryExecutionTime(this.clusterId, currentTimeMs - startTimeMs);
+        this.metricsContainer.registerTopologyQueryExecutionTime(currentTimeMs - startTimeMs);
       }
     }
 

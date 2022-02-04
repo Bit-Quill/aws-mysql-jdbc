@@ -32,10 +32,9 @@ import com.mysql.cj.jdbc.JdbcConnection;
 import com.mysql.cj.jdbc.ha.plugins.ICurrentConnectionProvider;
 import com.mysql.cj.log.Log;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 
 public class ClusterAwareMetricsContainer implements IClusterAwareMetricsContainer {
     // ClusterID, Metrics
@@ -44,9 +43,9 @@ public class ClusterAwareMetricsContainer implements IClusterAwareMetricsContain
     // Instance URL, Metrics
     private final static Map<String, ClusterAwareMetrics> instanceMetrics = new ConcurrentHashMap<>();
 
-    private ICurrentConnectionProvider currentConnectionProvider;
-    private PropertySet propertySet;
-    private String clusterId = "";
+    private ICurrentConnectionProvider currentConnectionProvider = null;
+    private PropertySet propertySet = null;
+    private String clusterId = "[Unknown Id]";
 
     public ClusterAwareMetricsContainer() {
     }
@@ -60,45 +59,61 @@ public class ClusterAwareMetricsContainer implements IClusterAwareMetricsContain
         this.clusterId = clusterId;
     }
 
-    public void registerMetric(String method, long timeMS) {
+    @Override
+    public void registerFailureDetectionTime(long timeMs) {
+        register(metrics -> metrics.registerFailureDetectionTime(timeMs));
+    }
+
+    @Override
+    public void registerWriterFailoverProcedureTime(long timeMs) {
+        register(metrics -> metrics.registerWriterFailoverProcedureTime(timeMs));
+    }
+
+    @Override
+    public void registerReaderFailoverProcedureTime(long timeMs) {
+        register(metrics -> metrics.registerReaderFailoverProcedureTime(timeMs));
+    }
+
+    @Override
+    public void registerFailoverConnects(boolean isHit) {
+        register(metrics -> metrics.registerFailoverConnects(isHit));
+    }
+
+    @Override
+    public void registerInvalidInitialConnection(boolean isHit) {
+        register(metrics -> metrics.registerInvalidInitialConnection(isHit));
+    }
+
+    @Override
+    public void registerUseLastConnectedReader(boolean isHit) {
+        register(metrics -> metrics.registerUseLastConnectedReader(isHit));
+    }
+
+    @Override
+    public void registerUseCachedTopology(boolean isHit) {
+        register(metrics -> metrics.registerUseCachedTopology(isHit));
+    }
+
+    @Override
+    public void registerTopologyQueryExecutionTime(long timeMs) {
         if (!isEnabled()) {
             return;
         }
 
-        try {
-            registerMetric(ClusterAwareMetrics.class.getMethod(method, long.class), timeMS);
-        } catch (NoSuchMethodException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public void registerMetric(String method, boolean isHit) {
-        if (!isEnabled()) {
-            return;
-        }
-
-        try {
-            registerMetric(ClusterAwareMetrics.class.getMethod(method, boolean.class), isHit);
-        } catch (NoSuchMethodException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private void registerMetric(Method method, Object arg) {
-        try {
-            method.invoke(getClusterMetrics(clusterId), arg);
-
-            if (isInstanceMetricsEnabled()) {
-                method.invoke(getInstanceMetrics(getCurrentConnUrl()), arg);
-            }
-        } catch (InvocationTargetException | IllegalAccessException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public void registerTopologyQueryExecutionTime(String clusterId, long timeMs) {
         topologyMetrics.computeIfAbsent(clusterId, k -> new ClusterAwareTimeMetricsHolder("Topology Query"))
             .registerQueryExecutionTime(timeMs);
+    }
+
+    private void register(Consumer<ClusterAwareMetrics> lambda) {
+        if (!isEnabled()) {
+            return;
+        }
+
+        lambda.accept(getClusterMetrics(clusterId));
+
+        if (isInstanceMetricsEnabled()) {
+            lambda.accept(getInstanceMetrics(getCurrentConnUrl()));
+        }
     }
 
     private boolean isEnabled() {
@@ -128,7 +143,7 @@ public class ClusterAwareMetricsContainer implements IClusterAwareMetricsContain
     }
     
     private String getCurrentConnUrl() {
-        String currUrl = "";
+        String currUrl = "[Unknown Url]";
         if (currentConnectionProvider == null) {
             return currUrl;
         }
@@ -150,15 +165,15 @@ public class ClusterAwareMetricsContainer implements IClusterAwareMetricsContain
         if (metrics != null) {
             StringBuilder logMessage = new StringBuilder(256);
 
-            final ClusterAwareTimeMetricsHolder topMetric = topologyMetrics.get(connUrl);
-            if (topMetric != null) {
-                topMetric.reportMetrics(log);
-            }
-
             logMessage.append("** Performance Metrics Report for '")
                 .append(connUrl)
                 .append("' **\n");
             log.logInfo(logMessage);
+
+            final ClusterAwareTimeMetricsHolder topMetric = topologyMetrics.get(connUrl);
+            if (topMetric != null) {
+                topMetric.reportMetrics(log);
+            }
 
             metrics.reportMetrics(log);
         } else {

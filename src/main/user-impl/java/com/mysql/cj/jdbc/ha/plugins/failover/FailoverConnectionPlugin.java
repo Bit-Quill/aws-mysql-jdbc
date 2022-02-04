@@ -351,11 +351,11 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
     }
 
     if (validWriterConnection()) {
-      metricsContainer.registerMetric("registerInvalidInitialConnection", false);
+      metricsContainer.registerInvalidInitialConnection(false);
       return;
     }
 
-    metricsContainer.registerMetric("registerInvalidInitialConnection", true);
+    metricsContainer.registerInvalidInitialConnection(true);
 
     try {
       connectTo(WRITER_CONNECTION_INDEX);
@@ -374,13 +374,13 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
   private void attemptConnectionUsingCachedTopology() throws SQLException {
     List<HostInfo> cachedHosts = topologyService.getCachedTopology();
     if (Util.isNullOrEmpty(cachedHosts)) {
-      metricsContainer.registerMetric("registerUseCachedTopology", false);
+      metricsContainer.registerUseCachedTopology(false);
       return;
     }
 
     this.hosts = cachedHosts;
 
-    metricsContainer.registerMetric("registerUseCachedTopology", true);
+    metricsContainer.registerUseCachedTopology(true);
 
     int candidateIndex = getCandidateIndexForInitialConnection();
     if (candidateIndex != NO_CONNECTION_INDEX) {
@@ -405,11 +405,11 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
   private int getCandidateReaderForInitialConnection() {
     int lastUsedReaderIndex = getHostIndex(topologyService.getLastUsedReaderHost());
     if (lastUsedReaderIndex != NO_CONNECTION_INDEX) {
-      metricsContainer.registerMetric("registerUseLastConnectedReader", true);
+      metricsContainer.registerUseLastConnectedReader(true);
       return lastUsedReaderIndex;
     }
 
-    metricsContainer.registerMetric("registerUseLastConnectedReader", false);
+    metricsContainer.registerUseLastConnectedReader(false);
 
     if (clusterContainsReader()) {
       return getRandomReaderIndex();
@@ -512,7 +512,7 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
     ReaderFailoverResult result = readerFailoverHandler.failover(this.hosts, failedHost);
 
     long currentTimeMs = System.currentTimeMillis();
-    metricsContainer.registerMetric("registerReaderFailoverProcedureTime", currentTimeMs - this.failoverStartTimeMs);
+    metricsContainer.registerReaderFailoverProcedureTime(currentTimeMs - this.failoverStartTimeMs);
     this.failoverStartTimeMs = 0;
 
     if (result == null || !result.isConnected()) {
@@ -521,7 +521,7 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
       return;
     }
 
-    metricsContainer.registerMetric("registerFailoverConnects", true);
+    metricsContainer.registerFailoverConnects(true);
 
     updateCurrentConnection(
         result.getConnection(),
@@ -543,7 +543,7 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
     WriterFailoverResult failoverResult = this.writerFailoverHandler.failover(this.hosts);
 
     long currentTimeMs = System.currentTimeMillis();
-    metricsContainer.registerMetric("registerWriterFailoverProcedureTime", currentTimeMs - this.failoverStartTimeMs);
+    metricsContainer.registerWriterFailoverProcedureTime(currentTimeMs - this.failoverStartTimeMs);
     this.failoverStartTimeMs = 0;
 
     if (failoverResult == null || !failoverResult.isConnected()) {
@@ -556,7 +556,7 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
       this.hosts = failoverResult.getTopology();
     }
 
-    metricsContainer.registerMetric("registerFailoverConnects", true);
+    metricsContainer.registerFailoverConnects(true);
 
     // successfully re-connected to the same writer node
     updateCurrentConnection(
@@ -827,7 +827,7 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
       if (this.lastExceptionDealtWith != originalException
           && shouldExceptionTriggerConnectionSwitch(originalException)) {
         long currentTimeMs = System.currentTimeMillis();
-        metricsContainer.registerMetric("registerFailureDetectionTime", currentTimeMs - this.invokeStartTimeMs);
+        metricsContainer.registerFailureDetectionTime(currentTimeMs - this.invokeStartTimeMs);
         this.invokeStartTimeMs = 0;
         this.failoverStartTimeMs = currentTimeMs;
         invalidateCurrentConnection();
@@ -1156,7 +1156,7 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
   }
 
   private void processFailoverFailure(String message) throws SQLException {
-    metricsContainer.registerMetric("registerFailoverConnects", false);
+    metricsContainer.registerFailoverConnects(false);
 
     this.logger.logError(message);
     throw new SQLException(
