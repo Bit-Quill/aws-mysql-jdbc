@@ -104,7 +104,7 @@ public class ClusterAwareMetricsContainer implements IClusterAwareMetricsContain
             .registerQueryExecutionTime(timeMs);
     }
 
-    private void register(Consumer<ClusterAwareMetrics> lambda) {
+    protected void register(Consumer<ClusterAwareMetrics> lambda) {
         if (!isEnabled()) {
             return;
         }

@@ -43,6 +43,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
+import testsuite.integration.utility.ContainerHelper;
+
 /** Integration test for cluster performance metrics */
 @Disabled
 public class ClusterPerfMetricIntegrationTest {
@@ -58,13 +60,12 @@ public class ClusterPerfMetricIntegrationTest {
     private static final String DB_CONN_STR = DB_CONN_STR_PREFIX + TEST_DB_CLUSTER_IDENTIFIER + ".cluster-" + DB_CONN_HOST_BASE;
     private static final String PORT_SUFFIX = ":3306";
 
-    private List<String> instanceUrls = new ArrayList<>();
-    private static final String RETRIEVE_TOPOLOGY_SQL =
-        "SELECT SERVER_ID FROM information_schema.replica_host_status ORDER BY IF(SESSION_ID = 'MASTER_SESSION_ID', 0, 1)";
+    private List<String> instanceUrls = null;
 
     public ClusterPerfMetricIntegrationTest() throws ClassNotFoundException, SQLException {
         Class.forName("software.aws.rds.jdbc.mysql.Driver");
-        getTopology();
+        final ContainerHelper helper = new ContainerHelper();
+        instanceUrls = helper.getAuroraClusterInstances(DB_CONN_STR, TEST_USERNAME, TEST_PASSWORD, DB_CONN_HOST_BASE);
     }
 
     @BeforeEach
@@ -118,20 +119,6 @@ public class ClusterPerfMetricIntegrationTest {
         final List<String> logs = logger.getLogs();
         IClusterAwareMetricsReporter.reportMetrics(currWriterUrl + PORT_SUFFIX, logger, true);
         Assertions.assertTrue(logs.size() > 1);
-    }
-
-    private void getTopology() throws SQLException {
-        try (final Connection conn = DriverManager.getConnection(DB_CONN_STR, TEST_USERNAME, TEST_PASSWORD);
-            final Statement stmt = conn.createStatement()) {
-            // Get instances
-            try (final ResultSet resultSet = stmt.executeQuery(RETRIEVE_TOPOLOGY_SQL)) {
-                while (resultSet.next()) {
-                    // Get Instance endpoints
-                    final String hostEndpoint = resultSet.getString("SERVER_ID") + DB_CONN_STR_SUFFIX;
-                    instanceUrls.add(hostEndpoint);
-                }
-            }
-        }
     }
 
     private Properties initDefaultProps() {
