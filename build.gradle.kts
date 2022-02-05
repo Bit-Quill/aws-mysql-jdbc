@@ -376,6 +376,8 @@ tasks.register<Test>("test-community-docker") {
     filter.includeTestsMatching("testsuite.integration.host.CommunityContainerTest.testRunCommunityTestInContainer")
 }
 
+// Run integrations tests in container with debugger
+// Environment is being configured and started
 tasks.register<Test>("debug-integration-docker") {
     this.testLogging {
         this.showStandardStreams = true
@@ -394,7 +396,7 @@ tasks.register<Test>("debug-integration-performance-docker") {
     filter.includeTestsMatching("testsuite.integration.host.AuroraIntegrationContainerTest.testDebugPerformanceTestInContainer")
 }
 
-// Run community tests in container
+// Run community tests in container with debugger
 // Environment (like supplementary containers) should be up and running!
 tasks.register<Test>("debug-community-docker") {
     this.testLogging {
