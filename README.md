@@ -89,7 +89,7 @@ Information about the `clusterInstanceHostPattern` parameter is provided in the 
 For more information about parameters that can be configured with the AWS JDBC Driver, see the section below about failover parameters.
 
 ## Connection Plugin Manager
-1The connection plugin manager initializes, triggers, and cleans up a chain of connection plugins. Connection plugins are widgets attached to each `Connection` object to help execute additional or supplementary logic related to that `Connection`. [Failover](https://github.com/awslabs/aws-mysql-jdbc#failover) and [Enhanced Failure Monitoring](https://github.com/awslabs/aws-mysql-jdbc#enhanced-failure-monitoring) are both examples of connection plugins.
+The connection plugin manager initializes, triggers, and cleans up a chain of connection plugins. Connection plugins are widgets attached to each `Connection` object to help execute additional or supplementary logic related to that `Connection`. [Failover](https://github.com/awslabs/aws-mysql-jdbc#failover) and [Enhanced Failure Monitoring](https://github.com/awslabs/aws-mysql-jdbc#enhanced-failure-monitoring) are both examples of connection plugins.
 
 
 
