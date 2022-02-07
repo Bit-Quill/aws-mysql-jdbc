@@ -143,13 +143,12 @@ public class ContainerHelper {
       dockerClient.execStartCmd(execCreateCmdResponse.getId()).exec(callback).awaitCompletion();
     }
 
-    final Long exitCode = dockerClient.inspectExecCmd(execCreateCmdResponse.getId()).exec().getExitCodeLong();
-    return exitCode;
+    return dockerClient.inspectExecCmd(execCreateCmdResponse.getId()).exec().getExitCodeLong();
   }
 
   protected boolean isRunning(InspectContainerResponse containerInfo) {
     try {
-      return containerInfo != null && containerInfo.getState().getRunning();
+      return containerInfo != null && Boolean.TRUE.equals(containerInfo.getState().getRunning());
     } catch (DockerException e) {
       return false;
     }
