@@ -148,7 +148,7 @@ public class ContainerHelper {
 
   protected boolean isRunning(InspectContainerResponse containerInfo) {
     try {
-      return containerInfo != null && Boolean.TRUE.equals(containerInfo.getState().getRunning());
+      return containerInfo != null && containerInfo.getState().getRunning();
     } catch (DockerException e) {
       return false;
     }
