@@ -27,15 +27,24 @@
 package testsuite.integration.container;
 
 import com.mysql.cj.conf.PropertyKey;
+import com.mysql.cj.jdbc.ha.plugins.failover.IClusterAwareMetricsReporter;
+import com.mysql.cj.log.Log;
+import com.mysql.cj.log.StandardLogger;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.IOException;
+import java.net.UnknownHostException;
 import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.List;
 import java.util.Properties;
 import java.util.stream.Stream;
@@ -319,5 +328,158 @@ public class AuroraMysqlIntegrationTest extends AuroraMysqlIntegrationBaseTest {
 
     final Connection validConn2 = connectToInstance(MYSQL_INSTANCE_1_URL, MYSQL_PORT, validProp);
     validConn2.close();
+  }
+
+  /**
+   * Attempt to connect using the wrong database username.
+   */
+  @Test
+  public void test_AwsIam_WrongDatabaseUsername() {
+    final Properties props = initAwsIamProps("WRONG_" + TEST_DB_USER + "_USER", TEST_PASSWORD);
+
+    Assertions.assertThrows(
+        SQLException.class,
+        () -> connectToInstance(MYSQL_CLUSTER_URL, MYSQL_PORT, props)
+    );
+  }
+
+  /**
+   * Attempt to connect without specifying a database username.
+   */
+  @Test
+  public void test_AwsIam_NoDatabaseUsername() {
+    final Properties props = initAwsIamProps("", TEST_PASSWORD);
+
+    Assertions.assertThrows(
+        SQLException.class,
+        () -> connectToInstance(MYSQL_CLUSTER_URL, MYSQL_PORT, props)
+    );
+  }
+
+  /**
+   * Attempt to connect using IP address instead of a hostname.
+   */
+  @Test
+  public void test_AwsIam_UsingIPAddress() throws UnknownHostException {
+    final Properties props = initAwsIamProps(TEST_DB_USER, TEST_PASSWORD);
+
+    final String hostIp = hostToIP(MYSQL_CLUSTER_URL);
+    Assertions.assertThrows(
+        SQLException.class,
+        () -> connectToInstance(hostIp, MYSQL_PORT, props)
+    );
+  }
+
+  /**
+   * Attempt to connect using valid database username/password & valid Amazon RDS hostname.
+   */
+  @Test
+  public void test_AwsIam_ValidConnectionProperties() throws SQLException {
+    final Properties props = initAwsIamProps(TEST_DB_USER, TEST_PASSWORD);
+
+    final Connection conn = connectToInstance(MYSQL_CLUSTER_URL, MYSQL_PORT, props);
+    Assertions.assertDoesNotThrow(conn::close);
+  }
+
+  /**
+   * Attempt to connect using valid database username, valid Amazon RDS hostname, but no password.
+   */
+  @Test
+  public void test_AwsIam_ValidConnectionPropertiesNoPassword() throws SQLException {
+    final Properties props = initAwsIamProps(TEST_DB_USER, "");
+    final Connection conn = connectToInstance(MYSQL_CLUSTER_URL, MYSQL_PORT, props);
+    Assertions.assertDoesNotThrow(conn::close);
+  }
+
+  /**
+   * Attempts a valid connection followed by invalid connection
+   * without the AWS protocol in Connection URL.
+   */
+  @Test
+  void test_AwsIam_NoAwsProtocolConnection() throws SQLException {
+    final String dbConn = "jdbc:mysql://" + MYSQL_CLUSTER_URL;
+    final Properties validProp = initAwsIamProps(TEST_DB_USER, TEST_PASSWORD);
+    final Properties invalidProp = initAwsIamProps("WRONG_" + TEST_DB_USER + "_USER", TEST_PASSWORD);
+
+    final Connection conn = DriverManager.getConnection(dbConn, validProp);
+    Assertions.assertDoesNotThrow(conn::close);
+    Assertions.assertThrows(
+        SQLException.class,
+        () -> DriverManager.getConnection(dbConn, invalidProp)
+    );
+  }
+
+  /**
+   * Attempts a valid connection followed by an invalid connection
+   * with Username in Connection URL.
+   */
+  @Test
+  void test_AwsIam_UserInConnStr() throws SQLException {
+    final String dbConn = "jdbc:mysql://" + MYSQL_CLUSTER_URL;
+    final Properties awsIamProp = initDefaultProps();
+    awsIamProp.remove(PropertyKey.USER.getKeyName());
+    awsIamProp.setProperty(PropertyKey.useAwsIam.getKeyName(), Boolean.TRUE.toString());
+
+    final Connection validConn = DriverManager.getConnection(dbConn + "?user=" + TEST_DB_USER, awsIamProp);
+    Assertions.assertNotNull(validConn);
+    Assertions.assertThrows(
+        SQLException.class,
+        () -> DriverManager.getConnection(MYSQL_CLUSTER_URL + "?user=WRONG_" + TEST_DB_USER, awsIamProp)
+    );
+  }
+
+  /**
+   * Test collecting performance metrics for cluster
+   */
+  @Test
+  public void test_CollectClusterMetrics() throws SQLException {
+    List<String> currentClusterTopology = getTopology();
+
+    final Properties props = initDefaultProps();
+    props.remove(PropertyKey.clusterInstanceHostPattern.getKeyName());
+    props.setProperty(PropertyKey.gatherPerfMetrics.getKeyName(), "TRUE");
+    props.setProperty(PropertyKey.gatherAdditionalMetricsOnInstance.getKeyName(), "TRUE");
+    IClusterAwareMetricsReporter.resetMetrics();
+
+    final Connection conn = connectToInstance(MYSQL_CLUSTER_URL, MYSQL_PORT, props);
+    conn.close();
+
+    final TestLogger logger = new TestLogger();
+    final List<String> logs = logger.getLogs();
+
+    // Not collecting for instances
+    for (int i = 0; i < currentClusterTopology.size(); i++) {
+      final String instanceUrl = currentClusterTopology.get(i);
+      IClusterAwareMetricsReporter.reportMetrics(instanceUrl + ":" + MYSQL_PORT, logger);
+      Assertions.assertEquals("** No metrics collected for '" + instanceUrl + ":" + MYSQL_PORT + "' **\n", logs.get(i));
+    }
+
+    logs.clear();
+    IClusterAwareMetricsReporter.reportMetrics(MYSQL_CLUSTER_URL + ":" + MYSQL_PORT, logger);
+    Assertions.assertTrue(logs.size() > 1);
+  }
+
+  /**
+   * Test collecting performance metrics for instances as well
+   */
+  @Test
+  public void test_CollectInstanceMetrics() throws SQLException {
+    List<String> currentClusterTopology = getTopology();
+    String anyReaderEndpoint = (currentClusterTopology.size() >= 2) ? currentClusterTopology.get(1) : null;
+
+    final Properties props = initDefaultProps();
+    props.remove(PropertyKey.clusterInstanceHostPattern.getKeyName());
+    props.setProperty(PropertyKey.gatherPerfMetrics.getKeyName(), "TRUE");
+    props.setProperty(PropertyKey.gatherAdditionalMetricsOnInstance.getKeyName(), "TRUE");
+    IClusterAwareMetricsReporter.resetMetrics();
+
+    final Connection conn = connectToInstance(anyReaderEndpoint, MYSQL_PORT, props);
+    conn.close();
+
+    final TestLogger logger = new TestLogger();
+    final List<String> logs = logger.getLogs();
+
+    IClusterAwareMetricsReporter.reportMetrics(anyReaderEndpoint + ":" + MYSQL_PORT, logger, true);
+    Assertions.assertTrue(logs.size() > 1);
   }
 }

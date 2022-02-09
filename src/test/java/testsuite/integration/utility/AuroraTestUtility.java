@@ -67,8 +67,8 @@ import java.util.concurrent.TimeoutException;
  *
  * If using environment variables for credential provider
  *     Required
- *     - AWS_ACCESS_KEY
- *     - AWS_SECRET_KEY
+ *     - AWS_ACCESS_KEY_ID
+ *     - AWS_SECRET_ACCESS_KEY
  */
 public class AuroraTestUtility {
     // Default values
@@ -81,8 +81,8 @@ public class AuroraTestUtility {
     private final String dbSecGroup = "default";
     private int numOfInstances = 5;
 
-    private AmazonRDS rdsClient;
-    private AmazonEC2 ec2Client;
+    private final AmazonRDS rdsClient;
+    private final AmazonEC2 ec2Client;
 
     private static final String DUPLICATE_IP_ERROR_CODE = "InvalidPermission.Duplicate";
 

@@ -27,6 +27,8 @@
 package testsuite.integration.container;
 
 import com.mysql.cj.conf.PropertyKey;
+import com.mysql.cj.log.NullLogger;
+
 import eu.rekawek.toxiproxy.Proxy;
 import eu.rekawek.toxiproxy.ToxiproxyClient;
 import org.junit.jupiter.api.BeforeAll;
@@ -35,11 +37,14 @@ import software.aws.rds.jdbc.mysql.Driver;
 import testsuite.integration.utility.ContainerHelper;
 
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.ResultSet;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -48,6 +53,7 @@ import java.util.Properties;
 public abstract class AuroraMysqlIntegrationBaseTest {
 
   protected static final String TEST_USERNAME = System.getenv("TEST_USERNAME");
+  protected static final String TEST_DB_USER = System.getenv("TEST_DB_USER");
   protected static final String TEST_PASSWORD = System.getenv("TEST_PASSWORD");
   protected static final String QUERY_FOR_INSTANCE = "SELECT @@aurora_server_id";
 
@@ -166,6 +172,15 @@ public abstract class AuroraMysqlIntegrationBaseTest {
     return props;
   }
 
+  protected Properties initAwsIamProps(final String user, final String password) {
+    final Properties properties = initDefaultProps();
+    properties.setProperty(PropertyKey.useAwsIam.getKeyName(), Boolean.TRUE.toString());
+    properties.setProperty(PropertyKey.USER.getKeyName(), user);
+    properties.setProperty(PropertyKey.PASSWORD.getKeyName(), password);
+
+    return properties;
+  }
+
   protected Connection connectToInstance(String instanceUrl, int port) throws SQLException {
     return connectToInstance(instanceUrl, port, initDefaultProps());
   }
@@ -173,6 +188,11 @@ public abstract class AuroraMysqlIntegrationBaseTest {
   protected Connection connectToInstance(String instanceUrl, int port, Properties props) throws SQLException {
     String url = "jdbc:mysql:aws://" + instanceUrl + ":" + port;
     return DriverManager.getConnection(url, props);
+  }
+
+  protected String hostToIP(final String hostname) throws UnknownHostException {
+    InetAddress inet = InetAddress.getByName(hostname);
+    return inet.getHostAddress();
   }
 
   // Return list of instance endpoints.
@@ -185,5 +205,22 @@ public abstract class AuroraMysqlIntegrationBaseTest {
 
     String url = "jdbc:mysql://" + MYSQL_INSTANCE_1_URL + ":" + MYSQL_PORT;
     return this.containerHelper.getAuroraClusterInstances(url, TEST_USERNAME, TEST_PASSWORD, dbConnHostBase);
+  }
+
+  protected static class TestLogger extends NullLogger {
+
+    private final List<String> logs = new ArrayList<>();
+
+    public TestLogger() {
+      super("");
+    }
+
+    public void logInfo(Object msg) {
+      logs.add(msg.toString());
+    }
+
+    public List<String> getLogs() {
+      return logs;
+    }
   }
 }
