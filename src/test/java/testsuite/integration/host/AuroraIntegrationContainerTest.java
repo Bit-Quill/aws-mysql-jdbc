@@ -76,6 +76,8 @@ public class AuroraIntegrationContainerTest {
   private static final String TEST_PASSWORD =
       !StringUtils.isNullOrEmpty(System.getenv("TEST_PASSWORD")) ?
         System.getenv("TEST_PASSWORD") : "my_test_password";
+  protected static final String TEST_DB =
+      !StringUtils.isNullOrEmpty(System.getenv("TEST_DB")) ? System.getenv("TEST_DB") : "test";
 
   private static final String AWS_ACCESS_KEY_ID = System.getenv("AWS_ACCESS_KEY_ID");
   private static final String AWS_SECRET_ACCESS_KEY = System.getenv("AWS_SECRET_ACCESS_KEY");
@@ -84,6 +86,9 @@ public class AuroraIntegrationContainerTest {
   private static String dbConnStrSuffix = "";
   private static final String DB_CONN_PROP = "?enabledTLSProtocols=TLSv1.2";
 
+  private static final String TEST_DB_REGION =
+      !StringUtils.isNullOrEmpty(System.getenv("TEST_DB_REGION")) ?
+        System.getenv("TEST_DB_REGION") : "us-east-2";
   private static final String TEST_DB_CLUSTER_IDENTIFIER =
       !StringUtils.isNullOrEmpty(System.getenv("TEST_DB_CLUSTER_IDENTIFIER")) ?
           System.getenv("TEST_DB_CLUSTER_IDENTIFIER") : "test-idenifer";
@@ -100,7 +105,7 @@ public class AuroraIntegrationContainerTest {
   private static Network network;
 
   private static final ContainerHelper containerHelper = new ContainerHelper();
-  private static final AuroraTestUtility auroraUtil = new AuroraTestUtility();
+  private static final AuroraTestUtility auroraUtil = new AuroraTestUtility(TEST_DB_REGION);
 
   @BeforeAll
   static void setUp() throws SQLException, InterruptedException, UnknownHostException {
@@ -111,7 +116,7 @@ public class AuroraIntegrationContainerTest {
     // Note: You will need to set it to the proper DB Conn Suffix
     // i.e. For "database-cluster-name.XYZ.us-east-2.rds.amazonaws.com"
     // dbConnStrSuffix = "XYZ.us-east-2.rds.amazonaws.com"
-    dbConnStrSuffix = auroraUtil.createCluster(TEST_USERNAME, TEST_PASSWORD, TEST_DB_CLUSTER_IDENTIFIER);
+    dbConnStrSuffix = auroraUtil.createCluster(TEST_USERNAME, TEST_PASSWORD, TEST_DB, TEST_DB_CLUSTER_IDENTIFIER);
 
     // Comment out getting public IP to not add & remove from EC2 whitelist
     runnerIP = auroraUtil.getPublicIPAddress();
@@ -123,7 +128,7 @@ public class AuroraIntegrationContainerTest {
     DriverManager.registerDriver(new Driver());
 
     containerHelper.addAuroraAwsIamUser(
-        DB_CONN_STR_PREFIX + dbHostCluster + DB_CONN_PROP,
+        DB_CONN_STR_PREFIX + dbHostCluster + "/" + TEST_DB + DB_CONN_PROP,
         TEST_USERNAME,
         TEST_PASSWORD,
         dbConnStrSuffix,
@@ -214,6 +219,8 @@ public class AuroraIntegrationContainerTest {
         .withEnv("TEST_USERNAME", TEST_USERNAME)
         .withEnv("TEST_DB_USER", TEST_DB_USER)
         .withEnv("TEST_PASSWORD", TEST_PASSWORD)
+        .withEnv("TEST_DB", TEST_DB)
+        .withEnv("DB_REGION", TEST_DB_REGION)
         .withEnv("DB_CLUSTER_CONN", dbHostCluster)
         .withEnv("DB_RO_CLUSTER_CONN", dbHostClusterRo)
         .withEnv("TOXIPROXY_CLUSTER_NETWORK_ALIAS", "toxiproxy-instance-cluster")

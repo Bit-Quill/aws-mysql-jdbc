@@ -385,6 +385,8 @@ tasks.register<Test>("debug-community-docker") {
 
 tasks.register<Test>("in-container-aurora") {
     filter.includeTestsMatching("testsuite.integration.container.AuroraMysqlIntegrationTest")
+    filter.includeTestsMatching("testsuite.integration.container.AuroraMysqlFailoverIntegrationTest")
+    filter.includeTestsMatching("testsuite.integration.container.AuroraMysqlHardFailureIntegrationTest")
 }
 
 tasks.register<Test>("in-container-aurora-performance") {

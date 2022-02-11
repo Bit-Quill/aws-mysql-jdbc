@@ -277,7 +277,7 @@ public class ContainerHelper {
   public int createAuroraInstanceProxies(List<String> clusterInstances, List<ToxiproxyContainer> containers, int port) {
     Set<Integer> proxyPorts = new HashSet<>();
 
-    for(int i = 0; i < clusterInstances.size(); i++) {
+    for (int i = 0; i < clusterInstances.size(); i++) {
       String instanceEndpoint = clusterInstances.get(i);
       ToxiproxyContainer container = containers.get(i);
       ToxiproxyContainer.ContainerProxy proxy = container.getProxy(instanceEndpoint, port);
@@ -345,5 +345,4 @@ public class ContainerHelper {
       // ignore
     }
   }
-
 }
