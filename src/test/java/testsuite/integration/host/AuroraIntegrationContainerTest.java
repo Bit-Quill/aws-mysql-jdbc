@@ -93,7 +93,7 @@ public class AuroraIntegrationContainerTest {
         System.getenv("TEST_DB_REGION") : "us-east-2";
   private static final String TEST_DB_CLUSTER_IDENTIFIER =
       !StringUtils.isNullOrEmpty(System.getenv("TEST_DB_CLUSTER_IDENTIFIER")) ?
-          System.getenv("TEST_DB_CLUSTER_IDENTIFIER") : "test-idenifer";
+          System.getenv("TEST_DB_CLUSTER_IDENTIFIER") : "test-identifier";
   private static final String PROXIED_DOMAIN_NAME_SUFFIX = ".proxied";
   private static List<ToxiproxyContainer> proxyContainers = new ArrayList<>();
   private static List<String> mySqlInstances = new ArrayList<>();
