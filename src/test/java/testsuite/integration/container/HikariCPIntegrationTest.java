@@ -144,15 +144,11 @@ public class HikariCPIntegrationTest extends AuroraMysqlIntegrationBaseTest {
    * Put down network for specified instance or all instances if given argument is null
    */
   private void putDownInstance(String targetInstance) {
-    System.out.println("=============== Disable target instance1: " + targetInstance);
     proxyMap.forEach((instance, proxy) -> {
       if (targetInstance == null || targetInstance.toLowerCase().contains(instance.toLowerCase())) {
         try {
           if (proxy != null) {
             containerHelper.disableConnectivity(proxy);
-          }
-          else {
-            System.out.println("=========== Proxy was null");
           }
         } catch (IOException e) {
           fail("Couldn't disable proxy connectivity");
