@@ -32,9 +32,7 @@ package testsuite.integration.container;
 
 import com.amazonaws.services.rds.model.FailoverDBClusterRequest;
 import com.mysql.cj.conf.PropertyKey;
-import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestMethodOrder;
 
 import java.io.IOException;
 import java.sql.Connection;
@@ -53,7 +51,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Integration testing with Aurora MySQL failover logic. */
-@TestMethodOrder(MethodOrderer.MethodName.class)
 public class AuroraMysqlFailoverIntegrationTest extends AuroraMysqlIntegrationBaseTest {
 
   /* Writer connection failover tests. */
@@ -63,7 +60,7 @@ public class AuroraMysqlFailoverIntegrationTest extends AuroraMysqlIntegrationBa
    * writer. Driver failover occurs when executing a method against the connection
    */
   @Test
-  public void test1_1_failFromWriterToNewWriter_failOnConnectionInvocation()
+  public void test_failFromWriterToNewWriter_failOnConnectionInvocation()
       throws SQLException, InterruptedException {
 
     final String initialWriterId = instanceIDs[0];
@@ -88,7 +85,7 @@ public class AuroraMysqlFailoverIntegrationTest extends AuroraMysqlIntegrationBa
    * (eg a Statement object created by the connection).
    */
   @Test
-  public void test1_2_failFromWriterToNewWriter_failOnConnectionBoundObjectInvocation()
+  public void test_failFromWriterToNewWriter_failOnConnectionBoundObjectInvocation()
       throws SQLException, InterruptedException {
 
     final String initialWriterId = instanceIDs[0];
@@ -114,7 +111,7 @@ public class AuroraMysqlFailoverIntegrationTest extends AuroraMysqlIntegrationBa
    * to another available reader instance.
    */
   @Test
-  public void test2_5_failFromReaderToWriterToAnyAvailableInstance()
+  public void test_failFromReaderToWriterToAnyAvailableInstance()
       throws SQLException, IOException, InterruptedException {
 
     assertTrue(clusterSize >= 3, "Minimal cluster configuration: 1 writer + 2 readers");
@@ -164,7 +161,7 @@ public class AuroraMysqlFailoverIntegrationTest extends AuroraMysqlIntegrationBa
 
   /** Connect to a readonly cluster endpoint and ensure that we are doing a reader failover. */
   @Test
-  public void test2_7_clusterEndpointReadOnlyFailover() throws SQLException, IOException {
+  public void test_clusterEndpointReadOnlyFailover() throws SQLException, IOException {
     try (final Connection conn = connectToInstance(MYSQL_RO_CLUSTER_URL + PROXIED_DOMAIN_NAME_SUFFIX, MYSQL_PROXY_PORT)) {
       final String initialConnectionId = queryInstanceId(conn);
       assertTrue(isDBInstanceReader(initialConnectionId));
@@ -185,7 +182,7 @@ public class AuroraMysqlFailoverIntegrationTest extends AuroraMysqlIntegrationBa
 
   /** Writer fails within a transaction. Open transaction with "SET autocommit = 0" */
   @Test
-  public void test3_1_writerFailWithinTransaction_setAutocommitSqlZero()
+  public void test_writerFailWithinTransaction_setAutocommitSqlZero()
       throws SQLException, InterruptedException {
 
     final String initialWriterId = instanceIDs[0];
@@ -231,7 +228,7 @@ public class AuroraMysqlFailoverIntegrationTest extends AuroraMysqlIntegrationBa
 
   /** Writer fails within a transaction. Open transaction with setAutoCommit(false) */
   @Test
-  public void test3_2_writerFailWithinTransaction_setAutoCommitFalse()
+  public void test_writerFailWithinTransaction_setAutoCommitFalse()
       throws SQLException, InterruptedException {
 
     final String initialWriterId = instanceIDs[0];
@@ -277,7 +274,7 @@ public class AuroraMysqlFailoverIntegrationTest extends AuroraMysqlIntegrationBa
 
   /** Writer fails within a transaction. Open transaction with "START TRANSACTION". */
   @Test
-  public void test3_3_writerFailWithinTransaction_startTransaction()
+  public void test_writerFailWithinTransaction_startTransaction()
       throws SQLException, InterruptedException {
 
     final String initialWriterId = instanceIDs[0];
@@ -323,7 +320,7 @@ public class AuroraMysqlFailoverIntegrationTest extends AuroraMysqlIntegrationBa
 
   /** Writer fails within NO transaction. */
   @Test
-  public void test3_4_writerFailWithNoTransaction() throws SQLException, InterruptedException {
+  public void test_writerFailWithNoTransaction() throws SQLException, InterruptedException {
 
     final String initialWriterId = instanceIDs[0];
 
@@ -372,7 +369,7 @@ public class AuroraMysqlFailoverIntegrationTest extends AuroraMysqlIntegrationBa
 
   /** Writer connection failover within the connection pool. */
   @Test
-  public void test4_1_pooledWriterConnection_BasicFailover()
+  public void test_pooledWriterConnection_BasicFailover()
       throws SQLException, InterruptedException {
 
     final List<String> currentClusterTopology = getTopology();
@@ -402,7 +399,7 @@ public class AuroraMysqlFailoverIntegrationTest extends AuroraMysqlIntegrationBa
   }
 
   @Test
-  public void test5_1_takeOverConnectionProperties() throws SQLException, InterruptedException {
+  public void test_takeOverConnectionProperties() throws SQLException, InterruptedException {
     final List<String> currentClusterTopology = getTopology();
     final String initialWriterEndpoint = currentClusterTopology.get(0);
     final String initialWriterId = initialWriterEndpoint.substring(0, initialWriterEndpoint.indexOf('.'));

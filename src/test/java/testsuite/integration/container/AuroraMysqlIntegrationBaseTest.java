@@ -183,7 +183,7 @@ public abstract class AuroraMysqlIntegrationBaseTest {
   }
 
   @BeforeEach
-  public void setUpEach() throws SQLException, IOException, InterruptedException {
+  public void setUpEach() throws InterruptedException {
     proxyMap.forEach((instance, proxy) -> containerHelper.enableConnectivity(proxy));
 
     // Always get the latest topology info with writer as first
