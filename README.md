@@ -92,7 +92,6 @@ For more information about parameters that can be configured with the AWS JDBC D
 The connection plugin manager initializes, triggers, and cleans up a chain of connection plugins. Connection plugins are widgets attached to each `Connection` object to help execute additional or supplementary logic related to that `Connection`. [Failover](https://github.com/awslabs/aws-mysql-jdbc#failover) and [Enhanced Failure Monitoring](https://github.com/awslabs/aws-mysql-jdbc#enhanced-failure-monitoring) are both examples of connection plugins.
 
 
-
 Failover and Enhanced Failure Monitoring are loaded by default. Additional custom plugins can be implemented and used alongside existing ones. Plugins can be loaded in a specific order to create a chain, and each plugin will pass its results to the next.
 > **NOTE:** Loading custom plugins will not include Enhanced Failure Monitoring and the Failover Connection Plugin unless explicitly stated through the `connectionPluginFactories` parameter.
 > 
