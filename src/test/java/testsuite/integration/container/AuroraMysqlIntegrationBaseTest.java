@@ -394,7 +394,7 @@ public abstract class AuroraMysqlIntegrationBaseTest {
       });
     }
     executorService.shutdown();
-    executorService.awaitTermination(120, TimeUnit.SECONDS);
+    executorService.awaitTermination(5, TimeUnit.MINUTES);
 
     if (finalCheck) {
       assertTrue(remainingInstances.isEmpty(), "The following instances are still down: \n"
