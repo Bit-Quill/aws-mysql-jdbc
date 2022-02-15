@@ -45,7 +45,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class HikariCPIntegrationTest extends AuroraMysqlIntegrationBaseTest {
-  private static final String JDBC_URL = "jdbc:mysql:aws://" + MYSQL_RO_CLUSTER_URL + PROXIED_DOMAIN_NAME_SUFFIX + ":" + MYSQL_PROXY_PORT;
+  private static final String JDBC_URL = "jdbc:mysql:aws://" + MYSQL_CLUSTER_URL + PROXIED_DOMAIN_NAME_SUFFIX + ":" + MYSQL_PROXY_PORT;
 
   private static HikariDataSource data_source = null;
 
