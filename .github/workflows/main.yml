@@ -40,8 +40,10 @@ jobs:
             --query 'Credentials.[AccessKeyId, SecretAccessKey]' \
             --output text \
           | xargs));
-          echo "{AWS_ACCESS_KEY_ID}={${creds[1]}}" >> $GITHUB_ENV
-          echo "{AWS_SECRET_ACCESS_KEY}={${creds[2]}}" >> $GITHUB_ENV
+          echo "::add-mask::${creds[0]}"
+          echo "::add-mask::${creds[1]}"
+          echo "TEMP_AWS_ACCESS_KEY_ID=${creds[0]}" >> $GITHUB_ENV
+          echo "TEMP_AWS_SECRET_ACCESS_KEY=${creds[1]}" >> $GITHUB_ENV
       - name: 'Run Integration Tests'
         run: |
           ./gradlew --no-parallel --no-daemon test-integration-docker
@@ -49,8 +51,8 @@ jobs:
           TEST_DB_CLUSTER_IDENTIFIER: ${{ secrets.TEST_DB_CLUSTER_IDENTIFIER }}-${{ github.run_id }}
           TEST_USERNAME: ${{ secrets.TEST_USERNAME }}
           TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
-          AWS_ACCESS_KEY_ID: ${{ env.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ env.AWS_SECRET_ACCESS_KEY }}
+          AWS_ACCESS_KEY_ID: ${{ env.TEMP_AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ env.TEMP_AWS_SECRET_ACCESS_KEY }}
       - name: 'Archive junit results'
         if: always()
         uses: actions/upload-artifact@v2
