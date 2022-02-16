@@ -53,6 +53,7 @@ import testsuite.integration.utility.ContainerHelper;
  * The following environment variables are REQUIRED for AWS IAM tests
  * - AWS_ACCESS_KEY_ID, AWS access key
  * - AWS_SECRET_ACCESS_KEY, AWS secret access key
+ * - AWS_SESSION_TOKEN, AWS Session token
  *
  * The following environment variables are optional but suggested differentiating between runners
  * Provided values are just examples.
@@ -81,6 +82,7 @@ public class AuroraIntegrationContainerTest {
 
   private static final String AWS_ACCESS_KEY_ID = System.getenv("AWS_ACCESS_KEY_ID");
   private static final String AWS_SECRET_ACCESS_KEY = System.getenv("AWS_SECRET_ACCESS_KEY");
+  private static final String AWS_SESSION_TOKEN = System.getenv("AWS_SESSION_TOKEN");
 
   private static final String DB_CONN_STR_PREFIX = "jdbc:mysql://";
   private static String dbConnStrSuffix = "";
@@ -111,6 +113,7 @@ public class AuroraIntegrationContainerTest {
   static void setUp() throws SQLException, InterruptedException, UnknownHostException {
     Assertions.assertNotNull(AWS_ACCESS_KEY_ID);
     Assertions.assertNotNull(AWS_SECRET_ACCESS_KEY);
+    Assertions.assertNotNull(AWS_SESSION_TOKEN);
 
     // Comment out below to not create a new cluster & instances
     // Note: You will need to set it to the proper DB Conn Suffix
@@ -228,7 +231,8 @@ public class AuroraIntegrationContainerTest {
         .withEnv("PROXIED_CLUSTER_TEMPLATE", "?." + dbConnStrSuffix + PROXIED_DOMAIN_NAME_SUFFIX)
         .withEnv("DB_CONN_STR_SUFFIX", "." + dbConnStrSuffix)
         .withEnv("AWS_ACCESS_KEY_ID", AWS_ACCESS_KEY_ID)
-        .withEnv("AWS_SECRET_ACCESS_KEY", AWS_SECRET_ACCESS_KEY);
+        .withEnv("AWS_SECRET_ACCESS_KEY", AWS_SECRET_ACCESS_KEY)
+        .withEnv("AWS_SESSION_TOKEN", AWS_SESSION_TOKEN);
 
     // Add mysql instances & proxies to container env
     for (int i = 0; i < mySqlInstances.size(); i++) {
