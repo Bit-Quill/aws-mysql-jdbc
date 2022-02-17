@@ -48,7 +48,12 @@ import java.sql.SQLException;
 import java.sql.SQLTransientConnectionException;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
+
 
 @TestMethodOrder(MethodOrderer.MethodName.class)
 public class HikariCPIntegrationTest extends AuroraMysqlIntegrationBaseTest {
