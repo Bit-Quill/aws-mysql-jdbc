@@ -575,20 +575,24 @@ To run tests for the base driver functionality, use the following command:
 gradlew test-community-docker
 ```
 
-To run the integration tests, you will need some environment variables and an AWS Aurora database. Descriptions of the necessary environment variables is in the table below. To run the integration tests, use the following command (replace the <> tags with the appropriate values):
-```bash
-DB_READONLY_CONN_STR_SUFFIX=<.cluster-ro-XYZ.us-east-2.rds.amazonaws.com> TEST_USERNAME=<username> TEST_PASSWORD=<password> TEST_DB_CLUSTER_IDENTIFIER=<db-identifier> DB_CONN_STR_SUFFIX=<.XYZ.us-east-2.rds.amazonaws.com> TEST_DB_USER=<jane_doe> gradlew test-integration-docker
-```
-#### Environment Variables
+To run the integration tests, you will need some environment variables and an AWS User. Integration tests are set up to create clusters for each test. The AWS User will need access to do the following: create/delete Aurora clusters for testing, AWS IAM access for RDS, and whitelisting IP address of the current runner in EC2 Security Group. 
+Descriptions of the necessary environment variables is in the table below.
 
-| Environment Variable          | Environment Variable Value                                                                                                                                                | Example Value                               |
-|-------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------|
-| `DB_READONLY_CONN_STR_SUFFIX` | The URL suffix for the read-only cluster connection for your database cluster.                                                                                            | .cluster-ro-XYZ.us-east-2.rds.amazonaws.com |
-| `TEST_USERNAME`               | The username to access the database.                                                                                                                                      | username                                    |
-| `TEST_PASSWORD`               | The database cluster password.                                                                                                                                            | password                                    |
-| `TEST_DB_CLUSTER_IDENTIFIER`  | The database identifier for your Aurora cluster (found under the “DB Identifier” column when managing your RDS databases in AWS Management Console).                      | db-identifier                               |
-| `DB_CONN_STR_SUFFIX`          | The suffix URL pattern to use for connections that are made directly to an instance in your database cluster. This should also include the database to use for the tests. | .XYZ.us-east-2.rds.amazonaws.com            |
-| `TEST_DB_USER`                | User within the database that is identified with AWS IAM database authentication. This is used for AWS IAM authentication.                                                | jane_doe                                    |
+To run the integration tests, use the following command (replace the <> tags with the appropriate values):
+```bash
+AWS_ACCESS_KEY_ID=<ASIAIOSFODNN7EXAMPLE> AWS_SECRET_ACCESS_KEY=<wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY> AWS_SESSION_TOKEN=<AQoDYXdzEJr...<remainder of session token>> gradlew test-integration-docker
+```
+
+#### Environment Variables
+| Environment Variable | Required        | Description  | Example Value |
+| -------------------- |:---------------:|:------------:| ------------- |
+| `AWS_ACCESS_KEY_ID` | Yes | Access keys for CLI, SDK, & API access | ASIAIOSFODNN7EXAMPLE |
+| `AWS_SECRET_ACCESS_KEY` | Yes | Secret Access keys for CLI, SDK, & API access | wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY |
+| `AWS_SESSION_TOKEN` | Required if using [temporary AWS credentials](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_use-resources.html). | AWS Session Token for CLI, SDK, & API access. | AQoDYXdzEJr...<remainder of session token> |
+| `TEST_DB_CLUSTER_IDENTIFIER` | No, but suggested to set | The database identifier for your Aurora cluster. It is suggested to have this set to avoid conflicting with existing clusters. | db-identifier |
+| `TEST_USERNAME` | No | The username to access the database. | username |
+| `TEST_PASSWORD` | No | The database cluster password. | password |
+| `TEST_DB_USER` | No | User within the database that is identified with AWS IAM database authentication. This is used for AWS IAM authentication. | jane_doe |
 
 ## Known Issues
 ### SSLHandshakeException
