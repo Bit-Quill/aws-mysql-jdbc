@@ -98,7 +98,7 @@ public class HikariCPIntegrationTest extends AuroraMysqlIntegrationBaseTest {
   @Override
   @BeforeEach
   public void setUpEach() {
-    // do nothing; prevent all instances from being enabled before each test
+    putDownAllInstances(false);
   }
 
   /**
@@ -106,6 +106,8 @@ public class HikariCPIntegrationTest extends AuroraMysqlIntegrationBaseTest {
    */
   @Test
   public void test_1_1_hikariCP_lost_connection() throws SQLException {
+    bringUpAllInstances();
+    
     try (Connection conn = data_source.getConnection()) {
       assertTrue(conn.isValid(5));
 
@@ -273,5 +275,11 @@ public class HikariCPIntegrationTest extends AuroraMysqlIntegrationBaseTest {
   private void bringUpInstance(String targetInstance) {
     Proxy toBringUp = proxyMap.get(targetInstance);
     containerHelper.enableConnectivity(toBringUp);
+  }
+
+  private void bringUpAllInstances() {
+    proxyMap.forEach((instance, proxy) -> {
+      containerHelper.enableConnectivity(proxy);
+    });
   }
 }
