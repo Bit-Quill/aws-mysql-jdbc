@@ -64,8 +64,6 @@ public class HikariCPIntegrationTest extends AuroraMysqlIntegrationBaseTest {
 
   @BeforeAll
   static void setup() throws ClassNotFoundException, SQLException, IOException {
-    AuroraMysqlIntegrationBaseTest.setUp();
-
     Class.forName("software.aws.rds.jdbc.mysql.Driver");
     log = LogFactory.getLogger(StandardLogger.class.getName(), Log.LOGGER_INSTANCE_NAME);
 
