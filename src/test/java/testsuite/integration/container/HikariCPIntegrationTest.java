@@ -137,8 +137,8 @@ public class HikariCPIntegrationTest extends AuroraMysqlIntegrationBaseTest {
     String reader = (currentClusterTopology.size() > 1) ? currentClusterTopology.get(1) : "";
     String writerIdentifier = writer.split("\\.")[0];
     String readerIdentifier = reader.split("\\.")[0];
-    log.logDebug("Writer instance: " + writerIdentifier);
-    log.logDebug("Reader instance: " + readerIdentifier);
+    log.logDebug("Instance to connect to: " + writerIdentifier);
+    log.logDebug("Instance to fail over to: " + readerIdentifier);
 
     bringUpInstance(writerIdentifier);
 
@@ -150,10 +150,10 @@ public class HikariCPIntegrationTest extends AuroraMysqlIntegrationBaseTest {
       log.logDebug("Connected to instance: " + currentInstance);
       assertTrue(currentInstance.equalsIgnoreCase(writerIdentifier));
 
-      putDownInstance(writerIdentifier);
       bringUpInstance(readerIdentifier);
+      log.logDebug("Brought up " + readerIdentifier);
+      putDownInstance(writerIdentifier);
       log.logDebug("Took down " + currentInstance);
-      log.logDebug("Brought up " + writerIdentifier);
 
       final SQLException exception = assertThrows(SQLException.class, () -> selectSingleRow(conn, QUERY_FOR_INSTANCE));
       assertEquals("08S02", exception.getSQLState());
@@ -182,6 +182,8 @@ public class HikariCPIntegrationTest extends AuroraMysqlIntegrationBaseTest {
     String reader = (currentClusterTopology.size() > 1) ? currentClusterTopology.get(1) : "";
     String writerIdentifier = writer.split("\\.")[0];
     String readerIdentifier = reader.split("\\.")[0];
+    log.logDebug("Instance to connect to: " + writerIdentifier);
+    log.logDebug("Instance to fail over to: " + readerIdentifier);
 
     bringUpInstance(writerIdentifier);
 
@@ -191,13 +193,16 @@ public class HikariCPIntegrationTest extends AuroraMysqlIntegrationBaseTest {
       String currentInstance = selectSingleRow(conn, QUERY_FOR_INSTANCE);
       assertTrue(currentInstance.equalsIgnoreCase(writerIdentifier));
       bringUpInstance(readerIdentifier);
+      log.logDebug("Brought up " + readerIdentifier);
       putDownInstance(currentInstance);
+      log.logDebug("Took down " + currentInstance);
 
       final SQLException exception = assertThrows(SQLException.class, () -> selectSingleRow(conn, QUERY_FOR_INSTANCE));
       assertEquals("08S02", exception.getSQLState());
 
       // Check the connection is valid after connecting to a different instance
       currentInstance = selectSingleRow(conn, QUERY_FOR_INSTANCE);
+      log.logDebug("Connected to instance: " + currentInstance);
       assertTrue(currentInstance.equalsIgnoreCase(readerIdentifier));
       assertTrue(conn.isValid(5));
 
@@ -223,8 +228,8 @@ public class HikariCPIntegrationTest extends AuroraMysqlIntegrationBaseTest {
     String reader = (currentClusterTopology.size() > 1) ? currentClusterTopology.get(1) : "";
     String writerIdentifier = writer.split("\\.")[0];
     String readerIdentifier = reader.split("\\.")[0];
-    log.logDebug("Writer instance: " + writerIdentifier);
-    log.logDebug("Reader instance: " + readerIdentifier);
+    log.logDebug("Instance to connect to: " + writerIdentifier);
+    log.logDebug("Instance to fail over to: " + readerIdentifier);
 
     bringUpInstance(writerIdentifier);
 
@@ -236,9 +241,9 @@ public class HikariCPIntegrationTest extends AuroraMysqlIntegrationBaseTest {
       log.logDebug("Connected to instance: " + currentInstance);
 
       bringUpInstance(readerIdentifier);
+      log.logDebug("Brought up " + writerIdentifier);
       putDownInstance(writerIdentifier);
       log.logDebug("Took down " + readerIdentifier);
-      log.logDebug("Brought up " + writerIdentifier);
 
       final SQLException exception = assertThrows(SQLException.class, () -> selectSingleRow(conn, "SELECT SLEEP(100)"));
       assertEquals("08S02", exception.getSQLState());
