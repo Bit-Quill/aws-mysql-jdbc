@@ -144,7 +144,7 @@ public class AuroraIntegrationContainerTest {
             TEST_PASSWORD,
             dbConnStrSuffix);
     proxyContainers = containerHelper.createProxyContainers(network, mySqlInstances, PROXIED_DOMAIN_NAME_SUFFIX);
-    for(ToxiproxyContainer container : proxyContainers) {
+    for (ToxiproxyContainer container : proxyContainers) {
       container.start();
     }
     mySQLProxyPort = containerHelper.createAuroraInstanceProxies(mySqlInstances, proxyContainers, MYSQL_PORT);
@@ -250,7 +250,7 @@ public class AuroraIntegrationContainerTest {
     container.addEnv("PROXIED_DOMAIN_NAME_SUFFIX", PROXIED_DOMAIN_NAME_SUFFIX);
     container.addEnv("MYSQL_PROXY_PORT", Integer.toString(mySQLProxyPort));
 
-    System.out.println("Toxyproxy Instances port: " + mySQLProxyPort);
+    System.out.println("Toxiproxy Instances port: " + mySQLProxyPort);
     System.out.println("Instances Proxied: " + mySqlInstances.size());
 
     container.start();
