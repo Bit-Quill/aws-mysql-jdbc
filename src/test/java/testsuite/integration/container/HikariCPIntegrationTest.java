@@ -34,8 +34,12 @@ import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import com.zaxxer.hikari.HikariPoolMXBean;
 import eu.rekawek.toxiproxy.Proxy;
-
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.TestMethodOrder;
 
 import java.io.IOException;
 import java.sql.Connection;
@@ -56,6 +60,22 @@ public class HikariCPIntegrationTest extends AuroraMysqlIntegrationBaseTest {
   private static final String URL_PREFIX = "jdbc:mysql:aws://";
   private static final String URL_SUFFIX = PROXIED_DOMAIN_NAME_SUFFIX + ":" + MYSQL_PROXY_PORT;
   private static HikariDataSource data_source = null;
+  private final List<String> clusterTopology = fetchTopology();
+
+  private List<String> fetchTopology() {
+    try {
+      List<String> topology = getTopology();
+      // topology should contain a writer and at least one reader
+      if (topology.size() < 2) {
+        fail("Topology does not contain the required instances");
+      }
+      return topology;
+    } catch (SQLException e) {
+      fail("Couldn't fetch cluster topology");
+    }
+
+    return null;
+  }
 
   @BeforeAll
   static void setup() throws ClassNotFoundException {
@@ -72,8 +92,7 @@ public class HikariCPIntegrationTest extends AuroraMysqlIntegrationBaseTest {
 
   @BeforeEach
   public void setUpTest() throws SQLException {
-    List<String> currentClusterTopology = getTopology();
-    String writerEndpoint = (currentClusterTopology.size() > 0) ? currentClusterTopology.get(0) : "";
+    String writerEndpoint = (clusterTopology.size() > 0) ? clusterTopology.get(0) : "";
 
     String jdbcUrl = URL_PREFIX + writerEndpoint + URL_SUFFIX;
     log.logDebug("Writer endpoint: " + jdbcUrl);
@@ -160,8 +179,6 @@ public class HikariCPIntegrationTest extends AuroraMysqlIntegrationBaseTest {
       currentInstance = selectSingleRow(conn, QUERY_FOR_INSTANCE);
       log.logDebug("Connected to instance: " + currentInstance);
       assertTrue(currentInstance.equalsIgnoreCase(readerIdentifier));
-
-      putDownInstance(readerIdentifier);
     }
   }
 
@@ -198,10 +215,10 @@ public class HikariCPIntegrationTest extends AuroraMysqlIntegrationBaseTest {
       assertEquals("08S02", exception.getSQLState());
 
       // Check the connection is valid after connecting to a different instance
+      assertTrue(conn.isValid(5));
       currentInstance = selectSingleRow(conn, QUERY_FOR_INSTANCE);
       log.logDebug("Connected to instance: " + currentInstance);
       assertTrue(currentInstance.equalsIgnoreCase(readerIdentifier));
-      assertTrue(conn.isValid(5));
 
       // Get a new connection
       try (Connection newConn = data_source.getConnection()) {
@@ -210,8 +227,6 @@ public class HikariCPIntegrationTest extends AuroraMysqlIntegrationBaseTest {
         log.logDebug("Connected to instance: " + currentInstance);
         assertTrue(currentInstance.equalsIgnoreCase(readerIdentifier));
       }
-
-      putDownInstance(readerIdentifier);
     }
   }
 
@@ -250,12 +265,10 @@ public class HikariCPIntegrationTest extends AuroraMysqlIntegrationBaseTest {
       assertEquals("08S02", exception.getSQLState());
 
       // Check the connection is valid after connecting to a different instance
+      assertTrue(conn.isValid(5));
       currentInstance = selectSingleRow(conn, QUERY_FOR_INSTANCE);
       log.logDebug("Connected to instance: " + currentInstance);
       assertTrue(currentInstance.equalsIgnoreCase(readerIdentifier));
-      assertTrue(conn.isValid(5));
-
-      putDownInstance(readerIdentifier);
     }
   }
 
