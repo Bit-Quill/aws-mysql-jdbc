@@ -101,7 +101,7 @@ public class HikariCPIntegrationTest extends AuroraMysqlIntegrationBaseTest {
   @Override
   @BeforeEach
   public void setUpEach() {
-    putDownAllInstances(false);
+    // do nothing; prevent base class from enabling all instances
   }
 
   /**
@@ -109,8 +109,6 @@ public class HikariCPIntegrationTest extends AuroraMysqlIntegrationBaseTest {
    */
   @Test
   public void test_1_1_hikariCP_lost_connection() throws SQLException {
-    bringUpAllInstances();
-    
     try (Connection conn = data_source.getConnection()) {
       assertTrue(conn.isValid(5));
 
@@ -130,8 +128,6 @@ public class HikariCPIntegrationTest extends AuroraMysqlIntegrationBaseTest {
    */
   @Test
   public void test_1_2_hikariCP_basic_failover() throws SQLException {
-    putDownAllInstances(false);
-
     List<String> currentClusterTopology = getTopology();
     String writer = (currentClusterTopology.size() > 0) ? currentClusterTopology.get(0) : "";
     String reader = (currentClusterTopology.size() > 1) ? currentClusterTopology.get(1) : "";
@@ -141,6 +137,7 @@ public class HikariCPIntegrationTest extends AuroraMysqlIntegrationBaseTest {
     log.logDebug("Instance to fail over to: " + readerIdentifier);
 
     bringUpInstance(writerIdentifier);
+    log.logDebug("Brought up " + writerIdentifier);
 
     // Get a valid connection, then make it fail over to a different instance
     try (Connection conn = data_source.getConnection()) {
@@ -175,8 +172,6 @@ public class HikariCPIntegrationTest extends AuroraMysqlIntegrationBaseTest {
    */
   @Test
   public void test_1_3_hikariCP_get_dead_connection() throws SQLException {
-    putDownAllInstances(false);
-
     List<String> currentClusterTopology = getTopology();
     String writer = (currentClusterTopology.size() > 0) ? currentClusterTopology.get(0) : "";
     String reader = (currentClusterTopology.size() > 1) ? currentClusterTopology.get(1) : "";
@@ -186,6 +181,7 @@ public class HikariCPIntegrationTest extends AuroraMysqlIntegrationBaseTest {
     log.logDebug("Instance to fail over to: " + readerIdentifier);
 
     bringUpInstance(writerIdentifier);
+    log.logDebug("Brought up " + writerIdentifier);
 
     // Get a valid connection, then make it fail over to a different instance
     try (Connection conn = data_source.getConnection()) {
@@ -221,8 +217,6 @@ public class HikariCPIntegrationTest extends AuroraMysqlIntegrationBaseTest {
    */
   @Test
   public void test_2_1_hikariCP_efm_failover() throws SQLException {
-    putDownAllInstances(false);
-
     List<String> currentClusterTopology = getTopology();
     String writer = (currentClusterTopology.size() > 0) ? currentClusterTopology.get(0) : "";
     String reader = (currentClusterTopology.size() > 1) ? currentClusterTopology.get(1) : "";
@@ -232,6 +226,7 @@ public class HikariCPIntegrationTest extends AuroraMysqlIntegrationBaseTest {
     log.logDebug("Instance to fail over to: " + readerIdentifier);
 
     bringUpInstance(writerIdentifier);
+    log.logDebug("Brought up " + writerIdentifier);
 
     // Get a valid connection, then make it fail over to a different instance
     try (Connection conn = data_source.getConnection()) {
@@ -283,11 +278,5 @@ public class HikariCPIntegrationTest extends AuroraMysqlIntegrationBaseTest {
   private void bringUpInstance(String targetInstance) {
     Proxy toBringUp = proxyMap.get(targetInstance);
     containerHelper.enableConnectivity(toBringUp);
-  }
-
-  private void bringUpAllInstances() {
-    proxyMap.forEach((instance, proxy) -> {
-      containerHelper.enableConnectivity(proxy);
-    });
   }
 }
