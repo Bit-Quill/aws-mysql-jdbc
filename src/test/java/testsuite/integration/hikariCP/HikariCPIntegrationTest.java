@@ -24,7 +24,7 @@
  *
  */
 
-package testsuite.integration.HikariCP;
+package testsuite.integration.hikariCP;
 
 import com.mysql.cj.conf.PropertyKey;
 import com.mysql.cj.log.Log;
@@ -133,7 +133,7 @@ public class HikariCPIntegrationTest extends AuroraMysqlIntegrationBaseTest {
 
       putDownAllInstances(true);
 
-      final SQLException exception = assertThrows(SQLException.class, () -> selectSingleRow(conn, QUERY_FOR_INSTANCE));
+      final SQLException exception = assertThrows(SQLException.class, () -> queryInstanceId(conn));
       assertEquals("08001", exception.getSQLState());
       assertFalse(conn.isValid(5));
     }
@@ -163,7 +163,7 @@ public class HikariCPIntegrationTest extends AuroraMysqlIntegrationBaseTest {
     // Get a valid connection, then make it fail over to a different instance
     try (Connection conn = data_source.getConnection()) {
       assertTrue(conn.isValid(5));
-      String currentInstance = selectSingleRow(conn, QUERY_FOR_INSTANCE);
+      String currentInstance = queryInstanceId(conn);
       log.logDebug("Connected to instance: " + currentInstance);
       assertTrue(currentInstance.equalsIgnoreCase(writerIdentifier));
 
@@ -172,12 +172,12 @@ public class HikariCPIntegrationTest extends AuroraMysqlIntegrationBaseTest {
       putDownInstance(writerIdentifier);
       log.logDebug("Took down " + currentInstance);
 
-      final SQLException exception = assertThrows(SQLException.class, () -> selectSingleRow(conn, QUERY_FOR_INSTANCE));
+      final SQLException exception = assertThrows(SQLException.class, () -> queryInstanceId(conn));
       assertEquals("08S02", exception.getSQLState());
 
       // Check the connection is valid after connecting to a different instance
       assertTrue(conn.isValid(5));
-      currentInstance = selectSingleRow(conn, QUERY_FOR_INSTANCE);
+      currentInstance = queryInstanceId(conn);
       log.logDebug("Connected to instance: " + currentInstance);
       assertTrue(currentInstance.equalsIgnoreCase(readerIdentifier));
     }
@@ -205,19 +205,19 @@ public class HikariCPIntegrationTest extends AuroraMysqlIntegrationBaseTest {
     // Get a valid connection, then make it fail over to a different instance
     try (Connection conn = data_source.getConnection()) {
       assertTrue(conn.isValid(5));
-      String currentInstance = selectSingleRow(conn, QUERY_FOR_INSTANCE);
+      String currentInstance = queryInstanceId(conn);
       assertTrue(currentInstance.equalsIgnoreCase(writerIdentifier));
       bringUpInstance(readerIdentifier);
       log.logDebug("Brought up " + readerIdentifier);
       putDownInstance(currentInstance);
       log.logDebug("Took down " + currentInstance);
 
-      final SQLException exception = assertThrows(SQLException.class, () -> selectSingleRow(conn, QUERY_FOR_INSTANCE));
+      final SQLException exception = assertThrows(SQLException.class, () -> queryInstanceId(conn));
       assertEquals("08S02", exception.getSQLState());
 
       // Check the connection is valid after connecting to a different instance
       assertTrue(conn.isValid(5));
-      currentInstance = selectSingleRow(conn, QUERY_FOR_INSTANCE);
+      currentInstance = queryInstanceId(conn);
       log.logDebug("Connected to instance: " + currentInstance);
       assertTrue(currentInstance.equalsIgnoreCase(readerIdentifier));
 
@@ -248,7 +248,7 @@ public class HikariCPIntegrationTest extends AuroraMysqlIntegrationBaseTest {
     // Get a valid connection, then make it fail over to a different instance
     try (Connection conn = data_source.getConnection()) {
       assertTrue(conn.isValid(5));
-      String currentInstance = selectSingleRow(conn, QUERY_FOR_INSTANCE);
+      String currentInstance = queryInstanceId(conn);
       assertTrue(currentInstance.equalsIgnoreCase(writerIdentifier));
       log.logDebug("Connected to instance: " + currentInstance);
 
@@ -257,12 +257,12 @@ public class HikariCPIntegrationTest extends AuroraMysqlIntegrationBaseTest {
       putDownInstance(writerIdentifier);
       log.logDebug("Took down " + readerIdentifier);
 
-      final SQLException exception = assertThrows(SQLException.class, () -> selectSingleRow(conn, "SELECT SLEEP(100)"));
+      final SQLException exception = assertThrows(SQLException.class, () -> queryInstanceId(conn));
       assertEquals("08S02", exception.getSQLState());
 
       // Check the connection is valid after connecting to a different instance
       assertTrue(conn.isValid(5));
-      currentInstance = selectSingleRow(conn, QUERY_FOR_INSTANCE);
+      currentInstance = queryInstanceId(conn);
       log.logDebug("Connected to instance: " + currentInstance);
       assertTrue(currentInstance.equalsIgnoreCase(readerIdentifier));
     }

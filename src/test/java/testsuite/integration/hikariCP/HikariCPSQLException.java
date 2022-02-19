@@ -1,4 +1,4 @@
-package testsuite.integration.HikariCP;
+package testsuite.integration.hikariCP;
 
 import com.zaxxer.hikari.SQLExceptionOverride;
 
