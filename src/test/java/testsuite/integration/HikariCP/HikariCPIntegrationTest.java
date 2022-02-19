@@ -24,7 +24,7 @@
  *
  */
 
-package testsuite.integration.container;
+package testsuite.integration.HikariCP;
 
 import com.mysql.cj.conf.PropertyKey;
 import com.mysql.cj.log.Log;
@@ -40,6 +40,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.TestMethodOrder;
+import testsuite.integration.container.AuroraMysqlIntegrationBaseTest;
 
 import java.io.IOException;
 import java.sql.Connection;
@@ -66,7 +67,7 @@ public class HikariCPIntegrationTest extends AuroraMysqlIntegrationBaseTest {
     try {
       List<String> topology = getTopology();
       // topology should contain a writer and at least one reader
-      if (topology.size() < 2) {
+      if (topology == null || topology.size() < 2) {
         fail("Topology does not contain the required instances");
       }
       return topology;
@@ -104,6 +105,7 @@ public class HikariCPIntegrationTest extends AuroraMysqlIntegrationBaseTest {
     config.setPassword(TEST_PASSWORD);
     config.setMaximumPoolSize(3);
     config.setReadOnly(true);
+    config.setExceptionOverrideClassName(HikariCPSQLException.class.getName());
     config.setInitializationFailTimeout(75000);
     config.setConnectionTimeout(1000);
     config.addDataSourceProperty(PropertyKey.failoverTimeoutMs.getKeyName(), "5000");
@@ -160,7 +162,6 @@ public class HikariCPIntegrationTest extends AuroraMysqlIntegrationBaseTest {
 
     // Get a valid connection, then make it fail over to a different instance
     try (Connection conn = data_source.getConnection()) {
-      conn.setReadOnly(true);
       assertTrue(conn.isValid(5));
       String currentInstance = selectSingleRow(conn, QUERY_FOR_INSTANCE);
       log.logDebug("Connected to instance: " + currentInstance);
@@ -220,13 +221,8 @@ public class HikariCPIntegrationTest extends AuroraMysqlIntegrationBaseTest {
       log.logDebug("Connected to instance: " + currentInstance);
       assertTrue(currentInstance.equalsIgnoreCase(readerIdentifier));
 
-      // Get a new connection
-      try (Connection newConn = data_source.getConnection()) {
-        assertTrue(newConn.isValid(3));
-        currentInstance = selectSingleRow(conn, QUERY_FOR_INSTANCE);
-        log.logDebug("Connected to instance: " + currentInstance);
-        assertTrue(currentInstance.equalsIgnoreCase(readerIdentifier));
-      }
+      // Try to get a new connection
+      assertThrows(SQLTransientConnectionException.class, () -> data_source.getConnection());
     }
   }
 
