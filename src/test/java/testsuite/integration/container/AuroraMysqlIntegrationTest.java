@@ -29,7 +29,9 @@ package testsuite.integration.container;
 import com.mysql.cj.conf.PropertyKey;
 import com.mysql.cj.jdbc.ha.plugins.failover.IClusterAwareMetricsReporter;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -54,6 +56,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+@TestMethodOrder(MethodOrderer.MethodName.class)
 public class AuroraMysqlIntegrationTest extends AuroraMysqlIntegrationBaseTest {
 
   protected String currWriter;
@@ -576,7 +579,7 @@ public class AuroraMysqlIntegrationTest extends AuroraMysqlIntegrationBaseTest {
 
   /** Connect to a readonly cluster endpoint and ensure that we are doing a reader failover. */
   @Test
-  public void test_clusterEndpointReadOnlyFailover() throws SQLException, IOException {
+  public void test_ClusterEndpointReadOnlyFailover() throws SQLException, IOException {
     try (final Connection conn = connectToInstance(MYSQL_RO_CLUSTER_URL + PROXIED_DOMAIN_NAME_SUFFIX, MYSQL_PROXY_PORT)) {
       final String initialConnectionId = queryInstanceId(conn);
       assertTrue(isDBInstanceReader(initialConnectionId));
