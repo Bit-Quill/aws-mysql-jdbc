@@ -386,6 +386,7 @@ public abstract class AuroraMysqlIntegrationBaseTest {
       executorService.submit(() -> {
         while (true) {
           try (final Connection conn = connectToInstance(id + DB_CONN_STR_SUFFIX, MYSQL_PORT, initFailoverDisabledProps())) {
+            conn.close();
             remainingInstances.remove(id);
             break;
           } catch (final SQLException ex) {

@@ -113,7 +113,7 @@ public class AuroraIntegrationContainerTest {
   static void setUp() throws SQLException, InterruptedException, UnknownHostException {
     Assertions.assertNotNull(AWS_ACCESS_KEY_ID);
     Assertions.assertNotNull(AWS_SECRET_ACCESS_KEY);
-//    Assertions.assertNotNull(AWS_SESSION_TOKEN);
+    Assertions.assertNotNull(AWS_SESSION_TOKEN);
 
     // Comment out below to not create a new cluster & instances
     // Note: You will need to set it to the proper DB Conn Suffix
