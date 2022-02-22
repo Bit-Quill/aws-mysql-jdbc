@@ -384,6 +384,8 @@ tasks.register<Test>("debug-community-docker") {
     filter.includeTestsMatching("testsuite.integration.host.CommunityContainerTest.testDebugCommunityTestInContainer")
 }
 
+// Integration tests are run in a specific order.
+// To add more tests, see testsuite.integration.container.IntegrationTestSuite.java
 tasks.register<Test>("in-container-aurora") {
     filter.includeTestsMatching("testsuite.integration.container.IntegrationTestSuite")
 }
