@@ -64,7 +64,7 @@ public class HikariCPIntegrationTest extends AuroraMysqlIntegrationBaseTest {
 
   private List<String> fetchTopology() {
     try {
-      List<String> topology = getTopology();
+      List<String> topology = getTopologyEndpoints();
       // topology should contain a writer and at least one reader
       if (topology == null || topology.size() < 2) {
         fail("Topology does not contain the required instances");
@@ -149,7 +149,7 @@ public class HikariCPIntegrationTest extends AuroraMysqlIntegrationBaseTest {
   public void test_1_3_hikariCP_get_dead_connection() throws SQLException {
     putDownAllInstances(false);
 
-    List<String> currentClusterTopology = getTopology();
+    List<String> currentClusterTopology = getTopologyEndpoints();
     String writer = (currentClusterTopology.size() > 0) ? currentClusterTopology.get(0) : "";
     String reader = (currentClusterTopology.size() > 1) ? currentClusterTopology.get(1) : "";
     String writerIdentifier = writer.split("\\.")[0];
@@ -192,7 +192,7 @@ public class HikariCPIntegrationTest extends AuroraMysqlIntegrationBaseTest {
   public void test_2_1_hikariCP_efm_failover() throws SQLException {
     putDownAllInstances(false);
 
-    List<String> currentClusterTopology = getTopology();
+    List<String> currentClusterTopology = getTopologyEndpoints();
     String writer = (currentClusterTopology.size() > 0) ? currentClusterTopology.get(0) : "";
     String reader = (currentClusterTopology.size() > 1) ? currentClusterTopology.get(1) : "";
     String writerIdentifier = writer.split("\\.")[0];
