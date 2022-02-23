@@ -24,7 +24,7 @@
  *
  */
 
-package testsuite.integration.hikariCP;
+package testsuite.integration.container;
 
 import com.mysql.cj.conf.PropertyKey;
 import com.mysql.cj.log.Log;
@@ -40,7 +40,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.TestMethodOrder;
-import testsuite.integration.container.AuroraMysqlIntegrationBaseTest;
 
 import java.io.IOException;
 import java.sql.Connection;
@@ -143,49 +142,8 @@ public class HikariCPIntegrationTest extends AuroraMysqlIntegrationBaseTest {
 
   /**
    * After getting a successful connection from the pool, the connected instance becomes unavailable and the
-   * connection fails over to another instance
-   */
-  @Test
-  public void test_1_2_hikariCP_basic_failover() throws SQLException {
-    putDownAllInstances(false);
-
-    List<String> currentClusterTopology = getTopology();
-    String writer = (currentClusterTopology.size() > 0) ? currentClusterTopology.get(0) : "";
-    String reader = (currentClusterTopology.size() > 1) ? currentClusterTopology.get(1) : "";
-    String writerIdentifier = writer.split("\\.")[0];
-    String readerIdentifier = reader.split("\\.")[0];
-    log.logDebug("Instance to connect to: " + writerIdentifier);
-    log.logDebug("Instance to fail over to: " + readerIdentifier);
-
-    bringUpInstance(writerIdentifier);
-    log.logDebug("Brought up " + writerIdentifier);
-
-    // Get a valid connection, then make it fail over to a different instance
-    try (Connection conn = data_source.getConnection()) {
-      assertTrue(conn.isValid(5));
-      String currentInstance = queryInstanceId(conn);
-      log.logDebug("Connected to instance: " + currentInstance);
-      assertTrue(currentInstance.equalsIgnoreCase(writerIdentifier));
-
-      bringUpInstance(readerIdentifier);
-      log.logDebug("Brought up " + readerIdentifier);
-      putDownInstance(writerIdentifier);
-      log.logDebug("Took down " + currentInstance);
-
-      final SQLException exception = assertThrows(SQLException.class, () -> queryInstanceId(conn));
-      assertEquals("08S02", exception.getSQLState());
-
-      // Check the connection is valid after connecting to a different instance
-      assertTrue(conn.isValid(5));
-      currentInstance = queryInstanceId(conn);
-      log.logDebug("Connected to instance: " + currentInstance);
-      assertTrue(currentInstance.equalsIgnoreCase(readerIdentifier));
-    }
-  }
-
-  /**
-   * After a successful failover, a connection is retrieved to check that connections to failed instances are not
-   * returned
+   * connection fails over to another instance. A connection is then retrieved to check that connections
+   * to failed instances are not returned
    */
   @Test
   public void test_1_3_hikariCP_get_dead_connection() throws SQLException {
@@ -221,7 +179,7 @@ public class HikariCPIntegrationTest extends AuroraMysqlIntegrationBaseTest {
       log.logDebug("Connected to instance: " + currentInstance);
       assertTrue(currentInstance.equalsIgnoreCase(readerIdentifier));
 
-      // Try to get a new connection
+      // Try to get a new connection to the failed instance, which times out
       assertThrows(SQLTransientConnectionException.class, () -> data_source.getConnection());
     }
   }
