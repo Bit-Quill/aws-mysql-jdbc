@@ -146,7 +146,7 @@ public class HikariCPIntegrationTest extends AuroraMysqlIntegrationBaseTest {
    * to failed instances are not returned
    */
   @Test
-  public void test_1_3_hikariCP_get_dead_connection() throws SQLException {
+  public void test_1_2_hikariCP_get_dead_connection() throws SQLException {
     putDownAllInstances(false);
 
     List<String> currentClusterTopology = getTopologyEndpoints();
