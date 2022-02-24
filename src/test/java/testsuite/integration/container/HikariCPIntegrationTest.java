@@ -156,7 +156,6 @@ public class HikariCPIntegrationTest extends AuroraMysqlIntegrationBaseTest {
     log.logDebug("Instance to fail over to: " + readerIdentifier);
 
     bringUpInstance(writerIdentifier);
-    log.logDebug("Brought up " + writerIdentifier);
 
     // Get a valid connection, then make it fail over to a different instance
     try (Connection conn = data_source.getConnection()) {
@@ -164,9 +163,7 @@ public class HikariCPIntegrationTest extends AuroraMysqlIntegrationBaseTest {
       String currentInstance = queryInstanceId(conn);
       assertTrue(currentInstance.equalsIgnoreCase(writerIdentifier));
       bringUpInstance(readerIdentifier);
-      log.logDebug("Brought up " + readerIdentifier);
       putDownInstance(currentInstance);
-      log.logDebug("Took down " + currentInstance);
 
       final SQLException exception = assertThrows(SQLException.class, () -> queryInstanceId(conn));
       assertEquals("08S02", exception.getSQLState());
@@ -198,7 +195,6 @@ public class HikariCPIntegrationTest extends AuroraMysqlIntegrationBaseTest {
     log.logDebug("Instance to fail over to: " + readerIdentifier);
 
     bringUpInstance(writerIdentifier);
-    log.logDebug("Brought up " + writerIdentifier);
 
     // Get a valid connection, then make it fail over to a different instance
     try (Connection conn = data_source.getConnection()) {
@@ -208,9 +204,7 @@ public class HikariCPIntegrationTest extends AuroraMysqlIntegrationBaseTest {
       log.logDebug("Connected to instance: " + currentInstance);
 
       bringUpInstance(readerIdentifier);
-      log.logDebug("Brought up " + writerIdentifier);
       putDownInstance(writerIdentifier);
-      log.logDebug("Took down " + readerIdentifier);
 
       final SQLException exception = assertThrows(SQLException.class, () -> queryInstanceId(conn));
       assertEquals("08S02", exception.getSQLState());
@@ -226,6 +220,7 @@ public class HikariCPIntegrationTest extends AuroraMysqlIntegrationBaseTest {
   private void putDownInstance(String targetInstance) {
     Proxy toPutDown = proxyMap.get(targetInstance);
     disableInstanceConnection(toPutDown);
+    log.logDebug("Took down " + targetInstance);
   }
 
   private void putDownAllInstances(Boolean putDownClusters) {
@@ -248,5 +243,6 @@ public class HikariCPIntegrationTest extends AuroraMysqlIntegrationBaseTest {
   private void bringUpInstance(String targetInstance) {
     Proxy toBringUp = proxyMap.get(targetInstance);
     containerHelper.enableConnectivity(toBringUp);
+    log.logDebug("Brought up " + targetInstance);
   }
 }
