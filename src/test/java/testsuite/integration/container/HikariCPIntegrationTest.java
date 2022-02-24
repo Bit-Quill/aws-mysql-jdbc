@@ -57,7 +57,6 @@ import static org.junit.jupiter.api.Assertions.fail;
 public class HikariCPIntegrationTest extends AuroraMysqlIntegrationBaseTest {
 
   private static Log log = null;
-  private static final String URL_PREFIX = "jdbc:mysql:aws://";
   private static final String URL_SUFFIX = PROXIED_DOMAIN_NAME_SUFFIX + ":" + MYSQL_PROXY_PORT;
   private static HikariDataSource data_source = null;
   private final List<String> clusterTopology = fetchTopology();
@@ -92,9 +91,9 @@ public class HikariCPIntegrationTest extends AuroraMysqlIntegrationBaseTest {
 
   @BeforeEach
   public void setUpTest() throws SQLException {
-    String writerEndpoint = (clusterTopology.size() > 0) ? clusterTopology.get(0) : "";
+    String writerEndpoint = clusterTopology.get(0);
 
-    String jdbcUrl = URL_PREFIX + writerEndpoint + URL_SUFFIX;
+    String jdbcUrl = DB_CONN_STR_PREFIX + writerEndpoint + URL_SUFFIX;
     log.logDebug("Writer endpoint: " + jdbcUrl);
 
     final HikariConfig config = new HikariConfig();
@@ -149,9 +148,8 @@ public class HikariCPIntegrationTest extends AuroraMysqlIntegrationBaseTest {
   public void test_1_2_hikariCP_get_dead_connection() throws SQLException {
     putDownAllInstances(false);
 
-    List<String> currentClusterTopology = getTopologyEndpoints();
-    String writer = (currentClusterTopology.size() > 0) ? currentClusterTopology.get(0) : "";
-    String reader = (currentClusterTopology.size() > 1) ? currentClusterTopology.get(1) : "";
+    String writer = clusterTopology.get(0);
+    String reader = clusterTopology.get(1);
     String writerIdentifier = writer.split("\\.")[0];
     String readerIdentifier = reader.split("\\.")[0];
     log.logDebug("Instance to connect to: " + writerIdentifier);
@@ -192,9 +190,8 @@ public class HikariCPIntegrationTest extends AuroraMysqlIntegrationBaseTest {
   public void test_2_1_hikariCP_efm_failover() throws SQLException {
     putDownAllInstances(false);
 
-    List<String> currentClusterTopology = getTopologyEndpoints();
-    String writer = (currentClusterTopology.size() > 0) ? currentClusterTopology.get(0) : "";
-    String reader = (currentClusterTopology.size() > 1) ? currentClusterTopology.get(1) : "";
+    String writer = clusterTopology.get(0);
+    String reader = clusterTopology.get(1);
     String writerIdentifier = writer.split("\\.")[0];
     String readerIdentifier = reader.split("\\.")[0];
     log.logDebug("Instance to connect to: " + writerIdentifier);

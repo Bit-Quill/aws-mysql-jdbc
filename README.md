@@ -443,7 +443,7 @@ public class FailoverSampleApp2 {
 ```
 
 ### Connection Pooling
-The AWS JDBC Driver for MySQL is compatible with connection pooling, but some connection pooling libraries may contain additional behaviour when dealing with SQL exceptions. This means the exceptions created by the AWS JDBC Driver for MySQL may not be recognized, and depending on the connection pool, connections may be closed prematurely due to the unrecognized SQL exceptions. Users may need to implement additional code to allow the connection pool to accept the exceptions created by the driver. For example, HikariCP has an interface that users can implement to prevent connections from being closed immediately after failover, as seen below.
+The AWS JDBC Driver for MySQL is compatible with connection pooling, but some connection pooling libraries may contain additional behaviour when dealing with SQL exceptions. This means the exceptions created by the AWS JDBC Driver for MySQL may not be recognized, and depending on the connection pool, connections may be closed prematurely due to the unrecognized SQL exceptions. Users are recommended to investigate the connection pooling library of their choice, and to implement any required additional code to allow the connection pool to accept the exceptions raised by the driver. For example, the library HikariCP has an interface that users can implement to prevent connections from being closed immediately after failover, as seen below.
 
 #### Sample Code
 ```java
