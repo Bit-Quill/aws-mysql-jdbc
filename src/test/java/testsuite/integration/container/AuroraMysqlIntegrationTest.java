@@ -578,23 +578,4 @@ public class AuroraMysqlIntegrationTest extends AuroraMysqlIntegrationBaseTest {
     }
   }
 
-  /** Connect to a readonly cluster endpoint and ensure that read-only property is carried over failover. */
-  @Test
-  public void test_ClusterEndpointReadOnlyFailover() throws SQLException, IOException {
-    try (final Connection conn = connectToInstance(MYSQL_RO_CLUSTER_URL + PROXIED_DOMAIN_NAME_SUFFIX, MYSQL_PROXY_PORT)) {
-      assertTrue(conn.isReadOnly());
-
-      final String initialConnectionId = queryInstanceId(conn);
-
-      final Proxy instanceProxy = proxyMap.get(initialConnectionId);
-      containerHelper.disableConnectivity(instanceProxy);
-
-      assertFirstQueryThrows(conn, "08S02");
-
-      final String newConnectionId = queryInstanceId(conn);
-      assertTrue(conn.isReadOnly());
-      assertNotEquals(newConnectionId, initialConnectionId);
-    }
-  }
-
 }
