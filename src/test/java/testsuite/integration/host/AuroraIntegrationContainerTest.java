@@ -46,6 +46,8 @@ import software.aws.rds.jdbc.mysql.Driver;
 import testsuite.integration.utility.AuroraTestUtility;
 import testsuite.integration.utility.ContainerHelper;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
 /**
  * Integration tests against RDS Aurora cluster.
  * Uses {@link AuroraTestUtility} which requires AWS Credentials to create/destroy clusters & set EC2 Whitelist.
@@ -168,6 +170,7 @@ public class AuroraIntegrationContainerTest {
     );
 
     integrationTestContainer = initializeTestContainer(network, mySqlInstances);
+    assertNotNull(integrationTestContainer, "Test container could not be initialized");
   }
 
   @AfterAll
@@ -254,6 +257,12 @@ public class AuroraIntegrationContainerTest {
     System.out.println("Instances Proxied: " + mySqlInstances.size());
 
     container.start();
+
+    try {
+      container.execInContainer("dos2unix", "gradlew");
+    } catch (InterruptedException | UnsupportedOperationException | IOException e) {
+      return null;
+    }
 
     return container;
   }
