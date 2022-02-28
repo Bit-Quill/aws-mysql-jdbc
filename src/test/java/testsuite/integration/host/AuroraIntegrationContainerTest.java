@@ -46,7 +46,6 @@ import software.aws.rds.jdbc.mysql.Driver;
 import testsuite.integration.utility.AuroraTestUtility;
 import testsuite.integration.utility.ContainerHelper;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.fail;
 
 /**
