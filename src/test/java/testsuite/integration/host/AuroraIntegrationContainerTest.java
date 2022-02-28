@@ -47,6 +47,7 @@ import testsuite.integration.utility.AuroraTestUtility;
 import testsuite.integration.utility.ContainerHelper;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Integration tests against RDS Aurora cluster.
@@ -170,7 +171,11 @@ public class AuroraIntegrationContainerTest {
     );
 
     integrationTestContainer = initializeTestContainer(network, mySqlInstances);
-    assertNotNull(integrationTestContainer, "Test container could not be initialized");
+    try {
+      integrationTestContainer.execInContainer("dos2unix", "gradlew");
+    } catch (InterruptedException | UnsupportedOperationException | IOException e) {
+      fail("Integration test container initialised incorrectly");
+    }
   }
 
   @AfterAll
@@ -257,12 +262,6 @@ public class AuroraIntegrationContainerTest {
     System.out.println("Instances Proxied: " + mySqlInstances.size());
 
     container.start();
-
-    try {
-      container.execInContainer("dos2unix", "gradlew");
-    } catch (InterruptedException | UnsupportedOperationException | IOException e) {
-      return null;
-    }
 
     return container;
   }
