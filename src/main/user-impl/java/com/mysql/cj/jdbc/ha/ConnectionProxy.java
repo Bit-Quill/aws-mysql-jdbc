@@ -273,10 +273,7 @@ public class ConnectionProxy implements ICurrentConnectionProvider, InvocationHa
     if (this.pluginManager == null) {
       this.pluginManager = connectionPluginManagerInitializer.apply(log);
       this.pluginManager.init(this, connProps);
-
-      if (this.currentConnection == null) {
-        this.pluginManager.openInitialConnection(connectionUrl);
-      }
+      this.pluginManager.openInitialConnection(connectionUrl);
     }
   }
 

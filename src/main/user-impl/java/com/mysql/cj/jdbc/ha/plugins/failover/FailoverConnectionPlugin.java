@@ -144,7 +144,7 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
       ICurrentConnectionProvider currentConnectionProvider,
       PropertySet propertySet,
       IConnectionPlugin nextPlugin,
-      Log logger) throws SQLException {
+      Log logger) {
     this(
         currentConnectionProvider,
         propertySet,
@@ -162,30 +162,22 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
       Log logger,
       IConnectionProvider connectionProvider,
       Supplier<ITopologyService> topologyServiceSupplier,
-      Supplier<IClusterAwareMetricsContainer> metricsContainerSupplier) throws SQLException {
+      Supplier<IClusterAwareMetricsContainer> metricsContainerSupplier) {
     this.currentConnectionProvider = currentConnectionProvider;
     this.propertySet = propertySet;
     this.nextPlugin = nextPlugin;
     this.logger = logger;
     this.connectionProvider = connectionProvider;
     this.metricsContainer = metricsContainerSupplier.get();
-
-    this.initialConnectionProps = new HashMap<>();
-    Properties originalProperties = this.propertySet.exposeAsProperties();
-    if (originalProperties != null) {
-      for (String p : originalProperties.stringPropertyNames()) {
-        this.initialConnectionProps.put(p, originalProperties.getProperty(p));
-      }
-    }
-
-    initSettings();
-
-    if (!this.enableFailoverSetting) {
-      return;
-    }
-
     this.topologyService = topologyServiceSupplier.get();
     topologyService.setRefreshRate(this.clusterTopologyRefreshRateMsSetting);
+
+    initSettings();
+  }
+
+  @Override
+  public void openInitialConnection(ConnectionUrl connectionUrl) throws SQLException {
+    this.initialConnectionProps = connectionUrl.getOriginalProperties();
 
     this.readerFailoverHandler =
         new ClusterAwareReaderFailoverHandler(
@@ -206,11 +198,6 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
             this.failoverWriterReconnectIntervalMsSetting,
             this.logger);
 
-    initProxy();
-  }
-
-  @Override
-  public void openInitialConnection(ConnectionUrl connectionUrl) throws SQLException {
     createConnection(connectionUrl);
 
     if (this.enableFailoverSetting) {
@@ -792,8 +779,12 @@ public class FailoverConnectionPlugin implements IConnectionPlugin {
           hostInfo.getDatabase());
     }
 
+    final Properties templateProperties = new Properties();
+    templateProperties.putAll(properties);
+
     final ConnectionUrl connectionUrl = ConnectionUrl.getConnectionUrlInstance(
-            hostInfo.getDatabaseUrl(), this.propertySet.exposeAsProperties());
+        hostInfo.getDatabaseUrl(),
+        templateProperties);
 
     return new HostInfo(
         connectionUrl,
