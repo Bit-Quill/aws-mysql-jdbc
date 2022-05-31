@@ -30,6 +30,7 @@
 
 package testsuite.integration.container;
 
+import com.amazonaws.services.rds.model.FailoverDBClusterRequest;
 import com.mysql.cj.conf.PropertyKey;
 import org.junit.jupiter.api.Test;
 
@@ -413,9 +414,12 @@ public class AuroraMysqlFailoverIntegrationTest extends AuroraMysqlIntegrationBa
 
   private void failoverCluster() throws InterruptedException {
     waitUntilClusterHasRightState();
+    final FailoverDBClusterRequest request =
+        new FailoverDBClusterRequest().withDBClusterIdentifier(DB_CLUSTER_IDENTIFIER);
+
     while (true) {
       try {
-        rdsClient.failoverDBCluster((builder) -> builder.dbClusterIdentifier(DB_CLUSTER_IDENTIFIER));
+        rdsClient.failoverDBCluster(request);
         break;
       } catch (final Exception e) {
         TimeUnit.MILLISECONDS.sleep(1000);
@@ -432,12 +436,14 @@ public class AuroraMysqlFailoverIntegrationTest extends AuroraMysqlIntegrationBa
   private void failoverClusterWithATargetInstance(String targetInstanceId)
       throws InterruptedException {
     waitUntilClusterHasRightState();
+    final FailoverDBClusterRequest request =
+        new FailoverDBClusterRequest()
+            .withDBClusterIdentifier(DB_CLUSTER_IDENTIFIER)
+            .withTargetDBInstanceIdentifier(targetInstanceId);
 
     while (true) {
       try {
-        rdsClient.failoverDBCluster(
-            (builder) -> builder.dbClusterIdentifier(DB_CLUSTER_IDENTIFIER)
-              .targetDBInstanceIdentifier(targetInstanceId));
+        rdsClient.failoverDBCluster(request);
         break;
       } catch (final Exception e) {
         TimeUnit.MILLISECONDS.sleep(1000);
@@ -456,10 +462,10 @@ public class AuroraMysqlFailoverIntegrationTest extends AuroraMysqlIntegrationBa
   }
 
   private void waitUntilClusterHasRightState() throws InterruptedException {
-    String status = getDBCluster().status();
+    String status = getDBCluster().getStatus();
     while (!"available".equalsIgnoreCase(status)) {
       TimeUnit.MILLISECONDS.sleep(1000);
-      status = getDBCluster().status();
+      status = getDBCluster().getStatus();
     }
   }
 }

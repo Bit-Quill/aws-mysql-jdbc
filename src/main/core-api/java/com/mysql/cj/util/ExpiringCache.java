@@ -47,7 +47,7 @@ public class ExpiringCache<K, V> implements Map<K, V> {
                 i.next();
                 do {
                     i.remove();
-                } while (i.hasNext() && i.next().isExpire(expireTimeMs));
+                } while(i.hasNext() && i.next().isExpire(expireTimeMs));
             }
             return false;
         }
@@ -66,30 +66,30 @@ public class ExpiringCache<K, V> implements Map<K, V> {
     }
 
     @Override
-    public synchronized int size() {
+    public int size() {
         return (int)this.linkedHashMap.values().stream()
                 .filter(x -> !x.isExpire(expireTimeMs))
                 .count();
     }
 
     @Override
-    public synchronized boolean isEmpty() {
+    public boolean isEmpty() {
         return !this.linkedHashMap.values().stream().anyMatch(x -> !x.isExpire(expireTimeMs));
     }
 
     @Override
-    public synchronized boolean containsKey(Object key) {
+    public boolean containsKey(Object key) {
         V payload = this.get(key);
         return payload != null;
     }
 
     @Override
-    public synchronized boolean containsValue(Object value) {
+    public boolean containsValue(Object value) {
         return this.linkedHashMap.values().stream().anyMatch(x -> !x.isExpire(expireTimeMs) && x.payload == value);
     }
 
     @Override
-    public synchronized V get(Object key) {
+    public V get(Object key) {
         Hit<V> hit = this.linkedHashMap.get(key);
 
         if(hit == null) {
@@ -105,31 +105,31 @@ public class ExpiringCache<K, V> implements Map<K, V> {
     }
 
     @Override
-    public synchronized V put(K key, V value) {
+    public V put(K key, V value) {
         Hit<V> prevValue = this.linkedHashMap.put(key, new Hit<V>(value));
         return prevValue == null ? null : prevValue.payload;
     }
 
     @Override
-    public synchronized V remove(Object key) {
+    public V remove(Object key) {
         Hit<V> prevValue = this.linkedHashMap.remove(key);
         return prevValue == null ? null : prevValue.payload;
     }
 
     @Override
-    public synchronized void putAll(Map<? extends K, ? extends V> m) {
+    public void putAll(Map<? extends K, ? extends V> m) {
         for (Map.Entry<? extends K, ? extends V> entry : m.entrySet()) {
             this.linkedHashMap.put(entry.getKey(), new Hit<V>(entry.getValue()));
         }
     }
 
     @Override
-    public synchronized void clear() {
+    public void clear() {
         this.linkedHashMap.clear();
     }
 
     @Override
-    public synchronized Set<K> keySet() {
+    public Set<K> keySet() {
         return this.linkedHashMap.entrySet().stream()
                 .filter(x -> !x.getValue().isExpire(expireTimeMs))
                 .map(x -> x.getKey())
@@ -137,7 +137,7 @@ public class ExpiringCache<K, V> implements Map<K, V> {
     }
 
     @Override
-    public synchronized Collection<V> values() {
+    public Collection<V> values() {
         return this.linkedHashMap.values().stream()
                 .filter(x -> !x.isExpire(expireTimeMs))
                 .map(x -> x.payload)
@@ -145,7 +145,7 @@ public class ExpiringCache<K, V> implements Map<K, V> {
     }
 
     @Override
-    public synchronized Set<Entry<K, V>> entrySet() {
+    public Set<Entry<K, V>> entrySet() {
         return this.linkedHashMap.entrySet().stream()
                 .filter(x -> !x.getValue().isExpire(expireTimeMs))
                 .map(x -> new AbstractMap.SimpleEntry<K, V>(x.getKey(), x.getValue().payload))

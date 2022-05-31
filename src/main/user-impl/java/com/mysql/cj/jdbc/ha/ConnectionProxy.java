@@ -178,7 +178,7 @@ public class ConnectionProxy implements ICurrentConnectionProvider, InvocationHa
       throws Throwable {
     final String methodName = method.getName();
 
-    if (isDirectExecute(methodName)) {
+    if (isDirectExecute(methodName, args)) {
       return executeMethodDirectly(methodName, args);
     }
 
@@ -248,14 +248,14 @@ public class ConnectionProxy implements ICurrentConnectionProvider, InvocationHa
 
   /**
    * Special handling of method calls that can be handled without making an explicit invocation against the connection
-   * underlying this proxy. See {@link #isDirectExecute(String)}
+   * underlying this proxy. See {@link #isDirectExecute(String, Object[])}
    *
    * @param methodName The name of the method being called
    * @param args The argument parameters of the method that is being called
    * @return The results of the special method handling, according to which method was called
    */
   private Object executeMethodDirectly(String methodName, Object[] args) {
-    if (METHOD_EQUALS.equals(methodName) && args != null && args.length > 0 && args[0] != null) {
+    if (METHOD_EQUALS.equals(methodName)) {
       return args[0].equals(this);
     }
 
@@ -286,10 +286,14 @@ public class ConnectionProxy implements ICurrentConnectionProvider, InvocationHa
    * provided the arguments are valid when required (eg for METHOD_EQUALS and METHOD_ABORT)
    *
    * @param methodName The name of the method that is being called
+   * @param args The argument parameters of the method that is being called
    * @return true if we need to explicitly invoke the method indicated by methodName on the underlying connection
    */
-  private boolean isDirectExecute(String methodName) {
-    return (METHOD_EQUALS.equals(methodName) || METHOD_HASH_CODE.equals(methodName));
+  private boolean isDirectExecute(String methodName, Object[] args) {
+
+    return (METHOD_EQUALS.equals(methodName)
+        || METHOD_HASH_CODE.equals(methodName)
+        && (args == null || args.length <= 0 || args[0] == null));
   }
 
   /**
@@ -303,9 +307,9 @@ public class ConnectionProxy implements ICurrentConnectionProvider, InvocationHa
     }
 
     public synchronized Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-      final String methodName = method.getName();
-      if (isDirectExecute(methodName)) {
-        return executeMethodDirectly(methodName, args);
+      if (METHOD_EQUALS.equals(method.getName())) {
+        // Let args[0] "unwrap" to its InvocationHandler if it is a proxy.
+        return args[0].equals(this);
       }
 
       Object[] argsCopy = args == null ? null : Arrays.copyOf(args, args.length);
@@ -314,7 +318,7 @@ public class ConnectionProxy implements ICurrentConnectionProvider, InvocationHa
         Object result =
             ConnectionProxy.this.pluginManager.execute(
                 this.invokeOn.getClass(),
-                methodName,
+                method.getName(),
                 () -> method.invoke(this.invokeOn, args),
                 argsCopy);
         return proxyIfReturnTypeIsJdbcInterface(method.getReturnType(), result);

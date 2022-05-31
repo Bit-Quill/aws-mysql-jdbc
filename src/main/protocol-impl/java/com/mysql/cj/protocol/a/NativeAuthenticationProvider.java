@@ -262,7 +262,7 @@ public class NativeAuthenticationProvider implements AuthenticationProvider<Nati
 
         if (useAwsIam) {
             try {
-                Class.forName("software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider");
+                Class.forName("com.amazonaws.auth.AWSCredentialsProvider");
             } catch (ClassNotFoundException ex) {
                 throw ExceptionFactory.createException(Messages.getString(
                     "AuthenticationAwsIamPlugin.MissingSDK"
